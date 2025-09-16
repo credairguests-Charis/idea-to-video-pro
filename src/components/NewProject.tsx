@@ -2,7 +2,12 @@ import { useState } from "react"
 import { ChevronDown, Plus, Sparkles } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import { ActorSelector } from "@/components/ActorSelector"
+import { useProjects } from "@/hooks/useProjects"
+import { useToast } from "@/hooks/use-toast"
+import { useNavigate } from "react-router-dom"
 
 interface SelectedActor {
   id: string
@@ -11,9 +16,44 @@ interface SelectedActor {
 }
 
 export function NewProject() {
+  const [title, setTitle] = useState("")
   const [script, setScript] = useState("")
   const [selectedActors, setSelectedActors] = useState<SelectedActor[]>([])
   const [showActorSelector, setShowActorSelector] = useState(false)
+  const [loading, setLoading] = useState(false)
+  
+  const { createProject } = useProjects()
+  const { toast } = useToast()
+  const navigate = useNavigate()
+
+  const handleCreateProject = async () => {
+    if (!title.trim() && !script.trim()) {
+      toast({
+        title: "Missing Information",
+        description: "Please add a title or script for your project",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setLoading(true)
+    
+    const projectData = {
+      title: title.trim() || "Untitled Project",
+      script: script.trim() || "",
+      selected_actors: selectedActors.map(actor => actor.id),
+      aspect_ratio: "portrait",
+    }
+
+    const project = await createProject(projectData)
+    
+    if (project) {
+      // Navigate to projects page to show the created project
+      navigate("/projects")
+    }
+    
+    setLoading(false)
+  }
 
   return (
     <div className="flex flex-col h-full">
@@ -26,6 +66,18 @@ export function NewProject() {
           <p className="text-lg text-muted-foreground mb-8">
             Turn your ideas into high-converting video ads with AI actors
           </p>
+          
+          {/* Project Title Input */}
+          <div className="mb-6">
+            <Label htmlFor="project-title" className="sr-only">Project Title</Label>
+            <Input
+              id="project-title"
+              placeholder="Enter project title (optional)"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              className="text-center text-lg"
+            />
+          </div>
           
           {/* Selected Actors Preview */}
           {selectedActors.length > 0 && (
@@ -108,8 +160,19 @@ export function NewProject() {
               <Sparkles className="h-4 w-4" />
               Generate Script
             </Button>
-            <Button className="flex items-center gap-2 bg-primary hover:bg-primary/90">
-              Create Video
+            <Button 
+              className="flex items-center gap-2 bg-primary hover:bg-primary/90"
+              onClick={handleCreateProject}
+              disabled={loading}
+            >
+              {loading ? (
+                <>
+                  <div className="h-4 w-4 animate-spin rounded-full border-2 border-background border-t-transparent" />
+                  Creating...
+                </>
+              ) : (
+                "Create Project"
+              )}
             </Button>
           </div>
         </div>
