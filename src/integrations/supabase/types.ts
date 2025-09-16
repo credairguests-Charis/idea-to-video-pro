@@ -14,7 +14,212 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      actors: {
+        Row: {
+          accent: string | null
+          age_group: string
+          created_at: string
+          emotions: string[] | null
+          ethnicity: string | null
+          gender: string
+          id: string
+          is_premium: boolean | null
+          name: string
+          scenarios: string[] | null
+          thumbnail_url: string | null
+          voice_sample_url: string | null
+        }
+        Insert: {
+          accent?: string | null
+          age_group: string
+          created_at?: string
+          emotions?: string[] | null
+          ethnicity?: string | null
+          gender: string
+          id?: string
+          is_premium?: boolean | null
+          name: string
+          scenarios?: string[] | null
+          thumbnail_url?: string | null
+          voice_sample_url?: string | null
+        }
+        Update: {
+          accent?: string | null
+          age_group?: string
+          created_at?: string
+          emotions?: string[] | null
+          ethnicity?: string | null
+          gender?: string
+          id?: string
+          is_premium?: boolean | null
+          name?: string
+          scenarios?: string[] | null
+          thumbnail_url?: string | null
+          voice_sample_url?: string | null
+        }
+        Relationships: []
+      }
+      folders: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          parent_id: string | null
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          parent_id?: string | null
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          parent_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "folders_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "folders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      generations: {
+        Row: {
+          actor_id: string
+          created_at: string
+          error_message: string | null
+          id: string
+          progress: number | null
+          project_id: string
+          status: string | null
+          updated_at: string
+          user_id: string
+          video_url: string | null
+        }
+        Insert: {
+          actor_id: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          progress?: number | null
+          project_id: string
+          status?: string | null
+          updated_at?: string
+          user_id: string
+          video_url?: string | null
+        }
+        Update: {
+          actor_id?: string
+          created_at?: string
+          error_message?: string | null
+          id?: string
+          progress?: number | null
+          project_id?: string
+          status?: string | null
+          updated_at?: string
+          user_id?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generations_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "actors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          avatar_url: string | null
+          created_at: string
+          email: string | null
+          full_name: string | null
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          avatar_url?: string | null
+          created_at?: string
+          email?: string | null
+          full_name?: string | null
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      projects: {
+        Row: {
+          aspect_ratio: string | null
+          created_at: string
+          folder_id: string | null
+          generated_video_url: string | null
+          id: string
+          script: string | null
+          selected_actors: string[] | null
+          status: string | null
+          thumbnail_url: string | null
+          title: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          aspect_ratio?: string | null
+          created_at?: string
+          folder_id?: string | null
+          generated_video_url?: string | null
+          id?: string
+          script?: string | null
+          selected_actors?: string[] | null
+          status?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          aspect_ratio?: string | null
+          created_at?: string
+          folder_id?: string | null
+          generated_video_url?: string | null
+          id?: string
+          script?: string | null
+          selected_actors?: string[] | null
+          status?: string | null
+          thumbnail_url?: string | null
+          title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
