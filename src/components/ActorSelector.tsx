@@ -178,21 +178,21 @@ export function ActorSelector({ onClose, onSelectActors, selectedActors }: Actor
               )}
             </div>
 
-            {/* Actor Grid */}
+            {/* TikTok-Style Actor Grid */}
             <div className="flex-1 overflow-auto p-4">
-              <div className="grid grid-cols-4 gap-4">
+              <div className="grid grid-cols-5 gap-3">
                 {filteredActors.map((actor) => (
                   <div
                     key={actor.id}
-                    className={`relative cursor-pointer rounded-lg border-2 p-3 transition-all ${
+                    className={`relative cursor-pointer rounded-xl border-2 overflow-hidden transition-all hover:scale-105 ${
                       selectedActorIds.has(actor.id)
-                        ? 'border-primary bg-primary/5'
-                        : 'border-transparent bg-card hover:border-border'
+                        ? 'border-primary ring-2 ring-primary/20'
+                        : 'border-border hover:border-primary/50'
                     }`}
                     onClick={() => toggleActorSelection(actor)}
                   >
-                    {/* Actor Image */}
-                    <div className="aspect-square rounded-lg bg-muted mb-3 overflow-hidden">
+                    {/* Actor Video Thumbnail - 9:16 Portrait TikTok Style */}
+                    <div className="aspect-[9/16] bg-gradient-to-b from-muted/50 to-muted overflow-hidden relative">
                       <img
                         src={actor.thumbnail_url}
                         alt={actor.name}
@@ -201,32 +201,51 @@ export function ActorSelector({ onClose, onSelectActors, selectedActors }: Actor
                           (e.target as HTMLImageElement).src = '/placeholder.svg'
                         }}
                       />
+                      
+                      {/* Overlay gradient for better text readability */}
+                      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+                      
+                      {/* Actor info overlay */}
+                      <div className="absolute bottom-2 left-2 right-2">
+                        <h4 className="font-semibold text-white text-sm mb-1 truncate">
+                          {actor.name}
+                        </h4>
+                        <div className="flex items-center gap-1 mb-1">
+                          <span className="text-white/80 text-xs">
+                            {actor.gender} • {actor.age_group}
+                          </span>
+                          {actor.is_premium && (
+                            <Badge className="text-xs bg-amber-500 hover:bg-amber-600 text-white border-0 px-1 py-0">
+                              PRO
+                            </Badge>
+                          )}
+                        </div>
+                      </div>
+                      
+                      {/* Premium indicator */}
+                      {actor.is_premium && (
+                        <div className="absolute top-2 right-2 w-6 h-6 bg-amber-500 rounded-full flex items-center justify-center">
+                          <span className="text-white text-xs">💎</span>
+                        </div>
+                      )}
                     </div>
                     
-                    {/* Actor Info */}
-                    <h4 className="font-medium text-sm mb-1">{actor.name}</h4>
-                    <p className="text-xs text-muted-foreground mb-2">
-                      {actor.gender} • {actor.age_group}
-                    </p>
-                    
-                    {/* Emotions/Scenarios Tags */}
-                    <div className="flex flex-wrap gap-1 mb-2">
-                      {actor.emotions.slice(0, 2).map((emotion) => (
-                        <Badge key={emotion} variant="outline" className="text-xs py-0">
-                          {emotion}
-                        </Badge>
-                      ))}
+                    {/* Bottom info section */}
+                    <div className="p-2 bg-card/95 border-t border-border/50">
+                      {/* Emotions/Scenarios Tags */}
+                      <div className="flex flex-wrap gap-1">
+                        {actor.emotions.slice(0, 2).map((emotion) => (
+                          <Badge key={emotion} variant="outline" className="text-xs py-0 px-1">
+                            {emotion}
+                          </Badge>
+                        ))}
+                      </div>
                     </div>
                     
-                    {actor.is_premium && (
-                      <Badge className="absolute top-2 right-2 text-xs bg-amber-500 hover:bg-amber-600">
-                        Premium
-                      </Badge>
-                    )}
-                    
+                    {/* Selection indicator */}
                     {selectedActorIds.has(actor.id) && (
-                      <div className="absolute inset-0 bg-primary/10 rounded-lg flex items-center justify-center">
-                        <div className="w-6 h-6 rounded-full bg-primary text-primary-foreground flex items-center justify-center">
+                      <div className="absolute inset-0 bg-primary/20 rounded-xl flex items-center justify-center backdrop-blur-sm">
+                        <div className="w-8 h-8 rounded-full bg-primary text-primary-foreground flex items-center justify-center shadow-lg">
                           ✓
                         </div>
                       </div>

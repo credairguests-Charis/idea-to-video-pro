@@ -79,21 +79,29 @@ export function NewProject() {
             />
           </div>
           
-          {/* Selected Actors Preview */}
+          {/* Selected Actors Preview - TikTok Style */}
           {selectedActors.length > 0 && (
-            <div className="flex justify-center gap-3 mb-6">
-              {selectedActors.map((actor) => (
+            <div className="flex justify-center gap-4 mb-8">
+              {selectedActors.slice(0, 3).map((actor) => (
                 <div key={actor.id} className="text-center">
-                  <div className="w-12 h-12 rounded-full bg-muted mb-1 overflow-hidden">
+                  <div className="w-16 h-20 rounded-lg bg-muted mb-2 overflow-hidden border-2 border-primary/20 shadow-lg">
                     <img
                       src={actor.thumbnail_url}
                       alt={actor.name}
                       className="w-full h-full object-cover"
                     />
                   </div>
-                  <span className="text-xs text-muted-foreground">{actor.name}</span>
+                  <span className="text-xs font-medium text-foreground">{actor.name}</span>
                 </div>
               ))}
+              {selectedActors.length > 3 && (
+                <div className="text-center">
+                  <div className="w-16 h-20 rounded-lg bg-muted mb-2 overflow-hidden border-2 border-dashed border-muted-foreground/30 flex items-center justify-center">
+                    <span className="text-sm text-muted-foreground">+{selectedActors.length - 3}</span>
+                  </div>
+                  <span className="text-xs text-muted-foreground">more</span>
+                </div>
+              )}
             </div>
           )}
         </div>
