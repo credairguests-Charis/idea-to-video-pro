@@ -1,1 +1,31 @@
 project_id = "kopclhksdjbheypwsvxz"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public", "storage", "graphql_public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[auth]
+enabled = true
+port = 54324
+site_url = "http://localhost:3000"
+additional_redirect_urls = ["https://fd178190-4e25-4a6b-a609-bdf282c1854b.lovableproject.com"]
+jwt_expiry = 3600
+external_email_enabled = true
+external_phone_enabled = true
+external_sms_enabled = true
+external_anonymous_users_enabled = true
+
+[functions.generate-tts]
+verify_jwt = true
+
+[functions.generate-omnihuman]
+verify_jwt = true
+
+[functions.omnihuman-webhook]
+verify_jwt = false
+
+[functions.upload-audio]
+verify_jwt = true

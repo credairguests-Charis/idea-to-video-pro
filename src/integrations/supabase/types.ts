@@ -59,6 +59,47 @@ export type Database = {
         }
         Relationships: []
       }
+      audio_files: {
+        Row: {
+          created_at: string | null
+          duration_seconds: number | null
+          file_size_bytes: number | null
+          file_url: string
+          id: string
+          project_id: string | null
+          source_type: string
+          tts_settings: Json | null
+        }
+        Insert: {
+          created_at?: string | null
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          file_url: string
+          id?: string
+          project_id?: string | null
+          source_type: string
+          tts_settings?: Json | null
+        }
+        Update: {
+          created_at?: string | null
+          duration_seconds?: number | null
+          file_size_bytes?: number | null
+          file_url?: string
+          id?: string
+          project_id?: string | null
+          source_type?: string
+          tts_settings?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "audio_files_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       folders: {
         Row: {
           created_at: string
@@ -145,6 +186,60 @@ export type Database = {
           },
         ]
       }
+      omnihuman_generations: {
+        Row: {
+          actor_id: string | null
+          audio_url: string | null
+          completed_at: string | null
+          created_at: string | null
+          error_message: string | null
+          id: string
+          project_id: string | null
+          status: string | null
+          task_id: string
+          video_url: string | null
+        }
+        Insert: {
+          actor_id?: string | null
+          audio_url?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          task_id: string
+          video_url?: string | null
+        }
+        Update: {
+          actor_id?: string | null
+          audio_url?: string | null
+          completed_at?: string | null
+          created_at?: string | null
+          error_message?: string | null
+          id?: string
+          project_id?: string | null
+          status?: string | null
+          task_id?: string
+          video_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "omnihuman_generations_actor_id_fkey"
+            columns: ["actor_id"]
+            isOneToOne: false
+            referencedRelation: "actors"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "omnihuman_generations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       profiles: {
         Row: {
           avatar_url: string | null
@@ -178,43 +273,61 @@ export type Database = {
       projects: {
         Row: {
           aspect_ratio: string | null
+          audio_source: string | null
           created_at: string
           folder_id: string | null
           generated_video_url: string | null
+          generation_progress: number | null
+          generation_status: string | null
           id: string
+          omnihuman_task_ids: string[] | null
+          omnihuman_video_urls: string[] | null
           script: string | null
           selected_actors: string[] | null
           status: string | null
           thumbnail_url: string | null
           title: string
+          tts_settings: Json | null
           updated_at: string
           user_id: string
         }
         Insert: {
           aspect_ratio?: string | null
+          audio_source?: string | null
           created_at?: string
           folder_id?: string | null
           generated_video_url?: string | null
+          generation_progress?: number | null
+          generation_status?: string | null
           id?: string
+          omnihuman_task_ids?: string[] | null
+          omnihuman_video_urls?: string[] | null
           script?: string | null
           selected_actors?: string[] | null
           status?: string | null
           thumbnail_url?: string | null
           title?: string
+          tts_settings?: Json | null
           updated_at?: string
           user_id: string
         }
         Update: {
           aspect_ratio?: string | null
+          audio_source?: string | null
           created_at?: string
           folder_id?: string | null
           generated_video_url?: string | null
+          generation_progress?: number | null
+          generation_status?: string | null
           id?: string
+          omnihuman_task_ids?: string[] | null
+          omnihuman_video_urls?: string[] | null
           script?: string | null
           selected_actors?: string[] | null
           status?: string | null
           thumbnail_url?: string | null
           title?: string
+          tts_settings?: Json | null
           updated_at?: string
           user_id?: string
         }

@@ -16,6 +16,12 @@ export interface Project {
   created_at: string
   updated_at: string
   user_id: string
+  omnihuman_task_ids?: string[] | null
+  omnihuman_video_urls?: string[] | null
+  audio_source?: string | null
+  tts_settings?: any | null
+  generation_status?: string | null
+  generation_progress?: number | null
 }
 
 export function useProjects() {
@@ -53,6 +59,10 @@ export function useProjects() {
     script?: string
     selected_actors?: string[]
     aspect_ratio?: string
+    audio_source?: string
+    tts_settings?: any
+    generation_status?: string
+    generation_progress?: number
   }) => {
     if (!user) return null
 

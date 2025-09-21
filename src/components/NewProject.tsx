@@ -1,13 +1,17 @@
 import { useState } from "react"
-import { ChevronDown, Plus, Sparkles } from "lucide-react"
+import { ChevronDown, Plus, Sparkles, Upload, Volume2 } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { Textarea } from "@/components/ui/textarea"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { ActorSelector } from "@/components/ActorSelector"
+import { AudioUpload } from "@/components/AudioUpload"
+import { TTSControls } from "@/components/TTSControls"
 import { useProjects } from "@/hooks/useProjects"
 import { useToast } from "@/hooks/use-toast"
 import { useNavigate } from "react-router-dom"
+import { supabase } from "@/integrations/supabase/client"
 
 interface SelectedActor {
   id: string
@@ -21,10 +25,71 @@ export function NewProject() {
   const [selectedActors, setSelectedActors] = useState<SelectedActor[]>([])
   const [showActorSelector, setShowActorSelector] = useState(false)
   const [loading, setLoading] = useState(false)
+  const [audioSource, setAudioSource] = useState<'tts' | 'upload'>('tts')
+  const [uploadedAudio, setUploadedAudio] = useState<File | null>(null)
+  const [generatedAudioUrl, setGeneratedAudioUrl] = useState<string | null>(null)
+  const [isGeneratingTTS, setIsGeneratingTTS] = useState(false)
   
   const { createProject } = useProjects()
   const { toast } = useToast()
   const navigate = useNavigate()
+
+  const handleGenerateTTS = async (voice: string, language: string) => {
+    if (!script.trim()) {
+      toast({
+        title: "Missing Script",
+        description: "Please enter a script to generate audio",
+        variant: "destructive",
+      })
+      return
+    }
+
+    setIsGeneratingTTS(true)
+    
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-tts', {
+        body: { 
+          text: script.trim(), 
+          voice, 
+          language,
+          projectId: 'temp-' + Date.now() // Temporary ID for TTS generation
+        }
+      })
+
+      if (error) throw error
+
+      if (data.success) {
+        setGeneratedAudioUrl(data.audioUrl)
+        setAudioSource('tts')
+        toast({
+          title: "Audio Generated",
+          description: "Your script has been converted to audio",
+        })
+      } else {
+        throw new Error(data.error)
+      }
+    } catch (error) {
+      console.error('TTS generation error:', error)
+      toast({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate audio from script",
+        variant: "destructive",
+      })
+    }
+    
+    setIsGeneratingTTS(false)
+  }
+
+  const handleAudioSelected = (audioFile: File, duration: number) => {
+    setUploadedAudio(audioFile)
+    setAudioSource('upload')
+    setGeneratedAudioUrl(null)
+  }
+
+  const handleAudioRemoved = () => {
+    setUploadedAudio(null)
+    setGeneratedAudioUrl(null)
+  }
 
   const handleCreateProject = async () => {
     if (!title.trim() && !script.trim()) {
@@ -36,23 +101,114 @@ export function NewProject() {
       return
     }
 
-    setLoading(true)
-    
-    const projectData = {
-      title: title.trim() || "Untitled Project",
-      script: script.trim() || "",
-      selected_actors: selectedActors.map(actor => actor.id),
-      aspect_ratio: "portrait",
+    if (selectedActors.length === 0) {
+      toast({
+        title: "No Actors Selected",
+        description: "Please select at least one actor for your video",
+        variant: "destructive",
+      })
+      return
     }
 
-    const project = await createProject(projectData)
+    setLoading(true)
     
-    if (project) {
-      // Navigate to projects page to show the created project
-      navigate("/projects")
+    try {
+      const projectData = {
+        title: title.trim() || "Untitled Project",
+        script: script.trim() || "",
+        selected_actors: selectedActors.map(actor => actor.id),
+        aspect_ratio: "portrait",
+        audio_source: audioSource,
+        generation_status: 'pending',
+        generation_progress: 0,
+      }
+
+      const project = await createProject(projectData)
+      
+      if (project) {
+        // Handle audio processing and OmniHuman generation
+        let audioUrl = generatedAudioUrl
+
+        if (audioSource === 'upload' && uploadedAudio) {
+          // Upload audio file
+          const reader = new FileReader()
+          reader.onload = async () => {
+            const base64Audio = reader.result?.toString().split(',')[1]
+            if (base64Audio) {
+              const { data, error } = await supabase.functions.invoke('upload-audio', {
+                body: {
+                  audioData: base64Audio,
+                  fileName: uploadedAudio.name,
+                  projectId: project.id,
+                  duration: 0 // Will be calculated server-side
+                }
+              })
+
+              if (!error && data.success) {
+                audioUrl = data.audioUrl
+                await startOmniHumanGeneration(project.id, audioUrl)
+              }
+            }
+          }
+          reader.readAsDataURL(uploadedAudio)
+        } else if (audioSource === 'tts' && script.trim()) {
+          // Generate TTS for the actual project
+          const { data, error } = await supabase.functions.invoke('generate-tts', {
+            body: { 
+              text: script.trim(), 
+              voice: 'alloy', // Default voice, could be made configurable
+              language: 'en-US', // Default language, could be made configurable
+              projectId: project.id
+            }
+          })
+
+          if (!error && data.success) {
+            audioUrl = data.audioUrl
+            await startOmniHumanGeneration(project.id, audioUrl)
+          }
+        }
+
+        // Navigate to projects page
+        navigate("/projects")
+      }
+    } catch (error) {
+      console.error('Project creation error:', error)
+      toast({
+        title: "Creation Failed",
+        description: "Failed to create project. Please try again.",
+        variant: "destructive",
+      })
     }
     
     setLoading(false)
+  }
+
+  const startOmniHumanGeneration = async (projectId: string, audioUrl: string) => {
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-omnihuman', {
+        body: {
+          projectId,
+          actorIds: selectedActors.map(actor => actor.id),
+          audioUrl
+        }
+      })
+
+      if (error) {
+        console.error('OmniHuman generation error:', error)
+        toast({
+          title: "Generation Started",
+          description: "Your project was created but video generation encountered an issue",
+          variant: "destructive",
+        })
+      } else if (data.success) {
+        toast({
+          title: "Generation Started",
+          description: `Started generating videos for ${data.generations.length} actor(s)`,
+        })
+      }
+    } catch (error) {
+      console.error('Error starting OmniHuman generation:', error)
+    }
   }
 
   return (
@@ -137,20 +293,16 @@ export function NewProject() {
 
             <div className="flex items-center gap-4">
               <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Text to Speech</span>
-                <div className="w-8 h-4 bg-muted rounded-full relative">
-                  <div className="w-3 h-3 bg-primary rounded-full absolute top-0.5 left-0.5"></div>
+                <span>AI Generation</span>
+                <div className="w-8 h-4 bg-primary rounded-full relative">
+                  <div className="w-3 h-3 bg-background rounded-full absolute top-0.5 right-0.5"></div>
                 </div>
-              </div>
-              <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                <span>Speech to Speech</span>
-                <div className="w-8 h-4 bg-muted rounded-full"></div>
               </div>
             </div>
           </div>
 
           {/* Script Input */}
-          <div className="relative">
+          <div className="relative mb-6">
             <Textarea
               placeholder="Enter your script or describe your video idea..."
               value={script}
@@ -162,8 +314,45 @@ export function NewProject() {
             </div>
           </div>
 
+          {/* Audio Source Selection */}
+          <div className="mb-6">
+            <Tabs value={audioSource} onValueChange={(value) => setAudioSource(value as 'tts' | 'upload')}>
+              <TabsList className="grid w-full grid-cols-2">
+                <TabsTrigger value="tts" className="flex items-center gap-2">
+                  <Volume2 className="h-4 w-4" />
+                  Text-to-Speech
+                </TabsTrigger>
+                <TabsTrigger value="upload" className="flex items-center gap-2">
+                  <Upload className="h-4 w-4" />
+                  Upload Audio
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="tts" className="mt-4">
+                <TTSControls 
+                  onGenerate={handleGenerateTTS}
+                  disabled={loading || !script.trim()}
+                  isGenerating={isGeneratingTTS}
+                />
+                {generatedAudioUrl && (
+                  <div className="mt-3 p-3 bg-primary/10 rounded-lg">
+                    <p className="text-sm text-foreground">✓ Audio generated from script</p>
+                  </div>
+                )}
+              </TabsContent>
+              
+              <TabsContent value="upload" className="mt-4">
+                <AudioUpload 
+                  onAudioSelected={handleAudioSelected}
+                  onAudioRemoved={handleAudioRemoved}
+                  disabled={loading}
+                />
+              </TabsContent>
+            </Tabs>
+          </div>
+
           {/* Action Buttons */}
-          <div className="flex justify-center gap-3 mt-4">
+          <div className="flex justify-center gap-3">
             <Button variant="outline" className="flex items-center gap-2">
               <Sparkles className="h-4 w-4" />
               Generate Script
@@ -171,7 +360,7 @@ export function NewProject() {
             <Button 
               className="flex items-center gap-2 bg-primary hover:bg-primary/90"
               onClick={handleCreateProject}
-              disabled={loading}
+              disabled={loading || selectedActors.length === 0 || (!script.trim() && !uploadedAudio && !generatedAudioUrl)}
             >
               {loading ? (
                 <>
