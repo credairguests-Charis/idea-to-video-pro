@@ -1,16 +1,8 @@
 import { useProjects } from "@/hooks/useProjects"
-import { Card, CardContent, CardFooter, CardHeader } from "@/components/ui/card"
+import { ProjectCard } from "@/components/ProjectCard"
+import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
-import { MoreVertical, Play, Edit, Trash2 } from "lucide-react"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuTrigger,
-  DropdownMenuItem,
-} from "@/components/ui/dropdown-menu"
-import { formatDistanceToNow } from "date-fns"
 
 export default function Projects() {
   const { projects, loading, deleteProject } = useProjects()
@@ -21,14 +13,6 @@ export default function Projects() {
     }
   }
 
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'completed': return 'bg-green-500'
-      case 'processing': return 'bg-yellow-500'
-      case 'failed': return 'bg-red-500'
-      default: return 'bg-gray-500'
-    }
-  }
 
   if (loading) {
     return (
@@ -69,74 +53,11 @@ export default function Projects() {
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 2xl:grid-cols-6 gap-4">
             {projects.map((project) => (
-              <Card key={project.id} className="overflow-hidden hover:shadow-xl transition-all hover:scale-105 border-0 bg-card/50">
-                {/* TikTok-Style Portrait Thumbnail */}
-                <div className="aspect-[9/16] bg-gradient-to-b from-muted/50 to-muted relative overflow-hidden">
-                  {project.thumbnail_url ? (
-                    <img 
-                      src={project.thumbnail_url} 
-                      alt={project.title}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-primary/10 to-primary/30">
-                      <Play className="h-16 w-16 text-primary/60" />
-                    </div>
-                  )}
-                  
-                  {/* Overlay gradient */}
-                  <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
-                  
-                  {/* Status indicator */}
-                  <div className="absolute top-2 left-2">
-                    <Badge variant="secondary" className="text-xs bg-background/80 backdrop-blur-sm">
-                      <div className={`w-2 h-2 rounded-full mr-1 ${getStatusColor(project.status)}`} />
-                      {project.status}
-                    </Badge>
-                  </div>
-                  
-                  {/* Menu button */}
-                  <div className="absolute top-2 right-2">
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon" className="h-8 w-8 bg-background/80 backdrop-blur-sm hover:bg-background/90">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent>
-                        <DropdownMenuItem>
-                          <Edit className="h-4 w-4 mr-2" />
-                          Edit
-                        </DropdownMenuItem>
-                        <DropdownMenuItem 
-                          className="text-destructive"
-                          onClick={() => handleDeleteProject(project.id)}
-                        >
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Delete
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </div>
-                  
-                  {/* Bottom overlay with project info */}
-                  <div className="absolute bottom-0 left-0 right-0 p-3">
-                    <h3 className="font-semibold text-white text-sm mb-1 truncate">
-                      {project.title}
-                    </h3>
-                    <div className="flex items-center gap-2 mb-1">
-                      {project.selected_actors && project.selected_actors.length > 0 && (
-                        <Badge variant="outline" className="text-xs bg-white/20 border-white/30 text-white">
-                          {project.selected_actors.length} actor{project.selected_actors.length !== 1 ? 's' : ''}
-                        </Badge>
-                      )}
-                    </div>
-                    <p className="text-xs text-white/80">
-                      Updated {formatDistanceToNow(new Date(project.updated_at))} ago
-                    </p>
-                  </div>
-                </div>
-              </Card>
+              <ProjectCard 
+                key={project.id} 
+                project={project} 
+                onDelete={handleDeleteProject} 
+              />
             ))}
           </div>
         )}
