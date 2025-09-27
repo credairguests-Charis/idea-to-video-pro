@@ -18,15 +18,15 @@ serve(async (req) => {
 
   try {
     const payload = await req.json();
-    console.log('Raw webhook payload:', JSON.stringify(payload, null, 2));
+    console.log('Webhook payload received:', JSON.stringify(payload));
     
-    // Handle both possible payload formats
-    const taskId = payload.taskId || payload.task_id;
-    const status = payload.status || payload.state;
-    const resultUrls = payload.resultUrls || payload.result_urls;
-    const errorMessage = payload.errorMessage || payload.error_message || payload.message;
+    // Handle nested payload structure - check both direct and nested paths
+    const taskId = payload?.taskId || payload?.data?.taskId || payload?.task_id;
+    const status = payload?.status || payload?.data?.status || payload?.state;
+    const result = payload?.result || payload?.data?.result || payload?.data;
+    const errorMessage = payload?.error || payload?.data?.error || payload?.errorMessage || payload?.error_message;
 
-    console.log('Parsed webhook data:', { taskId, status, resultUrls, errorMessage });
+    console.log('Parsed webhook data:', { taskId, status, result, errorMessage });
 
     if (!taskId) {
       throw new Error('No taskId in webhook payload');
@@ -38,30 +38,35 @@ serve(async (req) => {
       completed_at: new Date().toISOString()
     };
 
-    if (status === 'success' && resultUrls) {
-      try {
-        let results = resultUrls;
-        if (typeof resultUrls === 'string') {
-          results = JSON.parse(resultUrls);
-        }
-        
-        if (Array.isArray(results) && results.length > 0) {
-          // Look for video_url in the first result object
-          const videoResult = results[0];
-          if (videoResult && videoResult.video_url) {
-            updateData.video_url = videoResult.video_url;
-          }
-        } else if (results && results.video_url) {
-          // Handle case where resultUrls is a single object
-          updateData.video_url = results.video_url;
-        }
-      } catch (e) {
-        console.error('Failed to parse result URLs:', e, 'Raw resultUrls:', resultUrls);
+    // Extract video URL if available with comprehensive checking
+    let video_url = null;
+    if (status === 'success' && result) {
+      // Handle different possible result structures
+      video_url = result.video_url || result.videoUrl || result.output_url || result.outputUrl || 
+                  result.url || result.downloadUrl || result.file_url;
+      
+      // Check if result has resultUrls array
+      const resultUrls = result.resultUrls || result.result_urls;
+      if (resultUrls && Array.isArray(resultUrls) && resultUrls.length > 0) {
+        const firstResult = resultUrls[0];
+        video_url = firstResult.video_url || firstResult.videoUrl || firstResult.output_url || 
+                   firstResult.outputUrl || firstResult.url || firstResult.downloadUrl || firstResult.file_url;
       }
+      
+      // If result is a string URL, use it directly
+      if (typeof result === 'string' && result.startsWith('http')) {
+        video_url = result;
+      }
+      
+      console.log('Extracted video URL:', video_url);
     }
 
     if (status === 'fail' && errorMessage) {
       updateData.error_message = errorMessage;
+    }
+
+    if (video_url) {
+      updateData.video_url = video_url;
     }
 
     const { data: generation, error } = await supabase

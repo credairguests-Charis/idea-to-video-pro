@@ -3,12 +3,13 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { VideoPlayer } from "@/components/VideoPlayer";
-import { MoreVertical, Play, Edit, Trash2, Download } from "lucide-react";
+import { MoreVertical, Play, Edit, Trash2, Download, RefreshCw } from "lucide-react";
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuTrigger,
   DropdownMenuItem,
+  DropdownMenuSeparator,
 } from "@/components/ui/dropdown-menu";
 import {
   Dialog,
@@ -17,6 +18,8 @@ import {
 } from "@/components/ui/dialog";
 import { formatDistanceToNow } from "date-fns";
 import { useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface ProjectCardProps {
   project: Project;
@@ -25,6 +28,7 @@ interface ProjectCardProps {
 
 export function ProjectCard({ project, onDelete }: ProjectCardProps) {
   const [isVideoDialogOpen, setIsVideoDialogOpen] = useState(false);
+  const [retrying, setRetrying] = useState(false);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -64,6 +68,51 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
       document.body.removeChild(a);
     } catch (error) {
       console.error('Download failed:', error);
+    }
+  };
+
+  const handleRetryGeneration = async () => {
+    if (!project.selected_actors?.length) {
+      toast.error('No actors selected for this project')
+      return
+    }
+
+    setRetrying(true)
+    try {
+      // Get the audio file for this project
+      const { data: audioFiles, error: audioError } = await supabase
+        .from('audio_files')
+        .select('file_url')
+        .eq('project_id', project.id)
+        .order('created_at', { ascending: false })
+        .limit(1)
+
+      if (audioError || !audioFiles?.length) {
+        toast.error('No audio file found for this project')
+        return
+      }
+
+      // Trigger generation with the existing audio
+      const { data, error } = await supabase.functions.invoke('generate-omnihuman', {
+        body: {
+          projectId: project.id,
+          actorIds: project.selected_actors,
+          audioUrl: audioFiles[0].file_url
+        }
+      })
+
+      if (error) throw error
+
+      if (data.success) {
+        toast.success(`Retrying generation for ${data.generations.length} actor(s)`)
+      } else {
+        throw new Error(data.error || 'Failed to retry generation')
+      }
+    } catch (error) {
+      console.error('Retry generation error:', error)
+      toast.error('Failed to retry generation: ' + (error.message || 'Unknown error'))
+    } finally {
+      setRetrying(false)
     }
   };
 
@@ -148,6 +197,16 @@ export function ProjectCard({ project, onDelete }: ProjectCardProps) {
                   Download
                 </DropdownMenuItem>
               )}
+              {(project.generation_status === 'failed' || project.generation_status === 'generating') && (
+                <>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleRetryGeneration} disabled={retrying}>
+                    <RefreshCw className={`h-4 w-4 mr-2 ${retrying ? 'animate-spin' : ''}`} />
+                    {retrying ? 'Retrying...' : 'Retry Generation'}
+                  </DropdownMenuItem>
+                </>
+              )}
+              <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="text-destructive"
                 onClick={() => onDelete(project.id)}

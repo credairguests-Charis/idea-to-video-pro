@@ -68,25 +68,55 @@ serve(async (req) => {
         }
 
         const statusData = await statusResponse.json();
-        console.log(`Status response for ${generation.task_id}:`, JSON.stringify(statusData, null, 2));
+        console.log(`Status response for task ${generation.task_id}:`, JSON.stringify(statusData));
 
+        // Handle nested response structure - check both direct and nested paths
+        const dataObj = statusData?.data || statusData;
+        const status = dataObj.status || dataObj.state || statusData.status;
+        const result = dataObj.result || dataObj.output || dataObj.resultUrls || statusData.result;
         // Check if task is completed
-        if (statusData.status === 'success' || statusData.status === 'fail') {
+        if (status === 'success' || status === 'fail') {
           const updateData: any = {
-            status: statusData.status,
+            status: status,
             completed_at: new Date().toISOString()
           };
 
-          if (statusData.status === 'success' && statusData.resultUrls && statusData.resultUrls.length > 0) {
-            // Extract video URL from the first result
-            const videoResult = statusData.resultUrls[0];
-            if (videoResult && videoResult.video_url) {
-              updateData.video_url = videoResult.video_url;
+          // Extract video URL if task completed successfully with comprehensive checking
+          if (status === 'success' && result) {
+            let video_url = null;
+            
+            // Try different possible video URL fields
+            video_url = result.video_url || result.videoUrl || result.output_url || result.outputUrl ||
+                       result.url || result.downloadUrl || result.file_url;
+            
+            // Check if result has resultUrls array (from polling API)
+            if (result.resultUrls && Array.isArray(result.resultUrls) && result.resultUrls.length > 0) {
+              const firstResult = result.resultUrls[0];
+              video_url = firstResult.video_url || firstResult.videoUrl || firstResult.output_url ||
+                         firstResult.outputUrl || firstResult.url || firstResult.downloadUrl || firstResult.file_url;
+            }
+            
+            // If result is array, check first item
+            if (Array.isArray(result) && result.length > 0) {
+              const firstResult = result[0];
+              video_url = firstResult.video_url || firstResult.videoUrl || firstResult.output_url ||
+                         firstResult.outputUrl || firstResult.url || firstResult.downloadUrl || firstResult.file_url;
+            }
+            
+            // If result is a string URL, use it directly
+            if (typeof result === 'string' && result.startsWith('http')) {
+              video_url = result;
+            }
+            
+            console.log('Extracted video URL from polling:', video_url);
+            
+            if (video_url) {
+              updateData.video_url = video_url;
             }
           }
 
-          if (statusData.status === 'fail' && statusData.errorMessage) {
-            updateData.error_message = statusData.errorMessage;
+          if (status === 'fail' && (dataObj.errorMessage || statusData.errorMessage)) {
+            updateData.error_message = dataObj.errorMessage || statusData.errorMessage;
           }
 
           // Update the generation record

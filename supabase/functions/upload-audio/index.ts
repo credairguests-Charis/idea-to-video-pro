@@ -59,18 +59,16 @@ serve(async (req) => {
       throw new Error('Failed to upload audio file');
     }
 
-    // Get public URL
-    const { data: { publicUrl } } = supabase.storage
-      .from('omnihuman-content')
-      .getPublicUrl(storageFileName);
+    // Store the file path for creating signed URLs later
+    const filePath = storageFileName;
 
-    // Store audio file record
+    // Store audio file record with file path
     const { data: audioFile, error: dbError } = await supabase
       .from('audio_files')
       .insert({
         project_id: projectId,
         source_type: 'upload',
-        file_url: publicUrl,
+        file_url: filePath, // Store file path instead of public URL
         duration_seconds: duration,
         file_size_bytes: audioBuffer.length
       })
@@ -84,7 +82,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      audioUrl: publicUrl,
+      audioUrl: filePath, // Return file path for signed URL generation
       audioFileId: audioFile.id
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },

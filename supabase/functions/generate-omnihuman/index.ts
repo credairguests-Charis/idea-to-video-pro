@@ -56,7 +56,20 @@ serve(async (req) => {
 
         console.log(`Processing actor: ${actor.name} (${actorId})`);
 
-        // Call OmniHuman API via KIE - Using correct endpoint
+        // Get signed URL for private audio file
+        const { data: signedUrlData, error: signedUrlError } = await supabase
+          .storage
+          .from('omnihuman-content')
+          .createSignedUrl(audioUrl.split('/').pop()!, 3600); // 1 hour expiry
+
+        if (signedUrlError || !signedUrlData?.signedUrl) {
+          console.error(`Failed to get signed URL for audio: ${audioUrl}`, signedUrlError);
+          throw new Error('Failed to get signed URL for audio');
+        }
+
+        console.log(`Using signed audio URL for actor: ${actor.name}`);
+
+        // Call OmniHuman API via KIE - Using correct endpoint and format
         const omniResponse = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
           method: 'POST',
           headers: {
@@ -67,7 +80,7 @@ serve(async (req) => {
             model: 'omni-human',
             callbackUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/omnihuman-webhook`,
             inputImage: actor.thumbnail_url,
-            inputAudio: audioUrl
+            inputAudio: signedUrlData.signedUrl
           }),
         });
 
@@ -78,10 +91,14 @@ serve(async (req) => {
         }
 
         const omniData = await omniResponse.json();
-        const taskId = omniData.taskId;
+        console.log(`OmniHuman API response for actor ${actorId}:`, JSON.stringify(omniData));
+        
+        // Handle nested response structure
+        const taskId = omniData?.data?.taskId || omniData?.taskId;
 
         if (!taskId) {
-          throw new Error('No taskId returned from OmniHuman API');
+          console.error(`No taskId in response for actor ${actorId}:`, omniData);
+          throw new Error(`No taskId returned from OmniHuman API. Response: ${JSON.stringify(omniData)}`);
         }
 
         console.log(`Created OmniHuman task: ${taskId} for actor: ${actor.name}`);
