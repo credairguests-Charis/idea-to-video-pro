@@ -29,3 +29,6 @@ verify_jwt = false
 
 [functions.upload-audio]
 verify_jwt = true
+
+[functions.poll-omnihuman-status]
+verify_jwt = false

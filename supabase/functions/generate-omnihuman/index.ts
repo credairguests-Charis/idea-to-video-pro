@@ -56,8 +56,8 @@ serve(async (req) => {
 
         console.log(`Processing actor: ${actor.name} (${actorId})`);
 
-        // Call OmniHuman API via KIE
-        const omniResponse = await fetch('https://api.kie.ai/api/v1/humanLiveUse', {
+        // Call OmniHuman API via KIE - Using correct endpoint
+        const omniResponse = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${Deno.env.get('KIE_API_KEY')}`,
@@ -66,8 +66,8 @@ serve(async (req) => {
           body: JSON.stringify({
             model: 'omni-human',
             callbackUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/omnihuman-webhook`,
-            liveImage: actor.thumbnail_url,
-            liveAudio: audioUrl
+            inputImage: actor.thumbnail_url,
+            inputAudio: audioUrl
           }),
         });
 

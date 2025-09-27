@@ -18,9 +18,15 @@ serve(async (req) => {
 
   try {
     const payload = await req.json();
-    const { taskId, state, resultUrls, errorMessage } = payload;
+    console.log('Raw webhook payload:', JSON.stringify(payload, null, 2));
+    
+    // Handle both possible payload formats
+    const taskId = payload.taskId || payload.task_id;
+    const status = payload.status || payload.state;
+    const resultUrls = payload.resultUrls || payload.result_urls;
+    const errorMessage = payload.errorMessage || payload.error_message || payload.message;
 
-    console.log('Webhook received:', { taskId, state, resultUrls, errorMessage });
+    console.log('Parsed webhook data:', { taskId, status, resultUrls, errorMessage });
 
     if (!taskId) {
       throw new Error('No taskId in webhook payload');
@@ -28,22 +34,33 @@ serve(async (req) => {
 
     // Update generation status
     const updateData: any = {
-      status: state,
+      status: status,
       completed_at: new Date().toISOString()
     };
 
-    if (state === 'success' && resultUrls) {
+    if (status === 'success' && resultUrls) {
       try {
-        const results = typeof resultUrls === 'string' ? JSON.parse(resultUrls) : resultUrls;
-        if (results && results.length > 0 && results[0]?.video_url) {
-          updateData.video_url = results[0].video_url;
+        let results = resultUrls;
+        if (typeof resultUrls === 'string') {
+          results = JSON.parse(resultUrls);
+        }
+        
+        if (Array.isArray(results) && results.length > 0) {
+          // Look for video_url in the first result object
+          const videoResult = results[0];
+          if (videoResult && videoResult.video_url) {
+            updateData.video_url = videoResult.video_url;
+          }
+        } else if (results && results.video_url) {
+          // Handle case where resultUrls is a single object
+          updateData.video_url = results.video_url;
         }
       } catch (e) {
-        console.error('Failed to parse result URLs:', e);
+        console.error('Failed to parse result URLs:', e, 'Raw resultUrls:', resultUrls);
       }
     }
 
-    if (state === 'fail' && errorMessage) {
+    if (status === 'fail' && errorMessage) {
       updateData.error_message = errorMessage;
     }
 
