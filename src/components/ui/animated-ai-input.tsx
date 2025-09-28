@@ -1,10 +1,14 @@
 "use client";
 
-import { ArrowRight, Bot, Check, ChevronDown, Paperclip } from "lucide-react";
+import { ArrowRight, Bot, Check, ChevronDown, Users, Upload, Mic, Volume2, Play, Pause, X } from "lucide-react";
 import { useState, useRef, useCallback, useEffect } from "react";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -95,12 +99,27 @@ const OPENAI_ICON = (
     </>
 );
 
+interface SelectedActor {
+    id: string;
+    name: string;
+    thumbnail_url: string;
+}
+
 interface AnimatedAIInputProps {
     value?: string;
     onChange?: (value: string) => void;
-    onSubmit?: (value: string) => void;
+    onSubmit?: () => void;
     placeholder?: string;
     disabled?: boolean;
+    selectedActors?: SelectedActor[];
+    onActorsSelected?: (actors: SelectedActor[]) => void;
+    onOpenActorSelector?: () => void;
+    audioSource?: "tts" | "upload";
+    onAudioSourceChange?: (source: "tts" | "upload") => void;
+    audioFile?: File | null;
+    onAudioSelected?: (file: File) => void;
+    onAudioRemoved?: () => void;
+    onGenerateTTS?: (text: string, voice: string, language: string) => void;
 }
 
 export function AnimatedAIInput({ 
@@ -108,78 +127,47 @@ export function AnimatedAIInput({
     onChange, 
     onSubmit,
     placeholder = "Write script...",
-    disabled = false
+    disabled = false,
+    selectedActors = [],
+    onActorsSelected,
+    onOpenActorSelector,
+    audioSource = "tts",
+    onAudioSourceChange,
+    audioFile,
+    onAudioSelected,
+    onAudioRemoved,
+    onGenerateTTS
 }: AnimatedAIInputProps) {
     const [value, setValue] = useState(controlledValue);
+    const [voice, setVoice] = useState("alloy");
+    const [language, setLanguage] = useState("en-US");
+    const [isPlaying, setIsPlaying] = useState(false);
+    const audioRef = useRef<HTMLAudioElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
+    const { toast } = useToast();
+    
     const { textareaRef, adjustHeight } = useAutoResizeTextarea({
         minHeight: 72,
         maxHeight: 300,
     });
-    const [selectedModel, setSelectedModel] = useState("Text to Speech");
 
-    const AI_MODELS = [
-        "Text to Speech",
-        "Talking Actors",
-        "Gestures",
+    const VOICE_OPTIONS = [
+        { value: "alloy", label: "Alloy (Neutral)" },
+        { value: "echo", label: "Echo (Male)" },
+        { value: "fable", label: "Fable (British)" },
+        { value: "onyx", label: "Onyx (Deep)" },
+        { value: "nova", label: "Nova (Young Female)" },
+        { value: "shimmer", label: "Shimmer (Soft Female)" },
     ];
 
-    const MODEL_ICONS: Record<string, React.ReactNode> = {
-        "Text to Speech": OPENAI_ICON,
-        "Talking Actors": (
-            <svg
-                height="1em"
-                className="w-4 h-4"
-                viewBox="0 0 24 24"
-                xmlns="http://www.w3.org/2000/svg"
-            >
-                <title>Talking Actors</title>
-                <defs>
-                    <linearGradient
-                        id="lobe-icons-gemini-fill"
-                        x1="0%"
-                        x2="68.73%"
-                        y1="100%"
-                        y2="30.395%"
-                    >
-                        <stop offset="0%" stopColor="#1C7DFF" />
-                        <stop offset="52.021%" stopColor="#1C69FF" />
-                        <stop offset="100%" stopColor="#F0DCD6" />
-                    </linearGradient>
-                </defs>
-                <path
-                    d="M12 24A14.304 14.304 0 000 12 14.304 14.304 0 0012 0a14.305 14.305 0 0012 12 14.305 14.305 0 00-12 12"
-                    fill="url(#lobe-icons-gemini-fill)"
-                    fillRule="nonzero"
-                />
-            </svg>
-        ),
-        "Gestures": (
-            <>
-                <svg
-                    fill="#000"
-                    fillRule="evenodd"
-                    className="w-4 h-4 dark:hidden block"
-                    viewBox="0 0 24 24"
-                    width="1em"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <title>Gestures Icon Light</title>
-                    <path d="M13.827 3.52h3.603L24 20h-3.603l-6.57-16.48zm-7.258 0h3.767L16.906 20h-3.674l-1.343-3.461H5.017l-1.344 3.46H0L6.57 3.522zm4.132 9.959L8.453 7.687 6.205 13.48H10.7z" />
-                </svg>
-                <svg
-                    fill="#fff"
-                    fillRule="evenodd"
-                    className="w-4 h-4 hidden dark:block"
-                    viewBox="0 0 24 24"
-                    width="1em"
-                    xmlns="http://www.w3.org/2000/svg"
-                >
-                    <title>Gestures Icon Dark</title>
-                    <path d="M13.827 3.52h3.603L24 20h-3.603l-6.57-16.48zm-7.258 0h3.767L16.906 20h-3.674l-1.343-3.461H5.017l-1.344 3.46H0L6.57 3.522zm4.132 9.959L8.453 7.687 6.205 13.48H10.7z" />
-                </svg>
-            </>
-        ),
-    };
+    const LANGUAGE_OPTIONS = [
+        { value: "en-US", label: "English (US)" },
+        { value: "en-GB", label: "English (UK)" },
+        { value: "es-ES", label: "Spanish" },
+        { value: "fr-FR", label: "French" },
+        { value: "de-DE", label: "German" },
+        { value: "it-IT", label: "Italian" },
+    ];
 
     useEffect(() => {
         setValue(controlledValue);
@@ -188,7 +176,7 @@ export function AnimatedAIInput({
     const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
         if (e.key === "Enter" && !e.shiftKey && value.trim()) {
             e.preventDefault();
-            onSubmit?.(value);
+            onSubmit?.();
         }
     };
 
@@ -200,8 +188,204 @@ export function AnimatedAIInput({
     };
 
     const handleSubmit = () => {
-        if (!value.trim()) return;
-        onSubmit?.(value);
+        onSubmit?.();
+    };
+
+    const handleFileUpload = (file: File) => {
+        // Validate file type
+        if (!file.type.startsWith('audio/')) {
+            toast({
+                title: "Invalid File Type",
+                description: "Please upload an audio file",
+                variant: "destructive",
+            });
+            return;
+        }
+
+        const audio = new Audio(URL.createObjectURL(file));
+        audio.addEventListener('loadedmetadata', () => {
+            if (audio.duration <= 90) { // Max 1:30
+                onAudioSelected?.(file);
+            } else {
+                toast({
+                    title: "File Too Long",
+                    description: "Audio file must be 1 minute 30 seconds or less",
+                    variant: "destructive",
+                });
+            }
+        });
+    };
+
+    const togglePlayback = () => {
+        if (!audioRef.current || !audioFile) return;
+
+        if (isPlaying) {
+            audioRef.current.pause();
+            setIsPlaying(false);
+        } else {
+            audioRef.current.play();
+            setIsPlaying(true);
+        }
+    };
+
+    const formatDuration = (seconds: number) => {
+        const mins = Math.floor(seconds / 60);
+        const secs = Math.floor(seconds % 60);
+        return `${mins}:${secs.toString().padStart(2, '0')}`;
+    };
+
+    const handleGenerateTTS = () => {
+        if (!value.trim()) {
+            toast({
+                title: "Script Required",
+                description: "Please enter a script to generate audio",
+                variant: "destructive",
+            });
+            return;
+        }
+        onGenerateTTS?.(value, voice, language);
+    };
+
+    const renderMainContent = () => {
+        if (audioSource === "upload") {
+            if (!audioFile) {
+                return (
+                    <div className="px-4 py-8">
+                        <Input
+                            ref={fileInputRef}
+                            type="file"
+                            accept="audio/*"
+                            onChange={(e) => e.target.files?.[0] && handleFileUpload(e.target.files[0])}
+                            className="hidden"
+                            disabled={disabled}
+                        />
+                        <div className="border-2 border-dashed border-border rounded-lg p-6 text-center cursor-pointer hover:border-primary/50 transition-colors"
+                             onClick={() => fileInputRef.current?.click()}>
+                            <Upload className="h-8 w-8 mx-auto mb-2 text-muted-foreground" />
+                            <p className="text-sm text-muted-foreground mb-2">
+                                Click to upload or drag and drop
+                            </p>
+                            <p className="text-xs text-muted-foreground">
+                                Supports MP3, WAV, M4A (Max 1:30)
+                            </p>
+                        </div>
+                    </div>
+                );
+            } else {
+                return (
+                    <div className="px-4 py-4">
+                        <div className="border border-border rounded-lg p-4">
+                            <div className="flex items-center justify-between">
+                                <div className="flex items-center gap-3">
+                                    <Button
+                                        type="button"
+                                        variant="outline"
+                                        size="sm"
+                                        onClick={togglePlayback}
+                                        disabled={disabled}
+                                    >
+                                        {isPlaying ? (
+                                            <Pause className="h-4 w-4" />
+                                        ) : (
+                                            <Play className="h-4 w-4" />
+                                        )}
+                                    </Button>
+                                    <div>
+                                        <p className="text-sm font-medium">{audioFile.name}</p>
+                                        <p className="text-xs text-muted-foreground">
+                                            Audio file uploaded
+                                        </p>
+                                    </div>
+                                </div>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={onAudioRemoved}
+                                    disabled={disabled}
+                                >
+                                    <X className="h-4 w-4" />
+                                </Button>
+                            </div>
+                            
+                            <audio
+                                ref={audioRef}
+                                src={audioFile ? URL.createObjectURL(audioFile) : undefined}
+                                onEnded={() => setIsPlaying(false)}
+                                onPause={() => setIsPlaying(false)}
+                                onPlay={() => setIsPlaying(true)}
+                            />
+                        </div>
+                    </div>
+                );
+            }
+        }
+
+        return (
+            <div className="overflow-y-auto" style={{ maxHeight: "400px" }}>
+                <Textarea
+                    value={value}
+                    placeholder={placeholder}
+                    className={cn(
+                        "w-full rounded-xl rounded-b-none px-4 py-3 bg-transparent border-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0",
+                        "min-h-[72px]"
+                    )}
+                    ref={textareaRef}
+                    onKeyDown={handleKeyDown}
+                    onChange={handleChange}
+                    disabled={disabled}
+                />
+            </div>
+        );
+    };
+
+    const renderTTSControls = () => {
+        if (audioSource !== "tts") return null;
+
+        return (
+            <div className="px-4 py-2 border-t border-border">
+                <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                        <Volume2 className="h-3 w-3" />
+                        <span>TTS Settings</span>
+                    </div>
+                    <Select value={voice} onValueChange={setVoice} disabled={disabled}>
+                        <SelectTrigger className="h-7 text-xs w-32">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {VOICE_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="text-xs">
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Select value={language} onValueChange={setLanguage} disabled={disabled}>
+                        <SelectTrigger className="h-7 text-xs w-32">
+                            <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                            {LANGUAGE_OPTIONS.map((option) => (
+                                <SelectItem key={option.value} value={option.value} className="text-xs">
+                                    {option.label}
+                                </SelectItem>
+                            ))}
+                        </SelectContent>
+                    </Select>
+                    <Button
+                        onClick={handleGenerateTTS}
+                        disabled={disabled || !value.trim()}
+                        size="sm"
+                        variant="outline"
+                        className="h-7 text-xs"
+                    >
+                        <Volume2 className="h-3 w-3 mr-1" />
+                        Generate Audio
+                    </Button>
+                </div>
+            </div>
+        );
     };
 
     return (
@@ -209,24 +393,8 @@ export function AnimatedAIInput({
             <div className="bg-background/50 dark:bg-background/50 rounded-2xl p-1.5 border border-border/50">
                 <div className="relative">
                     <div className="relative flex flex-col">
-                        <div
-                            className="overflow-y-auto"
-                            style={{ maxHeight: "400px" }}
-                        >
-                            <Textarea
-                                id="ai-input-15"
-                                value={value}
-                                placeholder={placeholder}
-                                className={cn(
-                                    "w-full rounded-xl rounded-b-none px-4 py-3 bg-transparent border-none resize-none focus-visible:ring-0 focus-visible:ring-offset-0",
-                                    "min-h-[72px]"
-                                )}
-                                ref={textareaRef}
-                                onKeyDown={handleKeyDown}
-                                onChange={handleChange}
-                                disabled={disabled}
-                            />
-                        </div>
+                        {renderMainContent()}
+                        {renderTTSControls()}
 
                         <div className="h-14 bg-transparent rounded-b-xl flex items-center">
                             <div className="absolute left-3 right-3 bottom-3 flex items-center justify-between w-[calc(100%-24px)]">
@@ -239,74 +407,57 @@ export function AnimatedAIInput({
                                             >
                                                 <AnimatePresence mode="wait">
                                                     <motion.div
-                                                        key={selectedModel}
-                                                        initial={{
-                                                            opacity: 0,
-                                                            y: -5,
-                                                        }}
-                                                        animate={{
-                                                            opacity: 1,
-                                                            y: 0,
-                                                        }}
-                                                        exit={{
-                                                            opacity: 0,
-                                                            y: 5,
-                                                        }}
-                                                        transition={{
-                                                            duration: 0.15,
-                                                        }}
+                                                        key={audioSource}
+                                                        initial={{ opacity: 0, y: -5 }}
+                                                        animate={{ opacity: 1, y: 0 }}
+                                                        exit={{ opacity: 0, y: 5 }}
+                                                        transition={{ duration: 0.15 }}
                                                         className="flex items-center gap-1"
                                                     >
-                                                        {
-                                                            MODEL_ICONS[
-                                                                selectedModel
-                                                            ]
-                                                        }
-                                                        {selectedModel}
+                                                        {audioSource === "tts" ? (
+                                                            <>
+                                                                <Mic className="w-4 h-4" />
+                                                                Text to Speech
+                                                            </>
+                                                        ) : (
+                                                            <>
+                                                                <Upload className="w-4 h-4" />
+                                                                Audio Upload
+                                                            </>
+                                                        )}
                                                         <ChevronDown className="w-3 h-3 opacity-50" />
                                                     </motion.div>
                                                 </AnimatePresence>
                                             </Button>
                                         </DropdownMenuTrigger>
-                                        <DropdownMenuContent
-                                            className={cn(
-                                                "min-w-[10rem]"
-                                            )}
-                                        >
-                                            {AI_MODELS.map((model) => (
-                                                <DropdownMenuItem
-                                                    key={model}
-                                                    onSelect={() =>
-                                                        setSelectedModel(model)
-                                                    }
-                                                    className="flex items-center justify-between gap-2"
-                                                >
-                                                    <div className="flex items-center gap-2">
-                                                        {MODEL_ICONS[model] || (
-                                                            <Bot className="w-4 h-4 opacity-50" />
-                                                        )}
-                                                        <span>{model}</span>
-                                                    </div>
-                                                    {selectedModel ===
-                                                        model && (
-                                                        <Check className="w-4 h-4 text-primary" />
-                                                    )}
-                                                </DropdownMenuItem>
-                                            ))}
+                                        <DropdownMenuContent className="w-48">
+                                            <DropdownMenuItem onClick={() => onAudioSourceChange?.("tts")}>
+                                                <Mic className="w-4 h-4 mr-2" />
+                                                Text to Speech
+                                            </DropdownMenuItem>
+                                            <DropdownMenuItem onClick={() => onAudioSourceChange?.("upload")}>
+                                                <Upload className="w-4 h-4 mr-2" />
+                                                Audio Upload
+                                            </DropdownMenuItem>
                                         </DropdownMenuContent>
                                     </DropdownMenu>
                                     <div className="h-4 w-px bg-border mx-0.5" />
-                                    <label
+                                    <Button
+                                        onClick={onOpenActorSelector}
+                                        variant="ghost"
                                         className={cn(
                                             "rounded-lg p-2 bg-accent/20 cursor-pointer",
                                             "hover:bg-accent/30 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-ring",
-                                            "text-muted-foreground hover:text-foreground"
+                                            "text-muted-foreground hover:text-foreground h-8"
                                         )}
-                                        aria-label="Attach file"
+                                        aria-label="Add actors"
+                                        disabled={disabled}
                                     >
-                                        <input type="file" className="hidden" />
-                                        <Paperclip className="w-4 h-4 transition-colors" />
-                                    </label>
+                                        <Users className="w-4 h-4" />
+                                        {selectedActors.length > 0 && (
+                                            <span className="ml-1 text-xs">{selectedActors.length}</span>
+                                        )}
+                                    </Button>
                                 </div>
                                 <button
                                     type="button"
@@ -314,16 +465,14 @@ export function AnimatedAIInput({
                                         "rounded-lg p-2 bg-accent/20",
                                         "hover:bg-accent/30 focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-ring"
                                     )}
-                                    aria-label="Send message"
-                                    disabled={!value.trim() || disabled}
+                                    aria-label="Create project"
+                                    disabled={disabled}
                                     onClick={handleSubmit}
                                 >
                                     <ArrowRight
                                         className={cn(
                                             "w-4 h-4 transition-opacity duration-200",
-                                            value.trim() && !disabled
-                                                ? "opacity-100"
-                                                : "opacity-30"
+                                            !disabled ? "opacity-100" : "opacity-30"
                                         )}
                                     />
                                 </button>
@@ -332,6 +481,15 @@ export function AnimatedAIInput({
                     </div>
                 </div>
             </div>
+            
+            {/* Character count */}
+            {audioSource === "tts" && (
+                <div className="flex justify-end mt-2">
+                    <span className="text-xs text-muted-foreground">
+                        {value.length} / 1349
+                    </span>
+                </div>
+            )}
         </div>
     );
 }

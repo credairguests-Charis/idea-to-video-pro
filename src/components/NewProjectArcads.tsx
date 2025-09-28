@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Users, Upload, Mic, Plus, X, ChevronDown } from "lucide-react";
+import { Users, Upload, Mic, Plus, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,17 +7,9 @@ import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { AnimatedAIInput } from "@/components/ui/animated-ai-input";
-import { ActorSelector } from "@/components/ActorSelector";
 import { ActorCard } from "@/components/ActorCard";
-import { AudioUpload } from "@/components/AudioUpload";
-import { TTSControls } from "@/components/TTSControls";
 import { VideoGrid } from "@/components/VideoGrid";
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu";
+import { ActorSelector } from "@/components/ActorSelector";
 
 interface SelectedActor {
   id: string;
@@ -309,82 +301,20 @@ export function NewProjectArcads() {
               onSubmit={handleCreateProject}
               placeholder="Write script..."
               disabled={isLoading}
+              selectedActors={selectedActors}
+              onOpenActorSelector={() => setShowActorSelector(true)}
+              audioSource={audioSource}
+              onAudioSourceChange={setAudioSource}
+              audioFile={audioFile}
+              onAudioSelected={(file) => {
+                const audio = new Audio(URL.createObjectURL(file));
+                audio.addEventListener('loadedmetadata', () => {
+                  handleAudioSelected(file, audio.duration);
+                });
+              }}
+              onAudioRemoved={handleAudioRemoved}
+              onGenerateTTS={handleGenerateTTS}
             />
-          </div>
-
-          {/* Audio Source Selection */}
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-4">
-              {/* Audio Source Dropdown */}
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="sm" className="gap-2 text-sm">
-                    <Mic className="w-4 h-4" />
-                    {audioSource === "tts" ? "Text to Speech" : "Audio Upload"}
-                    <ChevronDown className="w-3 h-3" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent className="w-48">
-                  <DropdownMenuItem onClick={() => setAudioSource("tts")}>
-                    <Mic className="w-4 h-4 mr-2" />
-                    Text to Speech
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setAudioSource("upload")}>
-                    <Upload className="w-4 h-4 mr-2" />
-                    Audio Upload
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-
-              {/* Audio Controls */}
-              {audioSource === "upload" ? (
-                <AudioUpload
-                  onAudioSelected={handleAudioSelected}
-                  onAudioRemoved={handleAudioRemoved}
-                  disabled={isLoading}
-                />
-              ) : (
-                <TTSControls
-                  onGenerate={handleGenerateTTS}
-                  disabled={isLoading}
-                  isGenerating={isLoading}
-                />
-              )}
-            </div>
-
-            {/* Actions */}
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowActorSelector(true)}
-                className="gap-2"
-              >
-                <Users className="w-4 h-4" />
-                Add actors
-              </Button>
-
-              <Button
-                size="sm"
-                onClick={handleCreateProject}
-                disabled={isLoading || !projectTitle.trim() || selectedActors.length === 0}
-                className="gap-2"
-              >
-                {isLoading ? (
-                  <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
-                ) : (
-                  <Plus className="w-4 h-4" />
-                )}
-                Create
-              </Button>
-            </div>
-          </div>
-
-          {/* Character count */}
-          <div className="flex justify-end mt-2">
-            <span className="text-xs text-muted-foreground">
-              {script.length} / 1349
-            </span>
           </div>
         </div>
       </div>
