@@ -55,11 +55,11 @@ export function NewProjectArcads() {
     setSelectedActors(prev => prev.filter(actor => actor.id !== actorId));
   }, []);
 
-  const handleAudioSelected = useCallback((file: File) => {
+  const handleAudioSelected = useCallback((file: File, duration: number) => {
     setAudioFile(file);
     toast({
       title: "Audio file selected",
-      description: `Selected: ${file.name}`,
+      description: `Selected: ${file.name} (${duration}s)`,
     });
   }, [toast]);
 
@@ -71,11 +71,20 @@ export function NewProjectArcads() {
     });
   }, [toast]);
 
-  const handleGenerateTTS = useCallback(async (text: string, voice: string) => {
+  const handleGenerateTTS = useCallback(async (voice: string, language: string) => {
+    if (!script.trim()) {
+      toast({
+        title: "Script Required",
+        description: "Please enter a script to generate audio",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsLoading(true);
     try {
       const { data, error } = await supabase.functions.invoke('generate-tts', {
-        body: { text, voice }
+        body: { text: script, voice }
       });
 
       if (error) throw error;
@@ -101,7 +110,7 @@ export function NewProjectArcads() {
     } finally {
       setIsLoading(false);
     }
-  }, [toast]);
+  }, [script, toast]);
 
   const handleCreateProject = useCallback(async () => {
     if (!projectTitle.trim()) {
@@ -141,7 +150,8 @@ export function NewProjectArcads() {
           script: script || null,
           selected_actors: selectedActors.map(actor => actor.id),
           audio_source: audioSource,
-          generation_status: "pending"
+          generation_status: "pending",
+          user_id: (await supabase.auth.getUser()).data.user?.id!
         })
         .select()
         .single();
@@ -322,13 +332,13 @@ export function NewProjectArcads() {
                 <AudioUpload
                   onAudioSelected={handleAudioSelected}
                   onAudioRemoved={handleAudioRemoved}
-                  selectedFile={audioFile}
+                  disabled={isLoading}
                 />
               ) : (
                 <TTSControls
                   onGenerate={handleGenerateTTS}
-                  isLoading={isLoading}
-                  script={script}
+                  disabled={isLoading}
+                  isGenerating={isLoading}
                 />
               )}
             </div>
@@ -373,7 +383,7 @@ export function NewProjectArcads() {
       {/* Actor Selection Modal */}
       {showActorSelector && (
         <ActorSelector
-          onActorsSelected={handleActorSelection}
+          onSelectActors={handleActorSelection}
           onClose={() => setShowActorSelector(false)}
           selectedActors={selectedActors}
         />
