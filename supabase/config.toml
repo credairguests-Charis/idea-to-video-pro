@@ -24,6 +24,9 @@ verify_jwt = true
 [functions.generate-omnihuman]
 verify_jwt = true
 
+[functions.diagnose-omnihuman]
+verify_jwt = false
+
 [functions.omnihuman-webhook]
 verify_jwt = false
 

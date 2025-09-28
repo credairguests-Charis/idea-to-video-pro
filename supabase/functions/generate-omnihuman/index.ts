@@ -56,6 +56,15 @@ serve(async (req) => {
 
         console.log(`Processing actor: ${actor.name} (${actorId})`);
 
+        // Normalize actor image URL to absolute URL
+        let imageUrl = actor.thumbnail_url;
+        if (imageUrl.startsWith('/')) {
+          // Handle relative URLs by making them absolute
+          const origin = req.headers.get('origin') || 'https://fd178190-4e25-4a6b-a609-bdf282c1854b.lovableproject.com';
+          imageUrl = origin + imageUrl;
+          console.log(`Normalized relative image URL to: ${imageUrl}`);
+        }
+
         // Handle audio URL - create signed URL for storage paths, pass through external URLs
         let audioToUse = audioUrl;
         
@@ -64,10 +73,11 @@ serve(async (req) => {
           const storageKey = audioUrl;
           console.log(`Creating signed URL for storage key: ${storageKey}`);
           
+          // Use 24-hour expiry to avoid expiration during processing
           const { data: signedUrlData, error: signedUrlError } = await supabase
             .storage
             .from('omnihuman-content')
-            .createSignedUrl(storageKey, 3600);
+            .createSignedUrl(storageKey, 86400); // 24 hours
 
           if (signedUrlError || !signedUrlData?.signedUrl) {
             console.error(`Failed to get signed URL for storage key: ${storageKey}`, signedUrlError);
@@ -77,33 +87,66 @@ serve(async (req) => {
           audioToUse = signedUrlData.signedUrl;
         }
 
-        console.log(`Using audio URL for actor ${actor.name}: ${audioToUse.substring(0, 50)}...`);
+        console.log(`Final URLs - Image: ${imageUrl}, Audio: ${audioToUse.substring(0, 50)}...`);
+
+        // Preflight checks - verify URLs are publicly accessible
+        try {
+          console.log(`Performing preflight check for image: ${imageUrl}`);
+          const imageCheck = await fetch(imageUrl, { method: 'HEAD' });
+          if (!imageCheck.ok) {
+            console.error(`Image URL preflight failed: ${imageCheck.status} ${imageCheck.statusText}`);
+            throw new Error(`Image URL is not accessible: ${imageCheck.status} ${imageCheck.statusText}`);
+          }
+
+          console.log(`Performing preflight check for audio: ${audioToUse.substring(0, 50)}...`);
+          const audioCheck = await fetch(audioToUse, { method: 'HEAD' });
+          if (!audioCheck.ok) {
+            console.error(`Audio URL preflight failed: ${audioCheck.status} ${audioCheck.statusText}`);
+            throw new Error(`Audio URL is not accessible: ${audioCheck.status} ${audioCheck.statusText}`);
+          }
+
+          console.log('Preflight checks passed for both URLs');
+        } catch (preflightError) {
+          console.error(`Preflight check failed for actor ${actorId}:`, preflightError);
+          throw preflightError;
+        }
 
         // Call OmniHuman API via KIE - Using correct format per API docs
+        const kieRequest = {
+          model: 'bytedance/omni-human',
+          input: {
+            image: imageUrl,
+            audio: audioToUse
+          },
+          callBackUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/omnihuman-webhook`
+        };
+
+        console.log(`Calling KIE API for actor ${actor.name} with request:`, JSON.stringify(kieRequest, null, 2));
+
         const omniResponse = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${Deno.env.get('KIE_API_KEY')}`,
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            model: 'bytedance/omni-human',
-            input: {
-              image: actor.thumbnail_url,
-              audio: audioToUse
-            },
-            callBackUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/omnihuman-webhook`
-          }),
+          body: JSON.stringify(kieRequest),
         });
 
         if (!omniResponse.ok) {
           const errorText = await omniResponse.text();
-          console.error(`OmniHuman API error for actor ${actorId}:`, errorText);
-          throw new Error(`OmniHuman API error: ${errorText}`);
+          console.error(`OmniHuman API HTTP error for actor ${actorId}: ${omniResponse.status} ${omniResponse.statusText}`, errorText);
+          throw new Error(`OmniHuman API HTTP error: ${omniResponse.status} ${omniResponse.statusText} - ${errorText}`);
         }
 
         const omniData = await omniResponse.json();
         console.log(`OmniHuman API response for actor ${actorId}:`, JSON.stringify(omniData));
+        
+        // Check for API-level errors
+        if (omniData.code && omniData.code !== 200) {
+          const errorMsg = omniData.msg || omniData.error || 'Unknown API error';
+          console.error(`OmniHuman API returned error code ${omniData.code} for actor ${actorId}: ${errorMsg}`);
+          throw new Error(`OmniHuman API error (code ${omniData.code}): ${errorMsg}`);
+        }
         
         // Handle nested response structure
         const taskId = omniData?.data?.taskId || omniData?.taskId;
