@@ -9,7 +9,7 @@ import Folders from "./pages/Folders";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import NotFound from "./pages/NotFound";
-import { Layout } from "./components/Layout";
+import { ArcadsLayout } from "./components/ArcadsLayout";
 import { AuthProvider } from "./hooks/useAuth";
 import { AuthGuard } from "./components/AuthGuard";
 
@@ -25,7 +25,7 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           <Route path="/*" element={
             <AuthGuard>
-              <Layout>
+              <ArcadsLayout>
                 <Routes>
                   <Route path="/" element={<Index />} />
                   <Route path="/projects" element={<Projects />} />
@@ -35,7 +35,7 @@ const App = () => (
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />
                 </Routes>
-              </Layout>
+              </ArcadsLayout>
             </AuthGuard>
           } />
         </Routes>
