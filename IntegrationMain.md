@@ -52,16 +52,18 @@ Since OmniHuman processes one character per request:
 
 #### Create Task Endpoint
 ```
-POST https://api.kie.ai/api/v1/humanLiveUse
+POST https://api.kie.ai/api/v1/jobs/createTask
 ```
 
 **Required Parameters:**
 ```json
 {
   "model": "omni-human",
-  "callbackUrl": "https://your-callback-url/webhook/omnihuman",
-  "liveImage": "string", // Actor image URL or base64 data
-  "liveAudio": "string"  // Audio file URL or base64 data
+  "input": {
+    "image": "string", // Actor image URL
+    "audio": "string"  // Audio file URL
+  },
+  "callBackUrl": "string" // Webhook endpoint for completion notification
 }
 ```
 

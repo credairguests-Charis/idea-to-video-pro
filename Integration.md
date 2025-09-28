@@ -1,11 +1,11 @@
-# Veo 3 Fast API Integration
+# OmniHuman API Integration
 
 ## Overview
 
 ### Purpose of the Integration
-This document outlines the integration of Google's Veo 3 Fast model via the KIE AI API into our AI video generation platform. The integration enables users to generate high-quality video content from text prompts and actor images, with built-in audio generation and advanced customization options.
+This document outlines the integration of ByteDance's OmniHuman API via the KIE AI platform into our AI video generation system. The integration enables users to create high-quality, lip-synced video advertisements by combining actor reference images with either uploaded audio or text-to-speech generated voiceovers.
 
-### Why Veo 3 Fast is Being Added
+### Why OmniHuman is Being Added
 - **Cost-Effective**: KIE AI offers Veo 3 at 25% of Google's direct API pricing
 - **Enhanced Reliability**: Built-in optimizations and fallback mechanisms for higher success rates
 - **Vertical Video Support**: Native 9:16 aspect ratio support for TikTok-style content
@@ -56,20 +56,18 @@ User selects 3 actors → 3 separate API calls → 3 videos generated → All re
 
 ### Primary API Endpoint
 ```
-POST https://api.kie.ai/api/v1/veo/generate
+POST https://api.kie.ai/api/v1/jobs/createTask
 ```
 
 ### Required Parameters
 ```json
 {
-  "prompt": "string - Text description of the video content",
-  "imageUrls": ["array - Actor image URLs (max 1 per request)"],
-  "model": "veo3", 
-  "watermark": "string - Optional brand watermark",
-  "callbackUrl": "string - Webhook endpoint for completion notification",
-  "aspectRatio": "9:16", // Default for TikTok-style videos
-  "enableFallback": true, // Handle content policy issues
-  "enableTranslation": true // Support non-English prompts
+  "model": "omni-human",
+  "input": {
+    "image": "string - Actor image URL",
+    "audio": "string - Audio file URL"
+  },
+  "callBackUrl": "string - Webhook endpoint for completion notification"
 }
 ```
 
