@@ -56,20 +56,30 @@ serve(async (req) => {
 
         console.log(`Processing actor: ${actor.name} (${actorId})`);
 
-        // Get signed URL for private audio file
-        const { data: signedUrlData, error: signedUrlError } = await supabase
-          .storage
-          .from('omnihuman-content')
-          .createSignedUrl(audioUrl.split('/').pop()!, 3600); // 1 hour expiry
+        // Handle audio URL - create signed URL for storage paths, pass through external URLs
+        let audioToUse = audioUrl;
+        
+        // If audioUrl appears to be a storage key (no http/https), create signed URL
+        if (!audioUrl.startsWith('http')) {
+          const storageKey = audioUrl;
+          console.log(`Creating signed URL for storage key: ${storageKey}`);
+          
+          const { data: signedUrlData, error: signedUrlError } = await supabase
+            .storage
+            .from('omnihuman-content')
+            .createSignedUrl(storageKey, 3600);
 
-        if (signedUrlError || !signedUrlData?.signedUrl) {
-          console.error(`Failed to get signed URL for audio: ${audioUrl}`, signedUrlError);
-          throw new Error('Failed to get signed URL for audio');
+          if (signedUrlError || !signedUrlData?.signedUrl) {
+            console.error(`Failed to get signed URL for storage key: ${storageKey}`, signedUrlError);
+            throw new Error('Failed to get signed URL for audio');
+          }
+          
+          audioToUse = signedUrlData.signedUrl;
         }
 
-        console.log(`Using signed audio URL for actor: ${actor.name}`);
+        console.log(`Using audio URL for actor ${actor.name}: ${audioToUse.substring(0, 50)}...`);
 
-        // Call OmniHuman API via KIE - Using correct endpoint and format
+        // Call OmniHuman API via KIE - Using correct format per API docs
         const omniResponse = await fetch('https://api.kie.ai/api/v1/jobs/createTask', {
           method: 'POST',
           headers: {
@@ -77,10 +87,12 @@ serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'omni-human',
-            callbackUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/omnihuman-webhook`,
-            inputImage: actor.thumbnail_url,
-            inputAudio: signedUrlData.signedUrl
+            model: 'bytedance/omni-human',
+            input: {
+              image: actor.thumbnail_url,
+              audio: audioToUse
+            },
+            callBackUrl: `${Deno.env.get('SUPABASE_URL')}/functions/v1/omnihuman-webhook`
           }),
         });
 
@@ -138,7 +150,33 @@ serve(async (req) => {
       }
     }
 
-    // Update project status
+    // Update project status based on results
+    if (generations.length === 0) {
+      // No tasks were created, mark project as failed
+      const { error: updateError } = await supabase
+        .from('projects')
+        .update({
+          generation_status: 'failed',
+          generation_progress: 0,
+          omnihuman_task_ids: []
+        })
+        .eq('id', projectId);
+
+      if (updateError) {
+        console.error('Failed to update project status to failed:', updateError);
+      }
+
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: 'No OmniHuman tasks could be started. Please check audio files and try again.',
+        generations: []
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Tasks were created successfully
     const { error: updateError } = await supabase
       .from('projects')
       .update({

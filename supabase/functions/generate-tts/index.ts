@@ -86,13 +86,13 @@ serve(async (req) => {
       .from('omnihuman-content')
       .getPublicUrl(fileName);
 
-    // Store audio file record
+    // Store audio file record with storage path instead of public URL
     const { data: audioFile, error: dbError } = await supabase
       .from('audio_files')
       .insert({
         project_id: projectId,
         source_type: 'tts',
-        file_url: publicUrl,
+        file_url: fileName, // Store storage path, not public URL
         file_size_bytes: audioBlob.length,
         tts_settings: { voice, language, text: text.substring(0, 100) }
       })
@@ -106,7 +106,7 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({ 
       success: true, 
-      audioUrl: publicUrl,
+      audioUrl: fileName, // Return storage path for generate-omnihuman compatibility
       audioFileId: audioFile.id,
       settings: { voice, language }
     }), {
