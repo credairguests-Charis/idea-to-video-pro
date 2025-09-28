@@ -53,8 +53,8 @@ serve(async (req) => {
       try {
         console.log(`Polling task: ${generation.task_id}`);
         
-        // Call the status API
-        const statusResponse = await fetch(`https://api.kie.ai/api/v1/jobs/recordsInfo?taskId=${generation.task_id}`, {
+        // Call the status API - FIXED: using recordInfo (singular) not recordsInfo
+        const statusResponse = await fetch(`https://api.kie.ai/api/v1/jobs/recordInfo?taskId=${generation.task_id}`, {
           method: 'GET',
           headers: {
             'Authorization': `Bearer ${Deno.env.get('KIE_API_KEY')}`,
@@ -70,53 +70,54 @@ serve(async (req) => {
         const statusData = await statusResponse.json();
         console.log(`Status response for task ${generation.task_id}:`, JSON.stringify(statusData));
 
-        // Handle nested response structure - check both direct and nested paths
+        // Parse response according to API documentation
         const dataObj = statusData?.data || statusData;
-        const status = dataObj.status || dataObj.state || statusData.status;
-        const result = dataObj.result || dataObj.output || dataObj.resultUrls || statusData.result;
+        const state = dataObj.state;  // API uses 'state' not 'status'
+        const resultJsonStr = dataObj.resultJson;
+        const failCode = dataObj.failCode;
+        const failMsg = dataObj.failMsg;
+        
+        console.log(`Task ${generation.task_id} state: ${state}, failCode: ${failCode}, failMsg: ${failMsg}`);
+        
+        // Parse resultJson if it exists (it's a stringified JSON)
+        let resultObj = null;
+        if (resultJsonStr) {
+          try {
+            resultObj = JSON.parse(resultJsonStr);
+            console.log(`Parsed resultJson for task ${generation.task_id}:`, JSON.stringify(resultObj));
+          } catch (parseError) {
+            console.error(`Failed to parse resultJson for task ${generation.task_id}:`, parseError);
+          }
+        }
+        
         // Check if task is completed
-        if (status === 'success' || status === 'fail') {
+        if (state === 'success' || state === 'fail') {
           const updateData: any = {
-            status: status,
+            status: state,  // Use 'state' from API response
             completed_at: new Date().toISOString()
           };
 
-          // Extract video URL if task completed successfully with comprehensive checking
-          if (status === 'success' && result) {
+          // Extract video URL if task completed successfully
+          if (state === 'success' && resultObj) {
             let video_url = null;
             
-            // Try different possible video URL fields
-            video_url = result.video_url || result.videoUrl || result.output_url || result.outputUrl ||
-                       result.url || result.downloadUrl || result.file_url;
-            
-            // Check if result has resultUrls array (from polling API)
-            if (result.resultUrls && Array.isArray(result.resultUrls) && result.resultUrls.length > 0) {
-              const firstResult = result.resultUrls[0];
-              video_url = firstResult.video_url || firstResult.videoUrl || firstResult.output_url ||
-                         firstResult.outputUrl || firstResult.url || firstResult.downloadUrl || firstResult.file_url;
+            // According to API docs, check resultUrls array in parsed resultJson
+            if (resultObj.resultUrls && Array.isArray(resultObj.resultUrls) && resultObj.resultUrls.length > 0) {
+              // Get the first video URL from the resultUrls array
+              video_url = resultObj.resultUrls[0];
+              console.log('Extracted video URL from resultUrls:', video_url);
             }
-            
-            // If result is array, check first item
-            if (Array.isArray(result) && result.length > 0) {
-              const firstResult = result[0];
-              video_url = firstResult.video_url || firstResult.videoUrl || firstResult.output_url ||
-                         firstResult.outputUrl || firstResult.url || firstResult.downloadUrl || firstResult.file_url;
-            }
-            
-            // If result is a string URL, use it directly
-            if (typeof result === 'string' && result.startsWith('http')) {
-              video_url = result;
-            }
-            
-            console.log('Extracted video URL from polling:', video_url);
             
             if (video_url) {
               updateData.video_url = video_url;
             }
           }
 
-          if (status === 'fail' && (dataObj.errorMessage || statusData.errorMessage)) {
-            updateData.error_message = dataObj.errorMessage || statusData.errorMessage;
+          // Handle failure with proper error message
+          if (state === 'fail') {
+            const errorMessage = failMsg || failCode || 'Generation failed';
+            updateData.error_message = errorMessage;
+            console.log(`Task ${generation.task_id} failed: ${errorMessage}`);
           }
 
           // Update the generation record
@@ -130,7 +131,7 @@ serve(async (req) => {
             continue;
           }
 
-          console.log(`Updated generation ${generation.id} with status: ${statusData.status}`);
+          console.log(`Updated generation ${generation.id} with state: ${state}`);
           updatedCount++;
 
           // Update project progress

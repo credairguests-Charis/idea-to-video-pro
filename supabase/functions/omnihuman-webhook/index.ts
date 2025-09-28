@@ -20,13 +20,25 @@ serve(async (req) => {
     const payload = await req.json();
     console.log('Webhook payload received:', JSON.stringify(payload));
     
-    // Handle nested payload structure - check both direct and nested paths
-    const taskId = payload?.taskId || payload?.data?.taskId || payload?.task_id;
-    const status = payload?.status || payload?.data?.status || payload?.state;
-    const result = payload?.result || payload?.data?.result || payload?.data;
-    const errorMessage = payload?.error || payload?.data?.error || payload?.errorMessage || payload?.error_message;
-
-    console.log('Parsed webhook data:', { taskId, status, result, errorMessage });
+    // Parse webhook payload according to API documentation
+    const taskId = payload?.taskId || payload?.data?.taskId;
+    const state = payload?.state || payload?.data?.state;  // API uses 'state' not 'status'
+    const resultJsonStr = payload?.resultJson || payload?.data?.resultJson;
+    const failCode = payload?.failCode || payload?.data?.failCode;
+    const failMsg = payload?.failMsg || payload?.data?.failMsg;
+    
+    console.log('Parsed webhook data:', { taskId, state, failCode, failMsg, resultJsonStr });
+    
+    // Parse resultJson if it exists (it's a stringified JSON)
+    let resultObj = null;
+    if (resultJsonStr) {
+      try {
+        resultObj = JSON.parse(resultJsonStr);
+        console.log('Parsed resultJson from webhook:', JSON.stringify(resultObj));
+      } catch (parseError) {
+        console.error('Failed to parse resultJson in webhook:', parseError);
+      }
+    }
 
     if (!taskId) {
       throw new Error('No taskId in webhook payload');
@@ -34,35 +46,26 @@ serve(async (req) => {
 
     // Update generation status
     const updateData: any = {
-      status: status,
+      status: state,  // Use 'state' from API response
       completed_at: new Date().toISOString()
     };
 
-    // Extract video URL if available with comprehensive checking
+    // Extract video URL if available
     let video_url = null;
-    if (status === 'success' && result) {
-      // Handle different possible result structures
-      video_url = result.video_url || result.videoUrl || result.output_url || result.outputUrl || 
-                  result.url || result.downloadUrl || result.file_url;
-      
-      // Check if result has resultUrls array
-      const resultUrls = result.resultUrls || result.result_urls;
-      if (resultUrls && Array.isArray(resultUrls) && resultUrls.length > 0) {
-        const firstResult = resultUrls[0];
-        video_url = firstResult.video_url || firstResult.videoUrl || firstResult.output_url || 
-                   firstResult.outputUrl || firstResult.url || firstResult.downloadUrl || firstResult.file_url;
+    if (state === 'success' && resultObj) {
+      // According to API docs, check resultUrls array in parsed resultJson
+      if (resultObj.resultUrls && Array.isArray(resultObj.resultUrls) && resultObj.resultUrls.length > 0) {
+        // Get the first video URL from the resultUrls array
+        video_url = resultObj.resultUrls[0];
+        console.log('Extracted video URL from webhook resultUrls:', video_url);
       }
-      
-      // If result is a string URL, use it directly
-      if (typeof result === 'string' && result.startsWith('http')) {
-        video_url = result;
-      }
-      
-      console.log('Extracted video URL:', video_url);
     }
 
-    if (status === 'fail' && errorMessage) {
+    // Handle failure with proper error message  
+    if (state === 'fail') {
+      const errorMessage = failMsg || failCode || 'Generation failed';
       updateData.error_message = errorMessage;
+      console.log(`Webhook received failure for task ${taskId}: ${errorMessage}`);
     }
 
     if (video_url) {
