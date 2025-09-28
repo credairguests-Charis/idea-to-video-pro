@@ -12,6 +12,32 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
 
+// Helper function to classify error types
+const isFatalError = (errorCode: number, errorMessage: string): boolean => {
+  // 402 = Insufficient credits - fatal for entire project
+  if (errorCode === 402) return true;
+  
+  // Other potentially fatal errors
+  if (errorCode === 401 || errorCode === 403) return true; // Auth issues
+  if (errorCode === 429) return true; // Rate limit exceeded
+  
+  return false;
+};
+
+const getFatalErrorMessage = (errorCode: number, errorMessage: string): string => {
+  switch (errorCode) {
+    case 402:
+      return 'Insufficient credits in your KIE.ai account. Please top up your account and try again.';
+    case 401:
+    case 403:
+      return 'Authentication error with KIE.ai API. Please check your API key configuration.';
+    case 429:
+      return 'Rate limit exceeded. Please wait a moment and try again.';
+    default:
+      return `API error (code ${errorCode}): ${errorMessage}`;
+  }
+};
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -38,6 +64,7 @@ serve(async (req) => {
     }
 
     const generations = [];
+    let fatalError: { code: number; message: string } | null = null;
 
     // Process each actor sequentially to avoid rate limits
     for (const actorId of actorIds) {
@@ -145,6 +172,14 @@ serve(async (req) => {
         if (omniData.code && omniData.code !== 200) {
           const errorMsg = omniData.msg || omniData.error || 'Unknown API error';
           console.error(`OmniHuman API returned error code ${omniData.code} for actor ${actorId}: ${errorMsg}`);
+          
+          // Check if this is a fatal error that should stop the entire project
+          if (isFatalError(omniData.code, errorMsg)) {
+            console.error(`Fatal error detected (code ${omniData.code}): ${errorMsg}. Stopping project processing.`);
+            fatalError = { code: omniData.code, message: errorMsg };
+            break; // Exit the loop immediately
+          }
+          
           throw new Error(`OmniHuman API error (code ${omniData.code}): ${errorMsg}`);
         }
         
@@ -188,9 +223,45 @@ serve(async (req) => {
 
       } catch (error) {
         console.error(`Error processing actor ${actorId}:`, error);
-        // Continue with next actor even if one fails
+        // Continue with next actor only if it's not a fatal error
+        if (error instanceof Error && error.message && error.message.includes('code 402')) {
+          // This was already handled above, but just in case
+          console.error('Fatal error detected in catch block. Stopping processing.');
+          fatalError = { code: 402, message: error.message };
+          break;
+        }
         continue;
       }
+    }
+
+    // Handle fatal errors first
+    if (fatalError) {
+      const specificErrorMessage = getFatalErrorMessage(fatalError.code, fatalError.message);
+      console.error(`Project failed due to fatal error: ${specificErrorMessage}`);
+
+      // Update project with specific error message
+      const { error: updateError } = await supabase
+        .from('projects')
+        .update({
+          generation_status: 'failed',
+          generation_progress: 0,
+          omnihuman_task_ids: []
+        })
+        .eq('id', projectId);
+
+      if (updateError) {
+        console.error('Failed to update project status to failed:', updateError);
+      }
+
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: specificErrorMessage,
+        errorCode: fatalError.code,
+        generations: []
+      }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     // Update project status based on results
@@ -211,7 +282,7 @@ serve(async (req) => {
 
       return new Response(JSON.stringify({ 
         success: false, 
-        error: 'No OmniHuman tasks could be started. Please check audio files and try again.',
+        error: 'No OmniHuman tasks could be started. Please check your media files and try again.',
         generations: []
       }), {
         status: 400,
