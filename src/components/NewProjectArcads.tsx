@@ -1,5 +1,5 @@
 import { useState, useCallback } from "react";
-import { Users, Upload, Mic, Plus, X } from "lucide-react";
+import { Users, Upload, Mic, Plus, X, ChevronDown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -12,6 +12,12 @@ import { ActorCard } from "@/components/ActorCard";
 import { AudioUpload } from "@/components/AudioUpload";
 import { TTSControls } from "@/components/TTSControls";
 import { VideoGrid } from "@/components/VideoGrid";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 
 interface SelectedActor {
   id: string;
@@ -309,23 +315,26 @@ export function NewProjectArcads() {
           {/* Audio Source Selection */}
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              {/* Audio Source Toggle */}
-              <div className="flex items-center gap-2">
-                <Button
-                  variant={audioSource === "tts" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setAudioSource("tts")}
-                >
-                  Text to Speech
-                </Button>
-                <Button
-                  variant={audioSource === "upload" ? "default" : "ghost"}
-                  size="sm"
-                  onClick={() => setAudioSource("upload")}
-                >
-                  Audio Upload
-                </Button>
-              </div>
+              {/* Audio Source Dropdown */}
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="sm" className="gap-2 text-sm">
+                    <Mic className="w-4 h-4" />
+                    {audioSource === "tts" ? "Text to Speech" : "Audio Upload"}
+                    <ChevronDown className="w-3 h-3" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent className="w-48">
+                  <DropdownMenuItem onClick={() => setAudioSource("tts")}>
+                    <Mic className="w-4 h-4 mr-2" />
+                    Text to Speech
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setAudioSource("upload")}>
+                    <Upload className="w-4 h-4 mr-2" />
+                    Audio Upload
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
 
               {/* Audio Controls */}
               {audioSource === "upload" ? (
