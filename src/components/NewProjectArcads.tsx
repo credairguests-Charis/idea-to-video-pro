@@ -1,15 +1,10 @@
 import { useState, useCallback } from "react";
-import { Users, Upload, Mic, Plus, X } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Card, CardContent } from "@/components/ui/card";
-import { Separator } from "@/components/ui/separator";
+import { Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { AnimatedAIInput } from "@/components/ui/animated-ai-input";
-import { ActorCard } from "@/components/ActorCard";
-import { VideoGrid } from "@/components/VideoGrid";
-import { ActorSelector } from "@/components/ActorSelector";
+import { VideoCard } from "@/components/VideoCard";
+import { BottomInputPanel } from "@/components/BottomInputPanel";
+import { ActorSelectionModal } from "@/components/ActorSelectionModal";
 import { ActorTTSConfig } from "@/components/ActorTTSSettings";
 
 interface SelectedActor {
@@ -28,7 +23,6 @@ interface VideoProject {
 }
 
 export function NewProjectArcads() {
-  const [projectTitle, setProjectTitle] = useState("");
   const [script, setScript] = useState("");
   const [selectedActors, setSelectedActors] = useState<SelectedActor[]>([]);
   const [actorTTSConfigs, setActorTTSConfigs] = useState<Record<string, ActorTTSConfig>>({});
@@ -41,7 +35,7 @@ export function NewProjectArcads() {
 
   // Mock project data for display
   const mockProjects: VideoProject[] = [
-    { id: '1', title: 'Still watching...', thumbnail: '/actors/actor-female-1.jpg', status: 'completed', duration: '0:12' },
+    { id: '1', title: 'Still watching Netflix on', thumbnail: '/actors/actor-female-1.jpg', status: 'completed', duration: '0:12' },
     { id: '2', title: 'Project 2', thumbnail: '/actors/actor-male-1.jpg', status: 'processing' },
     { id: '3', title: 'Project 3', thumbnail: '/actors/actor-female-2.jpg', status: 'completed', duration: '0:08' },
   ];
@@ -97,15 +91,6 @@ export function NewProjectArcads() {
   }, []);
 
   const handleCreateProject = useCallback(async () => {
-    if (!projectTitle.trim()) {
-      toast({
-        title: "Title Required",
-        description: "Please enter a project title",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (selectedActors.length === 0) {
       toast({
         title: "No Actors Selected",
@@ -130,7 +115,7 @@ export function NewProjectArcads() {
       const { data: project, error: projectError } = await supabase
         .from("projects")
         .insert({
-          title: projectTitle,
+          title: script.substring(0, 50) || "Untitled Project",
           script: script || null,
           selected_actors: selectedActors.map(actor => actor.id),
           audio_source: audioSource,
@@ -219,7 +204,6 @@ export function NewProjectArcads() {
       });
 
       // Reset form
-      setProjectTitle("");
       setScript("");
       setSelectedActors([]);
       setActorTTSConfigs({});
@@ -236,7 +220,7 @@ export function NewProjectArcads() {
     } finally {
       setIsLoading(false);
     }
-  }, [projectTitle, script, selectedActors, actorTTSConfigs, audioFile, audioSource, toast]);
+  }, [script, selectedActors, actorTTSConfigs, audioFile, audioSource, toast]);
 
   const handleVideoClick = (project: VideoProject) => {
     // Handle video playback/preview
@@ -244,15 +228,22 @@ export function NewProjectArcads() {
   };
 
   return (
-    <div className="flex flex-col h-full bg-background">
-      {/* Main Content Area */}
-      <div className="flex-1 flex">
-        {/* Projects Grid */}
-        <div className="flex-1 p-6">
+    <div className="flex flex-col h-screen overflow-hidden bg-background">
+      {/* Main Content Area - Video Grid */}
+      <div className="flex-1 overflow-y-auto pb-[180px]">
+        <div className="p-6">
           {mockProjects.length > 0 ? (
-            <VideoGrid projects={mockProjects} onVideoClick={handleVideoClick} />
+            <div className="grid grid-cols-3 gap-6 max-w-7xl">
+              {mockProjects.map((project) => (
+                <VideoCard
+                  key={project.id}
+                  {...project}
+                  onClick={() => handleVideoClick(project)}
+                />
+              ))}
+            </div>
           ) : (
-            <div className="flex flex-col items-center justify-center h-full text-center">
+            <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
               <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
                 <Users className="w-8 h-8 text-muted-foreground" />
               </div>
@@ -267,72 +258,36 @@ export function NewProjectArcads() {
         </div>
       </div>
 
-      {/* Bottom Panel - Script Input */}
-      <div className="border-t border-border bg-card">
-        <div className="max-w-4xl mx-auto p-6">
-          {/* Project Title */}
-          <div className="mb-4">
-            <Input
-              placeholder="Project title..."
-              value={projectTitle}
-              onChange={(e) => setProjectTitle(e.target.value)}
-              className="text-sm border-0 bg-transparent focus-visible:ring-0 px-0"
-            />
-          </div>
-
-          {/* Selected Actors */}
-          {selectedActors.length > 0 && (
-            <div className="mb-4">
-              <div className="flex flex-wrap gap-2">
-                {selectedActors.map((actor) => (
-                  <ActorCard
-                    key={actor.id}
-                    actor={actor}
-                    onRemove={() => handleRemoveActor(actor.id)}
-                    className="max-w-[200px]"
-                    showSettings={audioSource === "tts"}
-                    ttsConfig={actorTTSConfigs[actor.id]}
-                    onTTSConfigChange={handleTTSConfigChange}
-                    disabled={isLoading}
-                  />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* Script Input with AI Controls */}
-          <div className="mb-4">
-            <AnimatedAIInput
-              value={script}
-              onChange={setScript}
-              onSubmit={handleCreateProject}
-              placeholder="Write script..."
-              disabled={isLoading}
-              selectedActors={selectedActors}
-              onOpenActorSelector={() => setShowActorSelector(true)}
-              audioSource={audioSource}
-              onAudioSourceChange={setAudioSource}
-              audioFile={audioFile}
-              onAudioSelected={(file) => {
-                const audio = new Audio(URL.createObjectURL(file));
-                audio.addEventListener('loadedmetadata', () => {
-                  handleAudioSelected(file, audio.duration);
-                });
-              }}
-              onAudioRemoved={handleAudioRemoved}
-            />
-          </div>
-        </div>
-      </div>
+      {/* Bottom Input Panel */}
+      <BottomInputPanel
+        script={script}
+        onScriptChange={setScript}
+        selectedActors={selectedActors}
+        onRemoveActor={handleRemoveActor}
+        onOpenActorSelector={() => setShowActorSelector(true)}
+        audioSource={audioSource}
+        onAudioSourceChange={setAudioSource}
+        audioFile={audioFile}
+        onAudioSelected={(file) => {
+          const audio = new Audio(URL.createObjectURL(file));
+          audio.addEventListener('loadedmetadata', () => {
+            handleAudioSelected(file, audio.duration);
+          });
+        }}
+        onAudioRemoved={handleAudioRemoved}
+        actorTTSConfigs={actorTTSConfigs}
+        onTTSConfigChange={handleTTSConfigChange}
+        onSubmit={handleCreateProject}
+        isLoading={isLoading}
+      />
 
       {/* Actor Selection Modal */}
-      {showActorSelector && (
-        <ActorSelector
-          onSelectActors={handleActorSelection}
-          onClose={() => setShowActorSelector(false)}
-          selectedActors={selectedActors}
-        />
-      )}
+      <ActorSelectionModal
+        open={showActorSelector}
+        onClose={() => setShowActorSelector(false)}
+        onSelectActors={handleActorSelection}
+        selectedActors={selectedActors}
+      />
     </div>
   );
 }
