@@ -119,7 +119,6 @@ interface AnimatedAIInputProps {
     audioFile?: File | null;
     onAudioSelected?: (file: File) => void;
     onAudioRemoved?: () => void;
-    onGenerateTTS?: (text: string, voice: string, language: string) => void;
 }
 
 export function AnimatedAIInput({ 
@@ -135,12 +134,9 @@ export function AnimatedAIInput({
     onAudioSourceChange,
     audioFile,
     onAudioSelected,
-    onAudioRemoved,
-    onGenerateTTS
+    onAudioRemoved
 }: AnimatedAIInputProps) {
     const [value, setValue] = useState(controlledValue);
-    const [voice, setVoice] = useState("alloy");
-    const [language, setLanguage] = useState("en-US");
     const [isPlaying, setIsPlaying] = useState(false);
     const audioRef = useRef<HTMLAudioElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -151,23 +147,6 @@ export function AnimatedAIInput({
         maxHeight: 300,
     });
 
-    const VOICE_OPTIONS = [
-        { value: "alloy", label: "Alloy (Neutral)" },
-        { value: "echo", label: "Echo (Male)" },
-        { value: "fable", label: "Fable (British)" },
-        { value: "onyx", label: "Onyx (Deep)" },
-        { value: "nova", label: "Nova (Young Female)" },
-        { value: "shimmer", label: "Shimmer (Soft Female)" },
-    ];
-
-    const LANGUAGE_OPTIONS = [
-        { value: "en-US", label: "English (US)" },
-        { value: "en-GB", label: "English (UK)" },
-        { value: "es-ES", label: "Spanish" },
-        { value: "fr-FR", label: "French" },
-        { value: "de-DE", label: "German" },
-        { value: "it-IT", label: "Italian" },
-    ];
 
     useEffect(() => {
         setValue(controlledValue);
@@ -234,17 +213,6 @@ export function AnimatedAIInput({
         return `${mins}:${secs.toString().padStart(2, '0')}`;
     };
 
-    const handleGenerateTTS = () => {
-        if (!value.trim()) {
-            toast({
-                title: "Script Required",
-                description: "Please enter a script to generate audio",
-                variant: "destructive",
-            });
-            return;
-        }
-        onGenerateTTS?.(value, voice, language);
-    };
 
     const renderMainContent = () => {
         if (audioSource === "upload") {
@@ -339,62 +307,13 @@ export function AnimatedAIInput({
         );
     };
 
-    const renderTTSControls = () => {
-        if (audioSource !== "tts") return null;
-
-        return (
-            <div className="px-4 py-2 border-t border-border">
-                <div className="flex items-center gap-4">
-                    <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                        <Volume2 className="h-3 w-3" />
-                        <span>TTS Settings</span>
-                    </div>
-                    <Select value={voice} onValueChange={setVoice} disabled={disabled}>
-                        <SelectTrigger className="h-7 text-xs w-32">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {VOICE_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value} className="text-xs">
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Select value={language} onValueChange={setLanguage} disabled={disabled}>
-                        <SelectTrigger className="h-7 text-xs w-32">
-                            <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                            {LANGUAGE_OPTIONS.map((option) => (
-                                <SelectItem key={option.value} value={option.value} className="text-xs">
-                                    {option.label}
-                                </SelectItem>
-                            ))}
-                        </SelectContent>
-                    </Select>
-                    <Button
-                        onClick={handleGenerateTTS}
-                        disabled={disabled || !value.trim()}
-                        size="sm"
-                        variant="outline"
-                        className="h-7 text-xs"
-                    >
-                        <Volume2 className="h-3 w-3 mr-1" />
-                        Generate Audio
-                    </Button>
-                </div>
-            </div>
-        );
-    };
 
     return (
         <div className="w-full py-4">
             <div className="bg-background/50 dark:bg-background/50 rounded-2xl p-1.5 border border-border/50">
                 <div className="relative">
-                    <div className="relative flex flex-col">
+                <div className="relative flex flex-col">
                         {renderMainContent()}
-                        {renderTTSControls()}
 
                         <div className="h-14 bg-transparent rounded-b-xl flex items-center">
                             <div className="absolute left-3 right-3 bottom-3 flex items-center justify-between w-[calc(100%-24px)]">
