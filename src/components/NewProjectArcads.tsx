@@ -230,10 +230,10 @@ export function NewProjectArcads() {
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-background">
       {/* Main Content Area - Video Grid */}
-      <div className="flex-1 overflow-y-auto pb-[180px]">
+      <div className="flex-1 overflow-y-auto pb-[240px] scrollbar-thin scrollbar-thumb-gray-200 hover:scrollbar-thumb-gray-300">
         <div className="p-6">
           {mockProjects.length > 0 ? (
-            <div className="grid grid-cols-3 gap-6 max-w-7xl">
+            <div className="grid grid-cols-3 gap-6 max-w-7xl mx-auto">
               {mockProjects.map((project) => (
                 <VideoCard
                   key={project.id}

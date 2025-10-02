@@ -30,24 +30,36 @@ export function ActorCard({
   onTTSConfigChange,
   disabled = false
 }: ActorCardProps) {
+  // Extract first name only
+  const firstName = actor.name.split(' ')[0];
+
   return (
     <div className={cn(
-      "flex items-center gap-2 bg-card border border-border rounded-lg p-2",
+      "flex items-center gap-3 bg-card border border-border rounded-lg p-2",
       className
     )}>
-      <div className="w-8 h-8 rounded-full overflow-hidden flex-shrink-0">
+      {/* Portrait avatar - 9:16 aspect ratio */}
+      <div className="w-[48px] h-[64px] rounded overflow-hidden flex-shrink-0">
         <img 
           src={actor.thumbnail_url} 
           alt={actor.name}
           className="w-full h-full object-cover"
         />
       </div>
-      <span className="text-sm font-medium text-foreground truncate">
-        {actor.name}
+      
+      {/* First name only */}
+      <span className="text-sm font-medium text-foreground">
+        {firstName}
       </span>
-      <span className="text-xs text-muted-foreground ml-auto">
+      
+      {/* Separator bar */}
+      <div className="w-[1px] h-4 bg-[#E9E9EA] flex-shrink-0" />
+      
+      {/* Duration */}
+      <span className="text-xs text-muted-foreground">
         0:00
       </span>
+      
       {showSettings && ttsConfig && onTTSConfigChange && (
         <ActorTTSSettings
           actorId={actor.id}

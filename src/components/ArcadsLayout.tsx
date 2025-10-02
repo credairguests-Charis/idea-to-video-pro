@@ -82,7 +82,7 @@ export function ArcadsLayout({ children }: ArcadsLayoutProps) {
   return (
     <div className="flex h-screen bg-background">
       {/* Sidebar */}
-      <div className="w-80 bg-card border-r border-border flex flex-col">
+      <div className="w-[240px] bg-card border-r border-border flex flex-col">
         {/* Header with Logo */}
         <div className="p-4 border-b border-border">
           <div className="flex items-center gap-3">
@@ -108,7 +108,7 @@ export function ArcadsLayout({ children }: ArcadsLayoutProps) {
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 px-4">
+        <nav className="flex-1 px-4 overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 hover:scrollbar-thumb-gray-300">
           <ul className="space-y-1 mb-8">
             {navigation.map((item) => (
               <li key={item.name}>
@@ -231,8 +231,8 @@ export function ArcadsLayout({ children }: ArcadsLayoutProps) {
           </div>
         </nav>
 
-        {/* Footer with Sign Out */}
-        <div className="p-4 border-t border-border mt-auto">
+        {/* Footer with Sign Out - pinned to bottom */}
+        <div className="p-4 border-t border-border mt-auto sticky bottom-0 bg-card">
           {user && (
             <div className="mb-2 text-xs text-muted-foreground truncate">
               {user.email}

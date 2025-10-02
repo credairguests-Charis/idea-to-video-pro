@@ -83,10 +83,10 @@ export function BottomInputPanel({
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-4 pointer-events-none">
       <div 
-        className="w-full max-w-[980px] mx-6 bg-card rounded-2xl border border-border shadow-[0_6px_20px_rgba(12,12,12,0.05)] pointer-events-auto"
+        className="w-[92%] max-w-[980px] mx-auto bg-card rounded-2xl border border-border shadow-[0_6px_20px_rgba(12,12,12,0.05)] pointer-events-auto"
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-4 pt-4 pb-2">
+        <div className="relative px-5 pt-5 pb-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground">
@@ -95,7 +95,7 @@ export function BottomInputPanel({
                 <ChevronDown className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start">
+            <DropdownMenuContent align="start" className="bg-background z-50">
               <DropdownMenuItem>All Actors</DropdownMenuItem>
               <DropdownMenuItem>Favorites</DropdownMenuItem>
               <DropdownMenuItem>My Clones</DropdownMenuItem>
@@ -103,14 +103,14 @@ export function BottomInputPanel({
           </DropdownMenu>
           
           {audioSource === "tts" && (
-            <span className="text-xs text-muted-foreground">
+            <span className="absolute right-5 top-5 text-xs text-muted-foreground">
               {charCount} / {maxChars}
             </span>
           )}
         </div>
 
         {/* Main content area */}
-        <div className="px-4">
+        <div className="px-5">
           {audioSource === "tts" ? (
             <Textarea
               ref={textareaRef}
@@ -178,8 +178,8 @@ export function BottomInputPanel({
 
         {/* Selected actors */}
         {selectedActors.length > 0 && (
-          <div className="px-4 pb-3">
-            <div className="flex flex-wrap gap-2">
+          <div className="px-5 pb-3">
+            <div className="flex flex-wrap gap-3">
               {selectedActors.map((actor) => (
                 <ActorCard
                   key={actor.id}
@@ -197,7 +197,7 @@ export function BottomInputPanel({
         )}
 
         {/* Bottom bar */}
-        <div className="flex items-center justify-between px-4 pb-4 pt-2 border-t border-border">
+        <div className="flex items-center justify-between px-5 pb-5 pt-2 border-t border-border">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">

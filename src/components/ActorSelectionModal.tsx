@@ -202,8 +202,8 @@ export function ActorSelectionModal({
               </div>
             </div>
 
-            <ScrollArea className="flex-1 p-4">
-              <div className="grid grid-cols-5 gap-3">
+            <div className="flex-1 p-6 max-h-[70vh] overflow-y-auto scrollbar-thin scrollbar-thumb-gray-200 hover:scrollbar-thumb-gray-300">
+              <div className="grid grid-cols-5 gap-6">
                 {filteredActors.map((actor) => {
                   const isSelected = selectedIds.has(actor.id);
                   return (
@@ -246,7 +246,7 @@ export function ActorSelectionModal({
                   );
                 })}
               </div>
-            </ScrollArea>
+            </div>
           </div>
         </div>
       </DialogContent>
