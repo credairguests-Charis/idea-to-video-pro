@@ -1,4 +1,4 @@
-import { X } from "lucide-react";
+import { Settings, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { ActorTTSSettings, ActorTTSConfig } from "./ActorTTSSettings";
@@ -35,11 +35,11 @@ export function ActorCard({
 
   return (
     <div className={cn(
-      "flex items-center gap-3 bg-card border border-border rounded-lg p-2",
+      "inline-flex items-center gap-3 bg-white border border-gray-100 rounded-xl p-3 shadow-sm",
       className
     )}>
-      {/* Portrait avatar - 9:16 aspect ratio */}
-      <div className="w-[48px] h-[64px] rounded overflow-hidden flex-shrink-0">
+      {/* Square avatar - 48x48 */}
+      <div className="w-12 h-12 rounded-md overflow-hidden flex-shrink-0">
         <img 
           src={actor.thumbnail_url} 
           alt={actor.name}
@@ -48,15 +48,17 @@ export function ActorCard({
       </div>
       
       {/* First name only */}
-      <span className="text-sm font-medium text-foreground">
+      <span className="text-sm font-medium text-gray-800 whitespace-nowrap">
         {firstName}
       </span>
       
-      {/* Separator bar */}
-      <div className="w-[1px] h-4 bg-[#E9E9EA] flex-shrink-0" />
+      {/* Progress bar - takes flexible space */}
+      <div className="flex-1 h-2 bg-gray-200 rounded-full mx-3 min-w-[80px]">
+        <div className="h-2 rounded-full bg-gray-300" style={{ width: '0%' }} />
+      </div>
       
       {/* Duration */}
-      <span className="text-xs text-muted-foreground">
+      <span className="text-xs text-gray-500 whitespace-nowrap">
         0:00
       </span>
       
@@ -72,11 +74,12 @@ export function ActorCard({
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+          className="h-8 w-8 p-0 text-gray-400 hover:text-gray-600 flex-shrink-0"
           onClick={onRemove}
           disabled={disabled}
+          aria-label="Remove actor"
         >
-          <X className="w-3 h-3" />
+          <X className="w-4 h-4" />
         </Button>
       )}
     </div>

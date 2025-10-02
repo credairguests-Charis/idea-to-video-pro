@@ -83,7 +83,7 @@ export function BottomInputPanel({
   return (
     <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-4 pointer-events-none">
       <div 
-        className="w-[92%] max-w-[980px] mx-auto bg-card rounded-2xl border border-border shadow-[0_6px_20px_rgba(12,12,12,0.05)] pointer-events-auto"
+        className="w-[92%] max-w-[920px] mx-auto bg-card rounded-2xl border border-border shadow-[0_6px_20px_rgba(12,12,12,0.05)] pointer-events-auto"
       >
         {/* Header */}
         <div className="relative px-5 pt-5 pb-2">
@@ -179,7 +179,7 @@ export function BottomInputPanel({
         {/* Selected actors */}
         {selectedActors.length > 0 && (
           <div className="px-5 pb-3">
-            <div className="flex flex-wrap gap-3">
+            <div className="flex flex-wrap gap-3 items-center">
               {selectedActors.map((actor) => (
                 <ActorCard
                   key={actor.id}
@@ -189,7 +189,6 @@ export function BottomInputPanel({
                   ttsConfig={actorTTSConfigs[actor.id]}
                   onTTSConfigChange={onTTSConfigChange}
                   disabled={isLoading}
-                  className="flex-shrink-0"
                 />
               ))}
             </div>
