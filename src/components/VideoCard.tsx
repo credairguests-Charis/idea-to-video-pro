@@ -24,9 +24,8 @@ export function VideoCard({
   return (
     <div 
       className={cn(
-        "group relative bg-card rounded-2xl overflow-hidden border border-border cursor-pointer",
-        "shadow-[0_6px_20px_rgba(12,12,12,0.05)] hover:shadow-[0_8px_24px_rgba(12,12,12,0.08)]",
-        "transition-all duration-200",
+        "group relative bg-white rounded-lg overflow-hidden border border-gray-100 cursor-pointer w-[180px]",
+        "shadow-sm hover:shadow-md transition-all duration-200",
         className
       )}
       onClick={onClick}
@@ -46,8 +45,8 @@ export function VideoCard({
           {/* Play button overlay */}
           {status === 'completed' && (
             <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-              <div className="bg-white/90 backdrop-blur-sm rounded-full p-4">
-                <Play className="w-8 h-8 text-foreground fill-foreground" />
+              <div className="bg-white/90 backdrop-blur-sm rounded-full p-3">
+                <Play className="w-6 h-6 text-gray-900 fill-gray-900" />
               </div>
             </div>
           )}
@@ -72,20 +71,20 @@ export function VideoCard({
       </div>
       
       {/* Title bar */}
-      <div className="p-3 flex items-center justify-between">
-        <h3 className="text-sm font-medium text-foreground truncate flex-1">
+      <div className="p-2 flex items-center justify-between bg-white">
+        <h3 className="text-xs font-medium text-gray-800 truncate flex-1">
           {title}
         </h3>
         <Button
           variant="ghost"
           size="sm"
-          className="h-6 w-6 p-0 text-muted-foreground hover:text-foreground"
+          className="h-5 w-5 p-0 text-gray-400 hover:text-gray-600"
           onClick={(e) => {
             e.stopPropagation();
             // Handle menu
           }}
         >
-          <MoreHorizontal className="h-4 w-4" />
+          <MoreHorizontal className="h-3 w-3" />
         </Button>
       </div>
     </div>

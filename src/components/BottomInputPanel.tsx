@@ -81,21 +81,21 @@ export function BottomInputPanel({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-4 pointer-events-none">
+    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-6 pointer-events-none">
       <div 
-        className="w-[92%] max-w-[920px] mx-auto bg-card rounded-2xl border border-border shadow-[0_6px_20px_rgba(12,12,12,0.05)] pointer-events-auto"
+        className="w-full max-w-[680px] mx-auto bg-white rounded-2xl border border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.08)] pointer-events-auto"
       >
         {/* Header */}
-        <div className="relative px-5 pt-5 pb-2">
+        <div className="relative px-4 pt-4 pb-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs text-muted-foreground hover:text-foreground">
-                <Users className="h-4 w-4" />
+              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-gray-600 hover:text-gray-900">
+                <Users className="h-3.5 w-3.5" />
                 Talking Actors
                 <ChevronDown className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="bg-background z-50">
+            <DropdownMenuContent align="start" className="bg-white z-50">
               <DropdownMenuItem>All Actors</DropdownMenuItem>
               <DropdownMenuItem>Favorites</DropdownMenuItem>
               <DropdownMenuItem>My Clones</DropdownMenuItem>
@@ -103,14 +103,14 @@ export function BottomInputPanel({
           </DropdownMenu>
           
           {audioSource === "tts" && (
-            <span className="absolute right-5 top-5 text-xs text-muted-foreground">
+            <span className="absolute right-4 top-4 text-xs text-gray-400">
               {charCount} / {maxChars}
             </span>
           )}
         </div>
 
         {/* Main content area */}
-        <div className="px-5">
+        <div className="px-4">
           {audioSource === "tts" ? (
             <Textarea
               ref={textareaRef}
@@ -122,9 +122,9 @@ export function BottomInputPanel({
               }}
               placeholder="Write script..."
               className={cn(
-                "min-h-[72px] max-h-[300px] w-full resize-none border-0 bg-transparent",
+                "min-h-[60px] max-h-[200px] w-full resize-none border-0 bg-transparent",
                 "focus-visible:ring-0 focus-visible:ring-offset-0 text-sm",
-                "placeholder:text-muted-foreground"
+                "placeholder:text-gray-400"
               )}
               disabled={isLoading}
             />
@@ -178,8 +178,8 @@ export function BottomInputPanel({
 
         {/* Selected actors */}
         {selectedActors.length > 0 && (
-          <div className="px-5 pb-3">
-            <div className="flex flex-wrap gap-3 items-center">
+          <div className="px-4 pb-3">
+            <div className="flex flex-wrap gap-2 items-center">
               {selectedActors.map((actor) => (
                 <ActorCard
                   key={actor.id}
@@ -196,18 +196,18 @@ export function BottomInputPanel({
         )}
 
         {/* Bottom bar */}
-        <div className="flex items-center justify-between px-5 pb-5 pt-2 border-t border-border">
+        <div className="flex items-center justify-between px-4 pb-4 pt-3 border-t border-gray-100">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-8 gap-1 text-xs">
+              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-gray-700">
                 {audioSource === "tts" ? (
                   <>
-                    <Mic className="h-4 w-4" />
+                    <Mic className="h-3.5 w-3.5" />
                     Text to Speech
                   </>
                 ) : (
                   <>
-                    <Upload className="h-4 w-4" />
+                    <Upload className="h-3.5 w-3.5" />
                     Speech to Speech
                   </>
                 )}
@@ -228,9 +228,18 @@ export function BottomInputPanel({
 
           <div className="flex items-center gap-2">
             {selectedActors.length > 0 && (
-              <div className="flex items-center gap-1 px-2 py-1 bg-muted rounded-lg">
-                <Users className="h-3 w-3 text-muted-foreground" />
-                <span className="text-xs font-medium">{selectedActors.length} Actors</span>
+              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-full">
+                <div className="flex -space-x-2">
+                  {selectedActors.slice(0, 2).map((actor) => (
+                    <img
+                      key={actor.id}
+                      src={actor.thumbnail_url}
+                      alt={actor.name}
+                      className="w-5 h-5 rounded-full border-2 border-white object-cover"
+                    />
+                  ))}
+                </div>
+                <span className="text-xs font-medium text-gray-700">{selectedActors.length} Actor{selectedActors.length > 1 ? 's' : ''}</span>
               </div>
             )}
             
@@ -238,19 +247,19 @@ export function BottomInputPanel({
               variant="ghost"
               size="sm"
               onClick={onOpenActorSelector}
-              className="h-8 text-xs"
+              className="h-7 text-xs text-gray-700 hover:text-gray-900"
               disabled={isLoading}
             >
-              <Users className="h-4 w-4 mr-1" />
+              <Users className="h-3.5 w-3.5 mr-1" />
               Add actors
             </Button>
 
             <Button
               onClick={onSubmit}
               disabled={isLoading || selectedActors.length === 0 || (!script.trim() && !audioFile)}
-              className="h-9 w-9 rounded-full p-0 bg-primary hover:bg-primary/90"
+              className="h-9 w-9 rounded-full p-0 bg-[#0f1729] hover:bg-[#0f1729]/90"
             >
-              <ArrowUp className="h-5 w-5" />
+              <ArrowUp className="h-4 w-4 text-white" />
             </Button>
           </div>
         </div>

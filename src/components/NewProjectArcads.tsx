@@ -228,33 +228,19 @@ export function NewProjectArcads() {
   };
 
   return (
-    <div className="flex flex-col h-screen overflow-hidden bg-background">
-      {/* Main Content Area - Video Grid */}
-      <div className="flex-1 overflow-y-auto pb-[240px] scrollbar-thin scrollbar-thumb-gray-200 hover:scrollbar-thumb-gray-300">
-        <div className="p-6">
-          {mockProjects.length > 0 ? (
-            <div className="grid grid-cols-3 gap-6 max-w-7xl mx-auto">
-              {mockProjects.map((project) => (
-                <VideoCard
-                  key={project.id}
-                  {...project}
-                  onClick={() => handleVideoClick(project)}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="flex flex-col items-center justify-center h-[calc(100vh-200px)] text-center">
-              <div className="w-16 h-16 bg-muted rounded-full flex items-center justify-center mb-4">
-                <Users className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <h3 className="text-lg font-medium text-foreground mb-2">
-                Generate winning assets with talking actors,
-              </h3>
-              <p className="text-muted-foreground">
-                reactions and more.
-              </p>
-            </div>
-          )}
+    <div className="flex flex-col h-screen overflow-hidden bg-[#F7F7F8]">
+      {/* Main Content Area - Empty State */}
+      <div className="flex-1 flex items-center justify-center pb-[200px]">
+        <div className="text-center max-w-md">
+          <div className="mb-6 flex justify-center">
+            <Users className="h-20 w-20 text-gray-300" />
+          </div>
+          <h3 className="text-xl font-medium text-gray-600 mb-1">
+            Generate winning assets with talking actors,
+          </h3>
+          <p className="text-lg text-gray-500">
+            reactions and more.
+          </p>
         </div>
       </div>
 

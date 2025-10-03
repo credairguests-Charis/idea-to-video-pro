@@ -35,7 +35,7 @@ export function ActorCard({
 
   return (
     <div className={cn(
-      "inline-flex items-center gap-3 bg-white border border-gray-100 rounded-xl p-3 shadow-sm",
+      "inline-flex items-center gap-2.5 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2",
       className
     )}>
       {/* Square avatar - 48x48 */}
@@ -53,8 +53,8 @@ export function ActorCard({
       </span>
       
       {/* Progress bar - takes flexible space */}
-      <div className="flex-1 h-2 bg-gray-200 rounded-full mx-3 min-w-[80px]">
-        <div className="h-2 rounded-full bg-gray-300" style={{ width: '0%' }} />
+      <div className="flex-1 h-1.5 bg-gray-300 rounded-full mx-2 min-w-[60px]">
+        <div className="h-1.5 rounded-full bg-gray-400" style={{ width: '0%' }} />
       </div>
       
       {/* Duration */}
