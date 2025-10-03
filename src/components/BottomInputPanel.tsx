@@ -81,7 +81,7 @@ export function BottomInputPanel({
   };
 
   return (
-    <div className="fixed bottom-0 left-0 right-0 z-50 flex justify-center pb-6 pointer-events-none">
+    <div className="fixed bottom-0 left-[240px] right-0 z-50 flex justify-center pb-6 pointer-events-none">
       <div 
         className="w-full max-w-[680px] mx-auto bg-white rounded-2xl border border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.08)] pointer-events-auto"
       >
