@@ -35,3 +35,12 @@ verify_jwt = true
 
 [functions.poll-omnihuman-status]
 verify_jwt = false
+
+[functions.admin-get-dashboard-data]
+verify_jwt = true
+
+[functions.admin-create-promo]
+verify_jwt = true
+
+[functions.admin-health-check]
+verify_jwt = true

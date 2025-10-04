@@ -12,6 +12,14 @@ import NotFound from "./pages/NotFound";
 import { ArcadsLayout } from "./components/ArcadsLayout";
 import { AuthProvider } from "./hooks/useAuth";
 import { AuthGuard } from "./components/AuthGuard";
+import { AdminGuard } from "./components/admin/AdminGuard";
+import { AdminLayout } from "./components/admin/AdminLayout";
+import AdminOverview from "./pages/admin/AdminOverview";
+import AdminHealth from "./pages/admin/AdminHealth";
+import AdminPromos from "./pages/admin/AdminPromos";
+import AdminLinks from "./pages/admin/AdminLinks";
+import AdminLogs from "./pages/admin/AdminLogs";
+import AdminUsers from "./pages/admin/AdminUsers";
 
 const queryClient = new QueryClient();
 
@@ -23,6 +31,25 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/auth" element={<Auth />} />
+          
+          {/* Admin Routes */}
+          <Route path="/admin/*" element={
+            <AdminGuard>
+              <AdminLayout>
+                <Routes>
+                  <Route path="/" element={<AdminOverview />} />
+                  <Route path="/health" element={<AdminHealth />} />
+                  <Route path="/promos" element={<AdminPromos />} />
+                  <Route path="/links" element={<AdminLinks />} />
+                  <Route path="/logs" element={<AdminLogs />} />
+                  <Route path="/users" element={<AdminUsers />} />
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
+              </AdminLayout>
+            </AdminGuard>
+          } />
+          
+          {/* User Routes */}
           <Route path="/*" element={
             <AuthGuard>
               <ArcadsLayout>
