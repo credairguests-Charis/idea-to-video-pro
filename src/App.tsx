@@ -8,6 +8,7 @@ import Projects from "./pages/Projects";
 import Folders from "./pages/Folders";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
+import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import { ArcadsLayout } from "./components/ArcadsLayout";
 import { AuthProvider } from "./hooks/useAuth";
@@ -49,6 +50,9 @@ const App = () => (
             </AdminGuard>
           } />
           
+          {/* Pricing Page (Accessible without auth) */}
+          <Route path="/pricing" element={<Pricing />} />
+
           {/* User Routes */}
           <Route path="/*" element={
             <AuthGuard>

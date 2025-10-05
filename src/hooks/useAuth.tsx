@@ -2,10 +2,18 @@ import { createContext, useContext, useEffect, useState } from "react"
 import { User, Session } from "@supabase/supabase-js"
 import { supabase } from "@/integrations/supabase/client"
 
+interface SubscriptionStatus {
+  subscribed: boolean
+  product_id?: string | null
+  subscription_end?: string | null
+}
+
 interface AuthContextType {
   user: User | null
   session: Session | null
   loading: boolean
+  subscriptionStatus: SubscriptionStatus | null
+  checkSubscription: () => Promise<void>
   signOut: () => Promise<void>
 }
 
@@ -15,6 +23,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null)
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
+  const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null)
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -61,6 +70,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const checkSubscription = async () => {
+    if (!user) {
+      setSubscriptionStatus(null)
+      return
+    }
+
+    try {
+      const { data, error } = await supabase.functions.invoke('check-subscription')
+      
+      if (error) {
+        console.error('Error checking subscription:', error)
+        setSubscriptionStatus({ subscribed: false })
+      } else {
+        setSubscriptionStatus(data)
+      }
+    } catch (error) {
+      console.error('Exception checking subscription:', error)
+      setSubscriptionStatus({ subscribed: false })
+    }
+  }
+
+  // Check subscription on user change and periodically
+  useEffect(() => {
+    if (user) {
+      checkSubscription()
+      
+      // Check subscription every 60 seconds
+      const interval = setInterval(checkSubscription, 60000)
+      return () => clearInterval(interval)
+    } else {
+      setSubscriptionStatus(null)
+    }
+  }, [user])
+
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
     if (error) {
@@ -72,6 +115,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     user,
     session,
     loading,
+    subscriptionStatus,
+    checkSubscription,
     signOut,
   }
 
