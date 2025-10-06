@@ -13,8 +13,8 @@ export default function Pricing() {
   const { toast } = useToast();
   const navigate = useNavigate();
 
-  // TODO: Replace with actual price_id from Stripe Dashboard after creating the product
-  const ARCADS_PRO_PRICE_ID = "price_REPLACE_WITH_ACTUAL_PRICE_ID";
+  // Arcads Pro subscription price ID from Stripe
+  const ARCADS_PRO_PRICE_ID = "price_1SEt7IHtRqlJeQR0AMEVMy6T";
 
   const handleSubscribe = async () => {
     if (!user) {
