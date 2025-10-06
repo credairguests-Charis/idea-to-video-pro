@@ -7,18 +7,34 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Alert, AlertDescription } from "@/components/ui/alert"
 import { supabase } from "@/integrations/supabase/client"
 import { useAuth } from "@/hooks/useAuth"
-import { Navigate } from "react-router-dom"
+import { Navigate, useNavigate } from "react-router-dom"
 import { Loader2 } from "lucide-react"
+import { useEffect } from "react"
 
 export default function Auth() {
-  const { user } = useAuth()
+  const { user, subscriptionStatus, checkSubscription } = useAuth()
+  const navigate = useNavigate()
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const [message, setMessage] = useState<string | null>(null)
 
+  // Check subscription status when user is authenticated
+  useEffect(() => {
+    if (user) {
+      checkSubscription().then(() => {
+        // Navigate based on subscription status will be handled by SubscriptionGuard
+        navigate("/")
+      })
+    }
+  }, [user, checkSubscription, navigate])
+
   // Redirect if already authenticated
-  if (user) {
-    return <Navigate to="/" replace />
+  if (user && subscriptionStatus) {
+    if (subscriptionStatus.subscribed) {
+      return <Navigate to="/" replace />
+    } else {
+      return <Navigate to="/pricing" replace />
+    }
   }
 
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {

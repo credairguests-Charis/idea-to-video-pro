@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -6,12 +6,29 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate } from "react-router-dom";
+import { Alert, AlertDescription } from "@/components/ui/alert";
+import { AlertCircle } from "lucide-react";
 
 export default function Pricing() {
-  const { user, subscriptionStatus } = useAuth();
+  const { user, subscriptionStatus, checkSubscription } = useAuth();
   const [loading, setLoading] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  // Refresh subscription status on mount
+  useEffect(() => {
+    if (user) {
+      checkSubscription();
+    }
+  }, [user, checkSubscription]);
+
+  // Redirect if already subscribed
+  useEffect(() => {
+    if (subscriptionStatus?.subscribed) {
+      const timer = setTimeout(() => navigate("/"), 2000);
+      return () => clearTimeout(timer);
+    }
+  }, [subscriptionStatus, navigate]);
 
   // Arcads Pro subscription price ID from Stripe
   const ARCADS_PRO_PRICE_ID = "price_1SEt7IHtRqlJeQR0AMEVMy6T";
@@ -85,6 +102,24 @@ export default function Pricing() {
             One plan with everything you need to create professional AI videos
           </p>
         </div>
+
+        {!user && (
+          <Alert className="max-w-lg mx-auto mb-8">
+            <AlertCircle className="h-4 w-4" />
+            <AlertDescription>
+              Please <a href="/auth" className="underline font-medium">sign in or create an account</a> to subscribe
+            </AlertDescription>
+          </Alert>
+        )}
+
+        {subscriptionStatus?.subscribed && (
+          <Alert className="max-w-lg mx-auto mb-8 bg-primary/10 border-primary">
+            <Check className="h-4 w-4 text-primary" />
+            <AlertDescription className="text-primary">
+              You're already subscribed! Redirecting to dashboard...
+            </AlertDescription>
+          </Alert>
+        )}
 
         <div className="max-w-lg mx-auto">
           <Card className={subscriptionStatus?.subscribed ? "border-primary shadow-lg" : ""}>

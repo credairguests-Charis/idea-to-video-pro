@@ -13,6 +13,7 @@ import NotFound from "./pages/NotFound";
 import { ArcadsLayout } from "./components/ArcadsLayout";
 import { AuthProvider } from "./hooks/useAuth";
 import { AuthGuard } from "./components/AuthGuard";
+import { SubscriptionGuard } from "./components/SubscriptionGuard";
 import { AdminGuard } from "./components/admin/AdminGuard";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import AdminOverview from "./pages/admin/AdminOverview";
@@ -34,18 +35,45 @@ const App = () => (
           <Route path="/auth" element={<Auth />} />
           
           {/* Admin Routes */}
-          <Route path="/admin/*" element={
+          <Route path="/admin" element={
             <AdminGuard>
               <AdminLayout>
-                <Routes>
-                  <Route path="/" element={<AdminOverview />} />
-                  <Route path="/health" element={<AdminHealth />} />
-                  <Route path="/promos" element={<AdminPromos />} />
-                  <Route path="/links" element={<AdminLinks />} />
-                  <Route path="/logs" element={<AdminLogs />} />
-                  <Route path="/users" element={<AdminUsers />} />
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
+                <AdminOverview />
+              </AdminLayout>
+            </AdminGuard>
+          } />
+          <Route path="/admin/health" element={
+            <AdminGuard>
+              <AdminLayout>
+                <AdminHealth />
+              </AdminLayout>
+            </AdminGuard>
+          } />
+          <Route path="/admin/promos" element={
+            <AdminGuard>
+              <AdminLayout>
+                <AdminPromos />
+              </AdminLayout>
+            </AdminGuard>
+          } />
+          <Route path="/admin/links" element={
+            <AdminGuard>
+              <AdminLayout>
+                <AdminLinks />
+              </AdminLayout>
+            </AdminGuard>
+          } />
+          <Route path="/admin/logs" element={
+            <AdminGuard>
+              <AdminLayout>
+                <AdminLogs />
+              </AdminLayout>
+            </AdminGuard>
+          } />
+          <Route path="/admin/users" element={
+            <AdminGuard>
+              <AdminLayout>
+                <AdminUsers />
               </AdminLayout>
             </AdminGuard>
           } />
@@ -53,20 +81,22 @@ const App = () => (
           {/* Pricing Page (Accessible without auth) */}
           <Route path="/pricing" element={<Pricing />} />
 
-          {/* User Routes */}
+          {/* User Routes - Protected by Auth + Subscription */}
           <Route path="/*" element={
             <AuthGuard>
-              <ArcadsLayout>
-                <Routes>
-                  <Route path="/" element={<Index />} />
-                  <Route path="/projects" element={<Projects />} />
-                  <Route path="/folders" element={<Folders />} />
-                  <Route path="/settings" element={<Settings />} />
-                  <Route path="/still-watching" element={<Projects />} />
-                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                  <Route path="*" element={<NotFound />} />
-                </Routes>
-              </ArcadsLayout>
+              <SubscriptionGuard>
+                <ArcadsLayout>
+                  <Routes>
+                    <Route path="/" element={<Index />} />
+                    <Route path="/projects" element={<Projects />} />
+                    <Route path="/folders" element={<Folders />} />
+                    <Route path="/settings" element={<Settings />} />
+                    <Route path="/still-watching" element={<Projects />} />
+                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                    <Route path="*" element={<NotFound />} />
+                  </Routes>
+                </ArcadsLayout>
+              </SubscriptionGuard>
             </AuthGuard>
           } />
         </Routes>
