@@ -62,6 +62,26 @@ Deno.serve(async (req) => {
       .from('omnihuman_generations')
       .select('*', { count: 'exact', head: true });
 
+    // Get pending generations
+    const { count: pendingCount } = await supabase
+      .from('omnihuman_generations')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+
+    // Get failed generations
+    const { count: failedCount } = await supabase
+      .from('omnihuman_generations')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'failed');
+
+    // Get recent errors
+    const { data: recentErrors } = await supabase
+      .from('omnihuman_generations')
+      .select('id, error_message, project_id, created_at')
+      .eq('status', 'failed')
+      .order('created_at', { ascending: false })
+      .limit(20);
+
     // Get recent API health
     const { data: apiHealth } = await supabase
       .from('api_health')
@@ -74,7 +94,7 @@ Deno.serve(async (req) => {
       .from('admin_audit_logs')
       .select('*')
       .order('created_at', { ascending: false })
-      .limit(10);
+      .limit(20);
 
     // Get active promo codes
     const { count: activePromos } = await supabase
@@ -89,8 +109,12 @@ Deno.serve(async (req) => {
       projects: projectCount || 0,
       generations: generationCount || 0,
       activePromos: activePromos || 0,
-      apiHealth: apiHealth?.[0] || null,
-      recentActions: recentActions || []
+      queueLength: pendingCount || 0,
+      failedJobs: failedCount || 0,
+      monthlyRevenue: 0, // TODO: Integrate with Stripe for actual revenue
+      apiHealth: apiHealth?.[0] || { status: 'unknown', checked_at: new Date().toISOString() },
+      recentActions: recentActions || [],
+      recentErrors: recentErrors || []
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });
