@@ -84,7 +84,7 @@ export default function AdminOverview() {
   const recentActivities = data.recentActions.map(action => ({
     id: action.id,
     action: action.action,
-    details: action.details,
+    details: typeof action.details === 'string' ? action.details : JSON.stringify(action.details),
     timestamp: new Date(action.created_at),
     type: 'info' as const
   }));
@@ -103,7 +103,7 @@ export default function AdminOverview() {
       id: action.id,
       timestamp: new Date(action.created_at),
       level: 'info' as const,
-      message: `${action.action}: ${action.details}`,
+      message: `${action.action}: ${typeof action.details === 'string' ? action.details : JSON.stringify(action.details)}`,
       source: 'admin'
     })),
     ...(data.recentErrors || []).slice(0, 10).map(error => ({
