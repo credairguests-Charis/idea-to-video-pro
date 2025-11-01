@@ -53,7 +53,7 @@ export default function Pricing() {
 
       console.info('[Pricing] create-checkout response', data);
       if (data?.url) {
-        window.open(data.url, "_blank");
+        window.location.href = data.url;
       } else if (data?.error) {
         throw new Error(data.error);
       } else {
