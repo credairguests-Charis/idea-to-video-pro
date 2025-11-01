@@ -41,16 +41,26 @@ export default function Pricing() {
 
     setLoading(true);
     try {
+      console.info('[Pricing] Creating checkout session', { priceId: ARCADS_PRO_PRICE_ID });
       const { data, error } = await supabase.functions.invoke("create-checkout", {
         body: { priceId: ARCADS_PRO_PRICE_ID },
       });
 
-      if (error) throw error;
+      if (error) {
+        console.error('[Pricing] create-checkout error', error);
+        throw error;
+      }
 
+      console.info('[Pricing] create-checkout response', data);
       if (data?.url) {
         window.open(data.url, "_blank");
+      } else if (data?.error) {
+        throw new Error(data.error);
+      } else {
+        throw new Error('No checkout URL returned');
       }
     } catch (error: any) {
+      console.error('[Pricing] Subscribe failed', error);
       toast({
         title: "Error",
         description: error.message || "Failed to create checkout session",
