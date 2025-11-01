@@ -68,9 +68,13 @@ serve(async (req) => {
 
     if (hasActiveSub) {
       const subscription = subscriptions.data[0];
-      subscriptionEnd = new Date(subscription.current_period_end * 1000).toISOString();
+      const periodEnd = (subscription as any)?.current_period_end;
+      if (typeof periodEnd === 'number' && !Number.isNaN(periodEnd)) {
+        subscriptionEnd = new Date(periodEnd * 1000).toISOString();
+      }
       logStep("Active subscription found", { subscriptionId: subscription.id, endDate: subscriptionEnd });
-      productId = subscription.items.data[0].price.product;
+      const firstItem = subscription.items?.data?.[0];
+      productId = typeof firstItem?.price?.product === 'string' ? firstItem.price.product : null;
       logStep("Determined subscription tier", { productId });
     } else {
       logStep("No active subscription found");

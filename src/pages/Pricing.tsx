@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Check } from "lucide-react";
+import { Check, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { useAuth } from "@/hooks/useAuth";
@@ -29,6 +29,15 @@ export default function Pricing() {
       return () => clearTimeout(timer);
     }
   }, [subscriptionStatus, navigate]);
+
+  // Ensure browser back from Pricing goes to Auth
+  useEffect(() => {
+    const onPopState = () => {
+      navigate('/auth');
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [navigate]);
 
   // Arcads Pro subscription price ID from Stripe
   const ARCADS_PRO_PRICE_ID = "price_1SEt7IHtRqlJeQR0AMEVMy6T";
@@ -106,6 +115,12 @@ export default function Pricing() {
   return (
     <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <div className="container mx-auto px-4 py-16">
+        <div className="mb-6">
+          <Button variant="ghost" onClick={() => navigate('/auth')} className="inline-flex items-center gap-2">
+            <ArrowLeft className="h-4 w-4" />
+            Back to Sign In
+          </Button>
+        </div>
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h1>
           <p className="text-muted-foreground text-lg">
