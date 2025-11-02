@@ -45,6 +45,9 @@ verify_jwt = true
 [functions.admin-health-check]
 verify_jwt = true
 
+[functions.health-check-cron]
+verify_jwt = false
+
 [functions.check-subscription]
 verify_jwt = true
 
