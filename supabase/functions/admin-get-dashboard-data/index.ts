@@ -1,4 +1,5 @@
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2.57.4';
+import Stripe from 'https://esm.sh/stripe@18.5.0';
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -102,6 +103,43 @@ Deno.serve(async (req) => {
       .select('*', { count: 'exact', head: true })
       .eq('is_active', true);
 
+    // Fetch Stripe subscription and revenue data
+    let activeSubscriptions = 0;
+    let monthlyRevenue = 0;
+    
+    try {
+      const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
+      if (stripeKey) {
+        const stripe = new Stripe(stripeKey, { apiVersion: '2025-08-27.basil' });
+        
+        // Get all active subscriptions
+        const subscriptions = await stripe.subscriptions.list({
+          status: 'active',
+          limit: 100,
+        });
+        
+        activeSubscriptions = subscriptions.data.length;
+        
+        // Calculate monthly revenue from active subscriptions
+        monthlyRevenue = subscriptions.data.reduce((total, sub) => {
+          // Sum up all line items in the subscription
+          const subTotal = sub.items.data.reduce((itemTotal, item) => {
+            const amount = item.price.unit_amount || 0;
+            const quantity = item.quantity || 1;
+            return itemTotal + (amount * quantity);
+          }, 0);
+          return total + subTotal;
+        }, 0) / 100; // Convert from cents to dollars
+        
+        console.log('Stripe data fetched:', { activeSubscriptions, monthlyRevenue });
+      } else {
+        console.warn('STRIPE_SECRET_KEY not configured');
+      }
+    } catch (stripeError) {
+      console.error('Error fetching Stripe data:', stripeError);
+      // Continue with 0 values if Stripe fails
+    }
+
     console.log('Dashboard data fetched successfully');
 
     return new Response(JSON.stringify({
@@ -111,7 +149,8 @@ Deno.serve(async (req) => {
       activePromos: activePromos || 0,
       queueLength: pendingCount || 0,
       failedJobs: failedCount || 0,
-      monthlyRevenue: 0, // TODO: Integrate with Stripe for actual revenue
+      activeSubscriptions,
+      monthlyRevenue,
       apiHealth: apiHealth?.[0] || { status: 'unknown', checked_at: new Date().toISOString() },
       recentActions: recentActions || [],
       recentErrors: recentErrors || []

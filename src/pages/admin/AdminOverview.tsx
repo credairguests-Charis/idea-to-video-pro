@@ -27,6 +27,7 @@ interface DashboardData {
   activePromos: number;
   failedJobs: number;
   queueLength: number;
+  activeSubscriptions: number;
   monthlyRevenue: number;
   apiHealth: {
     status: string;
@@ -195,9 +196,8 @@ export default function AdminOverview() {
         />
         <KPICard
           title="Active Subscriptions"
-          value={0}
+          value={data.activeSubscriptions}
           icon={DollarSign}
-          description="Coming soon"
           loading={loading}
         />
         <KPICard
