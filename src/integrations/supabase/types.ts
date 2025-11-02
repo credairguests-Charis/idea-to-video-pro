@@ -370,6 +370,7 @@ export type Database = {
           email: string | null
           full_name: string | null
           id: string
+          paused: boolean | null
           updated_at: string
           user_id: string
         }
@@ -379,6 +380,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          paused?: boolean | null
           updated_at?: string
           user_id: string
         }
@@ -388,6 +390,7 @@ export type Database = {
           email?: string | null
           full_name?: string | null
           id?: string
+          paused?: boolean | null
           updated_at?: string
           user_id?: string
         }
@@ -571,6 +574,14 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_user_stats: {
+        Args: { target_user_id: string }
+        Returns: {
+          last_login: string
+          total_logins: number
+          video_count: number
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
