@@ -17,6 +17,7 @@ import { SubscriptionGuard } from "./components/SubscriptionGuard";
 import { AdminGuard } from "./components/admin/AdminGuard";
 import { AdminLayout } from "./components/admin/AdminLayout";
 import AdminOverview from "./pages/admin/AdminOverview";
+import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminHealth from "./pages/admin/AdminHealth";
 import AdminPromos from "./pages/admin/AdminPromos";
 import AdminLinks from "./pages/admin/AdminLinks";
@@ -39,6 +40,13 @@ const App = () => (
             <AdminGuard>
               <AdminLayout>
                 <AdminOverview />
+              </AdminLayout>
+            </AdminGuard>
+          } />
+          <Route path="/admin/analytics" element={
+            <AdminGuard>
+              <AdminLayout>
+                <AdminAnalytics />
               </AdminLayout>
             </AdminGuard>
           } />

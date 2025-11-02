@@ -1,4 +1,4 @@
-import { LayoutDashboard, Activity, Tag, Link2, FileText, Users, LogOut, Sun, Moon } from "lucide-react";
+import { LayoutDashboard, Activity, Tag, Link2, FileText, Users, LogOut, Sun, Moon, BarChart3 } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -20,6 +20,7 @@ import { Label } from "@/components/ui/label";
 
 const menuItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard, end: true },
+  { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
   { title: "Health", url: "/admin/health", icon: Activity },
   { title: "Promotions", url: "/admin/promos", icon: Tag },
   { title: "Admin Links", url: "/admin/links", icon: Link2 },
@@ -50,12 +51,12 @@ export function AdminSidebar({ isDarkMode, setIsDarkMode }: AdminSidebarProps) {
   };
 
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar-background h-screen flex flex-col" collapsible="none">
+    <Sidebar className="border-r border-sidebar-border bg-sidebar-background h-screen flex flex-col fixed left-0 top-0" collapsible="none">
       <SidebarHeader className="p-4 border-b border-sidebar-border flex-shrink-0">
         <h2 className="text-xl font-bold text-sidebar-foreground">Admin Dashboard</h2>
       </SidebarHeader>
 
-      <SidebarContent className="flex-1 overflow-y-auto">
+      <SidebarContent className="flex-1 overflow-y-auto scrollbar-thin scrollbar-thumb-sidebar-border scrollbar-track-transparent">
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/60 text-xs uppercase px-3 py-2">
             Main Menu

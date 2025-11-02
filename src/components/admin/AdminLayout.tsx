@@ -15,9 +15,9 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full bg-background">
+      <div className="min-h-screen flex w-full bg-background overflow-hidden">
         <AdminSidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-        <main className="flex-1 p-8 overflow-auto">
+        <main className="flex-1 p-8 overflow-y-auto">
           {children}
         </main>
       </div>
