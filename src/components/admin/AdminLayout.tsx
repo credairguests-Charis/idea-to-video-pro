@@ -1,20 +1,22 @@
 import { AdminSidebar } from "./AdminSidebar";
 import { SidebarProvider } from "@/components/ui/sidebar";
-import { useEffect } from "react";
+import { useState, useEffect } from "react";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
-  // Enable dark mode for admin pages only
+  const [isDarkMode, setIsDarkMode] = useState(true);
+
   useEffect(() => {
-    document.documentElement.classList.add('dark');
-    return () => {
+    if (isDarkMode) {
+      document.documentElement.classList.add('dark');
+    } else {
       document.documentElement.classList.remove('dark');
-    };
-  }, []);
+    }
+  }, [isDarkMode]);
 
   return (
     <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full bg-background">
-        <AdminSidebar />
+        <AdminSidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
         <main className="flex-1 p-8 overflow-auto">
           {children}
         </main>

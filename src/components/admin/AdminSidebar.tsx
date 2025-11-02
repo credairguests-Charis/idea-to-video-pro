@@ -1,4 +1,4 @@
-import { LayoutDashboard, Activity, Tag, Link2, FileText, Users, LogOut } from "lucide-react";
+import { LayoutDashboard, Activity, Tag, Link2, FileText, Users, LogOut, Sun, Moon } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -15,6 +15,8 @@ import {
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
+import { Label } from "@/components/ui/label";
 
 const menuItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard, end: true },
@@ -25,7 +27,12 @@ const menuItems = [
   { title: "Users", url: "/admin/users", icon: Users },
 ];
 
-export function AdminSidebar() {
+interface AdminSidebarProps {
+  isDarkMode: boolean;
+  setIsDarkMode: (value: boolean) => void;
+}
+
+export function AdminSidebar({ isDarkMode, setIsDarkMode }: AdminSidebarProps) {
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -43,12 +50,12 @@ export function AdminSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-sidebar-border bg-sidebar-background" collapsible="none">
-      <SidebarHeader className="p-4 border-b border-sidebar-border">
+    <Sidebar className="border-r border-sidebar-border bg-sidebar-background h-screen flex flex-col" collapsible="none">
+      <SidebarHeader className="p-4 border-b border-sidebar-border flex-shrink-0">
         <h2 className="text-xl font-bold text-sidebar-foreground">Admin Dashboard</h2>
       </SidebarHeader>
 
-      <SidebarContent>
+      <SidebarContent className="flex-1 overflow-y-auto">
         <SidebarGroup>
           <SidebarGroupLabel className="text-sidebar-foreground/60 text-xs uppercase px-3 py-2">
             Main Menu
@@ -80,7 +87,20 @@ export function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4 border-t border-sidebar-border">
+      <SidebarFooter className="p-4 border-t border-sidebar-border flex-shrink-0 space-y-3">
+        <div className="flex items-center justify-between px-2">
+          <div className="flex items-center gap-2">
+            {isDarkMode ? <Moon className="h-4 w-4" /> : <Sun className="h-4 w-4" />}
+            <Label htmlFor="theme-toggle" className="text-sm text-sidebar-foreground cursor-pointer">
+              {isDarkMode ? 'Dark' : 'Light'}
+            </Label>
+          </div>
+          <Switch
+            id="theme-toggle"
+            checked={isDarkMode}
+            onCheckedChange={setIsDarkMode}
+          />
+        </div>
         <Button
           variant="ghost"
           className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
