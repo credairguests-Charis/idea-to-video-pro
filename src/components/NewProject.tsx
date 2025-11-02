@@ -92,6 +92,31 @@ export function NewProject() {
   }
 
   const handleCreateProject = async () => {
+    // Check if user is paused
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('paused')
+          .eq('user_id', user.id)
+          .single();
+
+        if (profileError) throw profileError;
+
+        if (profile?.paused) {
+          toast({
+            title: "Account Paused",
+            description: "Your account has been paused by an administrator. Please contact support to reactivate your account.",
+            variant: "destructive",
+          });
+          return;
+        }
+      }
+    } catch (error) {
+      console.error('Error checking user status:', error);
+    }
+
     if (!title.trim() && !script.trim()) {
       toast({
         title: "Missing Information",

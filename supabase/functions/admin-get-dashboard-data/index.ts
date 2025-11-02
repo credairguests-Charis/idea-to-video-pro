@@ -53,6 +53,12 @@ Deno.serve(async (req) => {
       .from('profiles')
       .select('*', { count: 'exact', head: true });
 
+    // Get paused user count
+    const { count: pausedUserCount } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .eq('paused', true);
+
     // Get project count
     const { count: projectCount } = await supabase
       .from('projects')
@@ -144,6 +150,7 @@ Deno.serve(async (req) => {
 
     return new Response(JSON.stringify({
       users: userCount || 0,
+      pausedUsers: pausedUserCount || 0,
       projects: projectCount || 0,
       generations: generationCount || 0,
       activePromos: activePromos || 0,
