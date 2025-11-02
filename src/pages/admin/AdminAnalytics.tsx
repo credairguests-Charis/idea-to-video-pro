@@ -124,6 +124,51 @@ export default function AdminAnalytics() {
 
   useEffect(() => {
     fetchAnalytics();
+
+    // Set up real-time subscriptions for analytics data
+    const analyticsChannel = supabase
+      .channel('analytics-data-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          console.log('User data changed, refreshing analytics...');
+          fetchAnalytics();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects'
+        },
+        () => {
+          console.log('Project data changed, refreshing analytics...');
+          fetchAnalytics();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'omnihuman_generations'
+        },
+        () => {
+          console.log('Generation data changed, refreshing analytics...');
+          fetchAnalytics();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(analyticsChannel);
+    };
   }, [dateRange]);
 
   if (loading) {

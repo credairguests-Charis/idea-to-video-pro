@@ -106,18 +106,18 @@ export default function AdminOverview() {
     fetchData();
     fetchHealthData();
 
-    // Subscribe to real-time health check updates
-    const channel = supabase
+    // Set up real-time subscriptions for all relevant tables
+    const healthChannel = supabase
       .channel('health-checks-changes')
       .on(
         'postgres_changes',
         {
-          event: 'INSERT',
+          event: '*',
           schema: 'public',
-          table: 'health_checks',
+          table: 'health_checks'
         },
         (payload) => {
-          console.log('New health check:', payload);
+          console.log('Health check data changed:', payload);
           const newCheck = payload.new as HealthCheckData;
           setHealthData((prev) => ({
             ...prev,
@@ -127,8 +127,49 @@ export default function AdminOverview() {
       )
       .subscribe();
 
+    const dashboardChannel = supabase
+      .channel('dashboard-data-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          console.log('User data changed, refreshing dashboard...');
+          fetchData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects'
+        },
+        () => {
+          console.log('Project data changed, refreshing dashboard...');
+          fetchData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'omnihuman_generations'
+        },
+        () => {
+          console.log('Generation data changed, refreshing dashboard...');
+          fetchData();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(healthChannel);
+      supabase.removeChannel(dashboardChannel);
     };
   }, []);
 

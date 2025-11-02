@@ -15,6 +15,15 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Pagination,
+  PaginationContent,
+  PaginationEllipsis,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination";
 
 export default function AdminUsers() {
   const [users, setUsers] = useState<any[]>([]);
@@ -25,7 +34,10 @@ export default function AdminUsers() {
   const [sheetOpen, setSheetOpen] = useState(false);
   const [totalUserCount, setTotalUserCount] = useState(0);
   const [activeUserCount, setActiveUserCount] = useState(0);
+  const [currentPage, setCurrentPage] = useState(1);
   const { toast } = useToast();
+  
+  const usersPerPage = 50;
 
   const fetchUsers = async () => {
     try {
@@ -125,6 +137,7 @@ export default function AdminUsers() {
       user.email?.toLowerCase().includes(searchQuery.toLowerCase())
     );
     setFilteredUsers(filtered);
+    setCurrentPage(1); // Reset to first page when search changes
   }, [searchQuery, users]);
 
   const handleUserClick = (user: any) => {
@@ -142,6 +155,12 @@ export default function AdminUsers() {
 
   const pausedUsers = totalUserCount - activeUserCount;
   const totalVideos = users.reduce((acc, u) => acc + (u.video_count || 0), 0);
+  
+  // Pagination logic
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const startIndex = (currentPage - 1) * usersPerPage;
+  const endIndex = startIndex + usersPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
   return (
     <div className="space-y-6">
@@ -238,7 +257,7 @@ export default function AdminUsers() {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredUsers.map((user) => (
+                  {paginatedUsers.map((user) => (
                     <TableRow key={user.id} className="cursor-pointer hover:bg-muted/50">
                       <TableCell>
                         <div>
@@ -288,6 +307,64 @@ export default function AdminUsers() {
             <p className="text-center text-muted-foreground py-12">
               No users found
             </p>
+          )}
+          
+          {/* Pagination - only show if there are more than 50 users */}
+          {filteredUsers.length > usersPerPage && (
+            <div className="flex items-center justify-between px-2 py-4 border-t mt-4">
+              <div className="text-sm text-muted-foreground">
+                Showing {startIndex + 1} to {Math.min(endIndex, filteredUsers.length)} of {filteredUsers.length} users
+              </div>
+              <Pagination>
+                <PaginationContent>
+                  <PaginationItem>
+                    <PaginationPrevious 
+                      onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                      className={currentPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                  
+                  {[...Array(totalPages)].map((_, index) => {
+                    const pageNumber = index + 1;
+                    // Show first page, last page, current page, and pages around current
+                    if (
+                      pageNumber === 1 ||
+                      pageNumber === totalPages ||
+                      (pageNumber >= currentPage - 1 && pageNumber <= currentPage + 1)
+                    ) {
+                      return (
+                        <PaginationItem key={pageNumber}>
+                          <PaginationLink
+                            onClick={() => setCurrentPage(pageNumber)}
+                            isActive={currentPage === pageNumber}
+                            className="cursor-pointer"
+                          >
+                            {pageNumber}
+                          </PaginationLink>
+                        </PaginationItem>
+                      );
+                    } else if (
+                      pageNumber === currentPage - 2 ||
+                      pageNumber === currentPage + 2
+                    ) {
+                      return (
+                        <PaginationItem key={pageNumber}>
+                          <PaginationEllipsis />
+                        </PaginationItem>
+                      );
+                    }
+                    return null;
+                  })}
+
+                  <PaginationItem>
+                    <PaginationNext 
+                      onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                      className={currentPage === totalPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                    />
+                  </PaginationItem>
+                </PaginationContent>
+              </Pagination>
+            </div>
           )}
         </CardContent>
       </Card>
