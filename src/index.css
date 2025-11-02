@@ -47,6 +47,28 @@ All colors MUST be HSL.
 
     --radius: 0.75rem;
 
+    /* Success/Growth colors */
+    --success: 142 76% 36%;
+    --success-foreground: 0 0% 100%;
+    --success-light: 142 76% 96%;
+    
+    /* Warning colors */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --warning-light: 38 92% 96%;
+    
+    /* Info colors */
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+    --info-light: 217 91% 96%;
+
+    /* Chart colors */
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 76% 36%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 280 89% 60%;
+    --chart-5: 340 82% 52%;
+
     /* Sidebar colors */
     --sidebar-background: 0 0% 100%;
     --sidebar-foreground: 220 9% 46%;
@@ -86,6 +108,28 @@ All colors MUST be HSL.
     --border: 240 4% 16%;
     --input: 240 4% 16%;
     --ring: 217 91% 60%;
+
+    /* Success/Growth colors - dark mode */
+    --success: 142 71% 45%;
+    --success-foreground: 0 0% 100%;
+    --success-light: 142 71% 20%;
+    
+    /* Warning colors - dark mode */
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --warning-light: 38 92% 20%;
+    
+    /* Info colors - dark mode */
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+    --info-light: 217 91% 20%;
+
+    /* Chart colors - dark mode */
+    --chart-1: 217 91% 60%;
+    --chart-2: 142 71% 45%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 280 89% 60%;
+    --chart-5: 340 82% 52%;
     
     --sidebar-background: 240 10% 15%;
     --sidebar-foreground: 240 5% 65%;
