@@ -14,20 +14,20 @@ export function HealthWidget({ serviceName, status, latency, lastChecked, detail
   const statusConfig = {
     online: {
       icon: CheckCircle,
-      color: 'text-green-600',
-      bgColor: 'bg-green-100',
+      color: 'text-green-600 dark:text-green-400',
+      bgColor: 'bg-green-100 dark:bg-green-900/30',
       label: 'Online'
     },
     warning: {
       icon: AlertTriangle,
-      color: 'text-yellow-600',
-      bgColor: 'bg-yellow-100',
+      color: 'text-yellow-600 dark:text-yellow-400',
+      bgColor: 'bg-yellow-100 dark:bg-yellow-900/30',
       label: 'Warning'
     },
     down: {
       icon: XCircle,
-      color: 'text-red-600',
-      bgColor: 'bg-red-100',
+      color: 'text-red-600 dark:text-red-400',
+      bgColor: 'bg-red-100 dark:bg-red-900/30',
       label: 'Down'
     }
   };

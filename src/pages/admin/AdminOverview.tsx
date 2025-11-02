@@ -12,6 +12,14 @@ import { RecentActivityPanel } from "@/components/admin/RecentActivityPanel";
 import { QuickActions } from "@/components/admin/QuickActions";
 import { LiveLogsViewer } from "@/components/admin/LiveLogsViewer";
 
+interface HealthCheckData {
+  service_name: string;
+  status: 'online' | 'warning' | 'down';
+  latency: number;
+  error_message?: string;
+  checked_at: string;
+}
+
 interface DashboardData {
   users: number;
   projects: number;
@@ -42,6 +50,7 @@ interface DashboardData {
 export default function AdminOverview() {
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
+  const [healthData, setHealthData] = useState<Record<string, HealthCheckData>>({});
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -66,8 +75,59 @@ export default function AdminOverview() {
     }
   };
 
+  // Fetch latest health check data
+  const fetchHealthData = async () => {
+    try {
+      const { data: healthChecks, error } = await supabase
+        .from('health_checks' as any)
+        .select('*')
+        .order('checked_at', { ascending: false })
+        .limit(3);
+
+      if (error) throw error;
+
+      if (healthChecks) {
+        const healthMap: Record<string, HealthCheckData> = {};
+        healthChecks.forEach((check: any) => {
+          if (!healthMap[check.service_name]) {
+            healthMap[check.service_name] = check as HealthCheckData;
+          }
+        });
+        setHealthData(healthMap);
+      }
+    } catch (error) {
+      console.error('Error fetching health data:', error);
+    }
+  };
+
   useEffect(() => {
     fetchData();
+    fetchHealthData();
+
+    // Subscribe to real-time health check updates
+    const channel = supabase
+      .channel('health-checks-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: 'INSERT',
+          schema: 'public',
+          table: 'health_checks',
+        },
+        (payload) => {
+          console.log('New health check:', payload);
+          const newCheck = payload.new as HealthCheckData;
+          setHealthData((prev) => ({
+            ...prev,
+            [newCheck.service_name]: newCheck,
+          }));
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   if (loading) {
@@ -155,25 +215,28 @@ export default function AdminOverview() {
         />
       </div>
 
-      {/* Health Widgets */}
+      {/* Health Widgets - Real-time Updates */}
       <div className="grid gap-4 md:grid-cols-3">
         <HealthWidget
           serviceName="OmniHuman API"
-          status={data.apiHealth.status as any}
-          latency={data.apiHealth.latency_ms}
-          lastChecked={new Date(data.apiHealth.checked_at)}
+          status={healthData.omnihuman?.status || 'warning'}
+          latency={healthData.omnihuman?.latency}
+          lastChecked={healthData.omnihuman ? new Date(healthData.omnihuman.checked_at) : undefined}
+          details={healthData.omnihuman?.error_message}
         />
         <HealthWidget
           serviceName="Stripe"
-          status="online"
-          latency={45}
-          lastChecked={new Date()}
+          status={healthData.stripe?.status || 'warning'}
+          latency={healthData.stripe?.latency}
+          lastChecked={healthData.stripe ? new Date(healthData.stripe.checked_at) : undefined}
+          details={healthData.stripe?.error_message}
         />
         <HealthWidget
           serviceName="Supabase Storage"
-          status="online"
-          latency={12}
-          lastChecked={new Date()}
+          status={healthData.storage?.status || 'warning'}
+          latency={healthData.storage?.latency}
+          lastChecked={healthData.storage ? new Date(healthData.storage.checked_at) : undefined}
+          details={healthData.storage?.error_message}
         />
       </div>
 

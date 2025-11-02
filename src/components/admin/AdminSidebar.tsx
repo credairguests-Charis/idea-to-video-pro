@@ -43,14 +43,14 @@ export function AdminSidebar() {
   };
 
   return (
-    <Sidebar className="border-r border-gray-200 bg-[#0f1729]">
-      <SidebarHeader className="p-4">
-        <h2 className="text-xl font-bold text-white">Admin Dashboard</h2>
+    <Sidebar className="border-r border-sidebar-border bg-sidebar-background" collapsible="none">
+      <SidebarHeader className="p-4 border-b border-sidebar-border">
+        <h2 className="text-xl font-bold text-sidebar-foreground">Admin Dashboard</h2>
       </SidebarHeader>
 
       <SidebarContent>
         <SidebarGroup>
-          <SidebarGroupLabel className="text-gray-400 text-xs uppercase">
+          <SidebarGroupLabel className="text-sidebar-foreground/60 text-xs uppercase px-3 py-2">
             Main Menu
           </SidebarGroupLabel>
           <SidebarGroupContent>
@@ -62,15 +62,15 @@ export function AdminSidebar() {
                       to={item.url}
                       end={item.end}
                       className={({ isActive }) =>
-                        `flex items-center gap-3 px-3 py-2 rounded-md transition-colors ${
+                        `flex items-center gap-3 px-4 py-3 rounded-md transition-colors w-full ${
                           isActive
-                            ? "bg-[#1a2236] text-white border-l-2 border-white"
-                            : "text-gray-300 hover:bg-[#1a2236] hover:text-white"
+                            ? "bg-sidebar-accent text-sidebar-primary font-semibold"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent/50"
                         }`
                       }
                     >
-                      <item.icon className="h-5 w-5" />
-                      <span>{item.title}</span>
+                      <item.icon className="h-5 w-5 flex-shrink-0" />
+                      <span className="flex-1">{item.title}</span>
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -80,14 +80,14 @@ export function AdminSidebar() {
         </SidebarGroup>
       </SidebarContent>
 
-      <SidebarFooter className="p-4">
+      <SidebarFooter className="p-4 border-t border-sidebar-border">
         <Button
           variant="ghost"
-          className="w-full justify-start text-gray-300 hover:bg-[#1a2236] hover:text-white"
+          className="w-full justify-start text-sidebar-foreground hover:bg-sidebar-accent"
           onClick={handleSignOut}
         >
           <LogOut className="h-5 w-5 mr-3" />
-          Sign Out
+          <span>Sign Out</span>
         </Button>
       </SidebarFooter>
     </Sidebar>
