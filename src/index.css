@@ -155,16 +155,32 @@ All colors MUST be HSL.
 }
 
 @layer utilities {
-  /* Custom scrollbar styles */
-  .scrollbar-thin {
+  /* Slim scrollbar styles - applied globally */
+  * {
     scrollbar-width: thin;
+    scrollbar-color: hsl(var(--muted)) transparent;
   }
   
-  .scrollbar-thumb-gray-200 {
-    scrollbar-color: rgb(229 231 235) transparent;
+  *:hover {
+    scrollbar-color: hsl(var(--muted-foreground) / 0.3) transparent;
   }
-  
-  .hover\:scrollbar-thumb-gray-300:hover {
-    scrollbar-color: rgb(209 213 219) transparent;
+
+  /* Webkit browsers */
+  *::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+
+  *::-webkit-scrollbar-track {
+    background: transparent;
+  }
+
+  *::-webkit-scrollbar-thumb {
+    background: hsl(var(--muted));
+    border-radius: 3px;
+  }
+
+  *::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--muted-foreground) / 0.3);
   }
 }

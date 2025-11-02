@@ -574,6 +574,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_active_user_count: { Args: never; Returns: number }
+      get_total_user_count: { Args: never; Returns: number }
       get_user_stats: {
         Args: { target_user_id: string }
         Returns: {

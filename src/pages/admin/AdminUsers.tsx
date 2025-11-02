@@ -23,11 +23,22 @@ export default function AdminUsers() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedUser, setSelectedUser] = useState<any>(null);
   const [sheetOpen, setSheetOpen] = useState(false);
+  const [totalUserCount, setTotalUserCount] = useState(0);
+  const [activeUserCount, setActiveUserCount] = useState(0);
   const { toast } = useToast();
 
   const fetchUsers = async () => {
     try {
       setLoading(true);
+      
+      // Fetch accurate total user count from auth.users
+      const { data: totalCount } = await supabase.rpc('get_total_user_count');
+      setTotalUserCount(totalCount || 0);
+      
+      // Fetch active user count
+      const { data: activeCount } = await supabase.rpc('get_active_user_count');
+      setActiveUserCount(activeCount || 0);
+      
       // Fetch users with their project counts
       const { data: profilesData, error: profilesError } = await supabase
         .from('profiles')
@@ -67,6 +78,45 @@ export default function AdminUsers() {
 
   useEffect(() => {
     fetchUsers();
+    
+    // Set up real-time subscriptions for profile changes
+    const profilesChannel = supabase
+      .channel('profiles-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'profiles'
+        },
+        () => {
+          console.log('Profile change detected, refreshing...');
+          fetchUsers();
+        }
+      )
+      .subscribe();
+
+    // Set up real-time subscriptions for project changes
+    const projectsChannel = supabase
+      .channel('projects-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'projects'
+        },
+        () => {
+          console.log('Project change detected, refreshing...');
+          fetchUsers();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(profilesChannel);
+      supabase.removeChannel(projectsChannel);
+    };
   }, []);
 
   useEffect(() => {
@@ -90,8 +140,7 @@ export default function AdminUsers() {
     );
   }
 
-  const activeUsers = users.filter(u => !u.paused).length;
-  const pausedUsers = users.filter(u => u.paused).length;
+  const pausedUsers = totalUserCount - activeUserCount;
   const totalVideos = users.reduce((acc, u) => acc + (u.video_count || 0), 0);
 
   return (
@@ -104,16 +153,16 @@ export default function AdminUsers() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 lg:grid-cols-4">
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Total Users</CardTitle>
             <User className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{users.length}</div>
+            <div className="text-2xl font-bold">{totalUserCount}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {activeUsers} active, {pausedUsers} paused
+              Registered in system
             </p>
           </CardContent>
         </Card>
@@ -124,9 +173,22 @@ export default function AdminUsers() {
             <CheckCircle className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{activeUsers}</div>
+            <div className="text-2xl font-bold">{activeUserCount}</div>
             <p className="text-xs text-muted-foreground mt-1">
-              {((activeUsers / users.length) * 100).toFixed(1)}% of total
+              {totalUserCount > 0 ? ((activeUserCount / totalUserCount) * 100).toFixed(1) : 0}% of total
+            </p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Paused Users</CardTitle>
+            <XCircle className="h-4 w-4 text-destructive" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{pausedUsers}</div>
+            <p className="text-xs text-muted-foreground mt-1">
+              Access restricted
             </p>
           </CardContent>
         </Card>

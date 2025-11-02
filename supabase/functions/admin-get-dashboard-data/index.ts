@@ -48,10 +48,8 @@ Deno.serve(async (req) => {
   }
 
   try {
-    // Get user count
-    const { count: userCount } = await supabase
-      .from('profiles')
-      .select('*', { count: 'exact', head: true });
+    // Get accurate user count from auth.users via RPC
+    const { data: userCount } = await supabase.rpc('get_total_user_count');
 
     // Get paused user count
     const { count: pausedUserCount } = await supabase

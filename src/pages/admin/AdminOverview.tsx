@@ -204,20 +204,12 @@ export default function AdminOverview() {
       </div>
 
       {/* Enhanced KPI Cards */}
-      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-5">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         <EnhancedKPICard
           title="Total Users"
           value={data.users}
           icon={Users}
           trend={{ ...userTrend, period: 'from last month' }}
-          loading={loading}
-        />
-        <EnhancedKPICard
-          title="Active Users"
-          value={data.users - data.pausedUsers}
-          icon={Users}
-          description={`${data.pausedUsers} paused`}
-          trend={{ value: data.users > 0 ? parseFloat((((data.users - data.pausedUsers) / data.users) * 100).toFixed(1)) : 0, isPositive: true }}
           loading={loading}
         />
         <EnhancedKPICard
