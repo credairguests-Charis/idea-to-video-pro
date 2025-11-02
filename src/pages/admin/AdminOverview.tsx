@@ -193,8 +193,8 @@ export default function AdminOverview() {
   const generationTrend = calculateTrend(data.generations, Math.floor(data.generations * 1.03));
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 w-full">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
         <h1 className="text-3xl font-bold">Admin Dashboard</h1>
         <Button onClick={fetchData} disabled={loading} variant="outline" size="sm">
           <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
@@ -203,7 +203,7 @@ export default function AdminOverview() {
       </div>
 
       {/* Enhanced KPI Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 grid-cols-1 sm:grid-cols-2 xl:grid-cols-4">
         <EnhancedKPICard
           title="Total Users"
           value={data.users}
@@ -236,7 +236,7 @@ export default function AdminOverview() {
       </div>
 
       {/* Quick Stats Overview */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium text-muted-foreground">
@@ -285,7 +285,7 @@ export default function AdminOverview() {
       </div>
 
       {/* Health Widgets - Real-time Updates */}
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         <HealthWidget
           serviceName="OmniHuman API"
           status={healthData.omnihuman?.status || 'warning'}
@@ -309,9 +309,9 @@ export default function AdminOverview() {
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-3">
         {/* Left Column - Activity Panels */}
-        <div className="md:col-span-2 space-y-6">
+        <div className="lg:col-span-2 space-y-6">
           <RecentActivityPanel
             title="Recent Admin Actions"
             activities={recentActivities}

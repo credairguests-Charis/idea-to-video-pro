@@ -144,13 +144,13 @@ export default function AdminAnalytics() {
   const conversionRate = data.users > 0 ? ((data.activeSubscriptions / data.users) * 100).toFixed(1) : '0';
 
   return (
-    <div className="space-y-6">
-      <div className="flex justify-between items-center">
+    <div className="space-y-6 w-full">
+      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
         <div>
           <h1 className="text-3xl font-bold">Analytics Dashboard</h1>
           <p className="text-muted-foreground mt-1">Comprehensive insights and data visualization</p>
         </div>
-        <div className="flex gap-3">
+        <div className="flex gap-3 w-full lg:w-auto">
           <Select value={dateRange} onValueChange={setDateRange}>
             <SelectTrigger className="w-[140px]">
               <SelectValue placeholder="Date range" />
@@ -192,7 +192,7 @@ export default function AdminAnalytics() {
       </Card>
 
       {/* Primary Analytics Charts */}
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <AnalyticsChart
           title="User Growth Trend"
           description="New user registrations over the last 6 months"
@@ -211,7 +211,7 @@ export default function AdminAnalytics() {
         />
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2">
+      <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <AnalyticsChart
           title="Revenue Trend"
           description="Monthly recurring revenue over time"
@@ -229,7 +229,7 @@ export default function AdminAnalytics() {
       </div>
 
       {/* Conversion & Performance Metrics */}
-      <div className="grid gap-6 md:grid-cols-3">
+      <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
         <Card>
           <CardHeader>
             <CardTitle className="text-lg">Conversion Rate</CardTitle>

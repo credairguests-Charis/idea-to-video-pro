@@ -15,10 +15,12 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
 
   return (
     <SidebarProvider defaultOpen={true}>
-      <div className="min-h-screen flex w-full bg-background overflow-hidden">
+      <div className="min-h-screen flex w-full bg-background">
         <AdminSidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-        <main className="flex-1 p-8 overflow-y-auto">
-          {children}
+        <main className="flex-1 ml-[var(--sidebar-width)] p-6 md:p-8 overflow-y-auto max-w-[calc(100vw-var(--sidebar-width))]">
+          <div className="w-full max-w-[1600px] mx-auto">
+            {children}
+          </div>
         </main>
       </div>
     </SidebarProvider>
