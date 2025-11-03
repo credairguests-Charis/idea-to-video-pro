@@ -585,6 +585,8 @@ export type Database = {
           result_url: string | null
           status: string
           task_id: string
+          thumbnail_url: string | null
+          title: string | null
           updated_at: string | null
           user_id: string
         }
@@ -603,6 +605,8 @@ export type Database = {
           result_url?: string | null
           status?: string
           task_id: string
+          thumbnail_url?: string | null
+          title?: string | null
           updated_at?: string | null
           user_id: string
         }
@@ -621,6 +625,8 @@ export type Database = {
           result_url?: string | null
           status?: string
           task_id?: string
+          thumbnail_url?: string | null
+          title?: string | null
           updated_at?: string | null
           user_id?: string
         }
