@@ -12,6 +12,12 @@ interface SelectedActor {
   thumbnail_url: string;
 }
 
+interface ProductImage {
+  url: string;
+  name: string;
+  isUploading?: boolean;
+}
+
 interface VideoProject {
   id: string;
   title: string;
@@ -28,7 +34,7 @@ export function NewProjectArcads() {
   const [aspectRatio, setAspectRatio] = useState<"portrait" | "landscape">("portrait");
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<VideoProject[]>([]);
-  const [productImage, setProductImage] = useState<{ url: string; name: string } | null>(null);
+  const [productImage, setProductImage] = useState<ProductImage | null>(null);
   const { toast } = useToast();
 
   // Mock project data for display

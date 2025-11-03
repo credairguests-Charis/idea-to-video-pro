@@ -20,6 +20,7 @@ interface SelectedActor {
 interface ProductImage {
   url: string;
   name: string;
+  isUploading?: boolean;
 }
 
 interface BottomInputPanelProps {
@@ -71,14 +72,51 @@ export function BottomInputPanel({
     adjustHeight();
   }, [script, adjustHeight]);
 
-  const handleProductImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleProductImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file && file.type.startsWith('image/')) {
-      const url = URL.createObjectURL(file);
+    if (!file || !file.type.startsWith('image/')) return;
+
+    // Show loading state with local preview
+    const localUrl = URL.createObjectURL(file);
+    onProductImageChange({
+      url: localUrl,
+      name: file.name,
+      isUploading: true
+    });
+
+    try {
+      // Upload to Supabase Storage
+      const { supabase } = await import('@/integrations/supabase/client');
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
+      const filePath = `products/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('actor-images')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) throw uploadError;
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('actor-images')
+        .getPublicUrl(filePath);
+
+      // Update with public URL
+      URL.revokeObjectURL(localUrl);
       onProductImageChange({
-        url,
-        name: file.name
+        url: publicUrl,
+        name: file.name,
+        isUploading: false
       });
+    } catch (error) {
+      console.error('Error uploading product image:', error);
+      URL.revokeObjectURL(localUrl);
+      onProductImageChange(null);
+      // You could add a toast notification here to inform the user
     }
   }, [onProductImageChange]);
 
@@ -159,10 +197,12 @@ export function BottomInputPanel({
                     alt="Product"
                     className="w-8 h-8 rounded-full object-cover"
                   />
-                  <span className="text-sm font-medium text-gray-900">Product</span>
+                  <span className="text-sm font-medium text-gray-900">
+                    {productImage.isUploading ? 'Uploading...' : 'Product'}
+                  </span>
                   <button
                     onClick={handleRemoveProductImage}
-                    disabled={isLoading}
+                    disabled={isLoading || productImage.isUploading}
                     className="ml-1 p-0.5 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
                   >
                     <X className="h-3 w-3 text-gray-500" />
@@ -245,7 +285,7 @@ export function BottomInputPanel({
 
             <Button
               onClick={onSubmit}
-              disabled={isLoading || !script.trim()}
+              disabled={isLoading || !script.trim() || productImage?.isUploading}
               className="h-9 w-9 rounded-full p-0 bg-[#0f1729] hover:bg-[#0f1729]/90"
             >
               <ArrowUp className="h-4 w-4 text-white" />
