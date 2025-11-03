@@ -5,7 +5,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { VideoCard } from "@/components/VideoCard";
 import { BottomInputPanel } from "@/components/BottomInputPanel";
 import { ActorSelectionModal } from "@/components/ActorSelectionModal";
-import { ActorTTSConfig } from "@/components/ActorTTSSettings";
 
 interface SelectedActor {
   id: string;
@@ -25,10 +24,8 @@ interface VideoProject {
 export function NewProjectArcads() {
   const [script, setScript] = useState("");
   const [selectedActors, setSelectedActors] = useState<SelectedActor[]>([]);
-  const [actorTTSConfigs, setActorTTSConfigs] = useState<Record<string, ActorTTSConfig>>({});
   const [showActorSelector, setShowActorSelector] = useState(false);
-  const [audioSource, setAudioSource] = useState<"tts" | "upload">("tts");
-  const [audioFile, setAudioFile] = useState<File | null>(null);
+  const [aspectRatio, setAspectRatio] = useState<"portrait" | "landscape">("portrait");
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<VideoProject[]>([]);
   const { toast } = useToast();
@@ -42,52 +39,11 @@ export function NewProjectArcads() {
 
   const handleActorSelection = useCallback((actors: SelectedActor[]) => {
     setSelectedActors(actors);
-    // Initialize TTS configs for new actors
-    const newConfigs = { ...actorTTSConfigs };
-    actors.forEach(actor => {
-      if (!newConfigs[actor.id]) {
-        newConfigs[actor.id] = {
-          voice: "alloy",
-          accent: "neutral",
-          language: "en-US",
-          tone: "professional"
-        };
-      }
-    });
-    setActorTTSConfigs(newConfigs);
     setShowActorSelector(false);
-  }, [actorTTSConfigs]);
+  }, []);
 
   const handleRemoveActor = useCallback((actorId: string) => {
     setSelectedActors(prev => prev.filter(actor => actor.id !== actorId));
-    setActorTTSConfigs(prev => {
-      const newConfigs = { ...prev };
-      delete newConfigs[actorId];
-      return newConfigs;
-    });
-  }, []);
-
-  const handleAudioSelected = useCallback((file: File, duration: number) => {
-    setAudioFile(file);
-    toast({
-      title: "Audio file selected",
-      description: `Selected: ${file.name} (${duration}s)`,
-    });
-  }, [toast]);
-
-  const handleAudioRemoved = useCallback(() => {
-    setAudioFile(null);
-    toast({
-      title: "Audio file removed",
-      description: "Audio file has been removed",
-    });
-  }, [toast]);
-
-  const handleTTSConfigChange = useCallback((actorId: string, config: ActorTTSConfig) => {
-    setActorTTSConfigs(prev => ({
-      ...prev,
-      [actorId]: config
-    }));
   }, []);
 
   const handleCreateProject = useCallback(async () => {
@@ -100,10 +56,10 @@ export function NewProjectArcads() {
       return;
     }
 
-    if (!script.trim() && !audioFile) {
+    if (!script.trim()) {
       toast({
         title: "Content Required",
-        description: "Please provide either a script or upload an audio file",
+        description: "Please provide a script/prompt",
         variant: "destructive",
       });
       return;
@@ -111,130 +67,49 @@ export function NewProjectArcads() {
 
     setIsLoading(true);
     try {
-      // Create project in database
-      const { data: project, error: projectError } = await supabase
-        .from("projects")
-        .insert({
-          title: script.substring(0, 50) || "Untitled Project",
-          script: script || null,
-          selected_actors: selectedActors.map(actor => actor.id),
-          audio_source: audioSource,
-          generation_status: "pending",
-          user_id: (await supabase.auth.getUser()).data.user?.id!
-        })
-        .select()
-        .single();
-
-      if (projectError) throw projectError;
-
-      // Handle audio upload or per-actor TTS generation
-      if (audioFile) {
-        // Audio upload mode - use same audio for all actors
-        const audioPath = `${project.id}/audio/${audioFile.name}`;
-        const { error: uploadError } = await supabase.storage
-          .from("omnihuman-content")
-          .upload(audioPath, audioFile);
-
-        if (uploadError) throw uploadError;
-
-        const { data: { publicUrl } } = supabase.storage
-          .from("omnihuman-content")
-          .getPublicUrl(audioPath);
-
-        // Start OmniHuman generation with single audio
-        const { data: generationData, error: generationError } = await supabase.functions.invoke('generate-omnihuman', {
+      // DISABLED: OmniHuman/TTS pipeline - migrated to Sora 2 Image-to-Video
+      // Generate video using Sora 2 for each actor
+      for (const actor of selectedActors) {
+        const { data: taskData, error: taskError } = await supabase.functions.invoke('sora-create-task', {
           body: {
-            projectId: project.id,
-            actorIds: selectedActors.map(actor => actor.id),
-            audioUrl: publicUrl
+            prompt: script,
+            image_url: actor.thumbnail_url,
+            aspect_ratio: aspectRatio,
+            n_frames: "15",
+            remove_watermark: true
           }
         });
 
-        if (generationError) {
-          const errorMsg = generationData?.error || generationError.message || "Video generation failed";
-          throw new Error(`Video Generation Error: ${errorMsg}`);
+        if (taskError) {
+          throw new Error(`Sora 2 Error for ${actor.name}: ${taskError.message}`);
         }
-      } else {
-        // TTS mode - generate separate audio for each actor with their specific settings
-        for (const actor of selectedActors) {
-          const ttsConfig = actorTTSConfigs[actor.id];
-          
-          // Generate TTS with actor-specific settings
-          const { data: ttsData, error: ttsError } = await supabase.functions.invoke('generate-tts', {
-            body: { 
-              text: script,
-              voice: ttsConfig.voice,
-              language: ttsConfig.language,
-              projectId: project.id
-            }
-          });
 
-          if (ttsError) {
-            const errorMsg = ttsData?.error || ttsError.message || "TTS generation failed";
-            throw new Error(`TTS Error: ${errorMsg}`);
-          }
-          
-          if (!ttsData?.success) {
-            throw new Error(`TTS Error: ${ttsData?.error || "Unknown TTS error"}`);
-          }
-
-          if (ttsData?.audioData) {
-            const audioBlob = new Blob([
-              new Uint8Array(atob(ttsData.audioData).split('').map(c => c.charCodeAt(0)))
-            ], { type: 'audio/mp3' });
-
-            const audioPath = `${project.id}/audio/${actor.id}_generated_audio.mp3`;
-            const { error: uploadError } = await supabase.storage
-              .from("omnihuman-content")
-              .upload(audioPath, audioBlob);
-
-            if (uploadError) throw uploadError;
-
-            const { data: { publicUrl } } = supabase.storage
-              .from("omnihuman-content")
-              .getPublicUrl(audioPath);
-
-            // Start OmniHuman generation for this actor with their specific audio
-            const { data: genData, error: generationError } = await supabase.functions.invoke('generate-omnihuman', {
-              body: {
-                projectId: project.id,
-                actorIds: [actor.id],
-                audioUrl: publicUrl,
-                ttsConfig
-              }
-            });
-
-            if (generationError) {
-              const errorMsg = genData?.error || generationError.message || "Video generation failed";
-              throw new Error(`Video Generation Error for ${actor.name}: ${errorMsg}`);
-            }
-          }
+        if (!taskData?.success) {
+          throw new Error(`Sora 2 Error for ${actor.name}: ${taskData?.error || "Unknown error"}`);
         }
       }
 
       toast({
-        title: "Project Created!",
-        description: `${selectedActors.length} video(s) are being generated. You'll be notified when they're ready.`,
+        title: "Generation Started!",
+        description: `${selectedActors.length} video(s) are being generated with Sora 2. You'll be notified when ready.`,
       });
 
       // Reset form
       setScript("");
       setSelectedActors([]);
-      setActorTTSConfigs({});
-      setAudioFile(null);
-      setAudioSource("tts");
+      setAspectRatio("portrait");
 
     } catch (error) {
-      console.error('Project creation error:', error);
+      console.error('Video generation error:', error);
       toast({
-        title: "Creation Failed",
-        description: error instanceof Error ? error.message : "Failed to create project",
+        title: "Generation Failed",
+        description: error instanceof Error ? error.message : "Failed to generate video",
         variant: "destructive",
       });
     } finally {
       setIsLoading(false);
     }
-  }, [script, selectedActors, actorTTSConfigs, audioFile, audioSource, toast]);
+  }, [script, selectedActors, aspectRatio, toast]);
 
   const handleVideoClick = (project: VideoProject) => {
     // Handle video playback/preview
@@ -265,18 +140,8 @@ export function NewProjectArcads() {
         selectedActors={selectedActors}
         onRemoveActor={handleRemoveActor}
         onOpenActorSelector={() => setShowActorSelector(true)}
-        audioSource={audioSource}
-        onAudioSourceChange={setAudioSource}
-        audioFile={audioFile}
-        onAudioSelected={(file) => {
-          const audio = new Audio(URL.createObjectURL(file));
-          audio.addEventListener('loadedmetadata', () => {
-            handleAudioSelected(file, audio.duration);
-          });
-        }}
-        onAudioRemoved={handleAudioRemoved}
-        actorTTSConfigs={actorTTSConfigs}
-        onTTSConfigChange={handleTTSConfigChange}
+        aspectRatio={aspectRatio}
+        onAspectRatioChange={setAspectRatio}
         onSubmit={handleCreateProject}
         isLoading={isLoading}
       />

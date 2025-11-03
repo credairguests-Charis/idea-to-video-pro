@@ -1,10 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Users, Upload, Mic, ArrowUp, ChevronDown } from "lucide-react";
+import { Users, ArrowUp, ChevronDown, Film } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
 import { ActorCard } from "@/components/ActorCard";
-import { ActorTTSConfig } from "@/components/ActorTTSSettings";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,13 +23,8 @@ interface BottomInputPanelProps {
   selectedActors: SelectedActor[];
   onRemoveActor: (actorId: string) => void;
   onOpenActorSelector: () => void;
-  audioSource: "tts" | "upload";
-  onAudioSourceChange: (source: "tts" | "upload") => void;
-  audioFile: File | null;
-  onAudioSelected: (file: File) => void;
-  onAudioRemoved: () => void;
-  actorTTSConfigs: Record<string, ActorTTSConfig>;
-  onTTSConfigChange: (actorId: string, config: ActorTTSConfig) => void;
+  aspectRatio: "portrait" | "landscape";
+  onAspectRatioChange: (ratio: "portrait" | "landscape") => void;
   onSubmit: () => void;
   isLoading: boolean;
 }
@@ -41,18 +35,12 @@ export function BottomInputPanel({
   selectedActors,
   onRemoveActor,
   onOpenActorSelector,
-  audioSource,
-  onAudioSourceChange,
-  audioFile,
-  onAudioSelected,
-  onAudioRemoved,
-  actorTTSConfigs,
-  onTTSConfigChange,
+  aspectRatio,
+  onAspectRatioChange,
   onSubmit,
   isLoading,
 }: BottomInputPanelProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  const fileInputRef = useRef<HTMLInputElement>(null);
   const [charCount, setCharCount] = useState(0);
   const maxChars = 1500;
 
@@ -72,13 +60,6 @@ export function BottomInputPanel({
   useEffect(() => {
     adjustHeight();
   }, [script, adjustHeight]);
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (file) {
-      onAudioSelected(file);
-    }
-  };
 
   return (
     <div className="fixed bottom-0 left-[240px] right-0 z-50 flex justify-center pb-6 pointer-events-none">
@@ -102,78 +83,29 @@ export function BottomInputPanel({
             </DropdownMenuContent>
           </DropdownMenu>
           
-          {audioSource === "tts" && (
-            <span className="absolute right-4 top-4 text-xs text-gray-400">
-              {charCount} / {maxChars}
-            </span>
-          )}
+          <span className="absolute right-4 top-4 text-xs text-gray-400">
+            {charCount} / {maxChars}
+          </span>
         </div>
 
         {/* Main content area */}
         <div className="px-4">
-          {audioSource === "tts" ? (
-            <Textarea
-              ref={textareaRef}
-              value={script}
-              onChange={(e) => {
-                if (e.target.value.length <= maxChars) {
-                  onScriptChange(e.target.value);
-                }
-              }}
-              placeholder="Write script..."
-              className={cn(
-                "min-h-[60px] max-h-[200px] w-full resize-none border-0 bg-transparent",
-                "focus-visible:ring-0 focus-visible:ring-offset-0 text-sm",
-                "placeholder:text-gray-400"
-              )}
-              disabled={isLoading}
-            />
-          ) : (
-            <div className="min-h-[120px] flex items-center justify-center">
-              {audioFile ? (
-                <div className="w-full p-4 border-2 border-dashed border-border rounded-lg flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="bg-muted rounded-lg p-3">
-                      <Mic className="h-5 w-5 text-muted-foreground" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium">{audioFile.name}</p>
-                      <p className="text-xs text-muted-foreground">Audio file uploaded</p>
-                    </div>
-                  </div>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={onAudioRemoved}
-                    disabled={isLoading}
-                  >
-                    Remove
-                  </Button>
-                </div>
-              ) : (
-                <div 
-                  className="w-full p-8 border-2 border-dashed border-border rounded-lg cursor-pointer hover:border-primary/50 transition-colors"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="audio/mp3,audio/mp4,audio/mpeg,audio/wav"
-                    onChange={handleFileSelect}
-                    className="hidden"
-                    disabled={isLoading}
-                  />
-                  <div className="text-center">
-                    <Mic className="h-12 w-12 mx-auto mb-3 text-muted-foreground" />
-                    <p className="text-sm text-muted-foreground mb-1">
-                      Upload an .mp3/.mp4 file or{" "}
-                      <span className="underline">record a new one</span>
-                    </p>
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
+          <Textarea
+            ref={textareaRef}
+            value={script}
+            onChange={(e) => {
+              if (e.target.value.length <= maxChars) {
+                onScriptChange(e.target.value);
+              }
+            }}
+            placeholder="Write script..."
+            className={cn(
+              "min-h-[60px] max-h-[200px] w-full resize-none border-0 bg-transparent",
+              "focus-visible:ring-0 focus-visible:ring-offset-0 text-sm",
+              "placeholder:text-gray-400"
+            )}
+            disabled={isLoading}
+          />
         </div>
 
         {/* Selected actors */}
@@ -185,9 +117,7 @@ export function BottomInputPanel({
                   key={actor.id}
                   actor={actor}
                   onRemove={() => onRemoveActor(actor.id)}
-                  showSettings={audioSource === "tts"}
-                  ttsConfig={actorTTSConfigs[actor.id]}
-                  onTTSConfigChange={onTTSConfigChange}
+                  showSettings={false}
                   disabled={isLoading}
                 />
               ))}
@@ -200,28 +130,19 @@ export function BottomInputPanel({
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-gray-700">
-                {audioSource === "tts" ? (
-                  <>
-                    <Mic className="h-3.5 w-3.5" />
-                    Text to Speech
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-3.5 w-3.5" />
-                    Speech to Speech
-                  </>
-                )}
+                <Film className="h-3.5 w-3.5" />
+                {aspectRatio === "portrait" ? "9:16 – Portrait" : "16:9 – Landscape"}
                 <ChevronDown className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
             <DropdownMenuContent align="start">
-              <DropdownMenuItem onClick={() => onAudioSourceChange("tts")}>
-                <Mic className="h-4 w-4 mr-2" />
-                Text to Speech
+              <DropdownMenuItem onClick={() => onAspectRatioChange("portrait")}>
+                <Film className="h-4 w-4 mr-2" />
+                9:16 – Portrait
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => onAudioSourceChange("upload")}>
-                <Upload className="h-4 w-4 mr-2" />
-                Speech to Speech
+              <DropdownMenuItem onClick={() => onAspectRatioChange("landscape")}>
+                <Film className="h-4 w-4 mr-2" />
+                16:9 – Landscape
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -256,7 +177,7 @@ export function BottomInputPanel({
 
             <Button
               onClick={onSubmit}
-              disabled={isLoading || selectedActors.length === 0 || (!script.trim() && !audioFile)}
+              disabled={isLoading || selectedActors.length === 0 || !script.trim()}
               className="h-9 w-9 rounded-full p-0 bg-[#0f1729] hover:bg-[#0f1729]/90"
             >
               <ArrowUp className="h-4 w-4 text-white" />
