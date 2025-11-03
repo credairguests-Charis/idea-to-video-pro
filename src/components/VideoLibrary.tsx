@@ -300,38 +300,85 @@ export function VideoLibrary() {
 
       {/* Video Preview Modal */}
       <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
-        <DialogContent className={selectedVideo?.aspect_ratio === 'portrait' || selectedVideo?.aspect_ratio === '9:16' ? "max-w-md" : "max-w-4xl"}>
-          <DialogHeader>
-            <DialogTitle>{selectedVideo?.title || selectedVideo?.prompt}</DialogTitle>
-          </DialogHeader>
-          
+        <DialogContent className="max-w-6xl p-0 gap-0 bg-black border-0">
           {selectedVideo?.result_url && (
-            <div className="space-y-4">
-              <div className={selectedVideo.aspect_ratio === 'portrait' || selectedVideo.aspect_ratio === '9:16' ? 'aspect-[9/16]' : 'aspect-video'}>
-                <VideoPlayer 
-                  src={selectedVideo.result_url}
-                  className="w-full h-full rounded-lg"
-                />
+            <div className="flex flex-col lg:flex-row h-[80vh]">
+              {/* Video Section - Left */}
+              <div className="flex-1 flex items-center justify-center bg-black p-4">
+                <div className={selectedVideo.aspect_ratio === 'portrait' || selectedVideo.aspect_ratio === '9:16' ? 'w-full max-w-md' : 'w-full'}>
+                  <VideoPlayer 
+                    src={selectedVideo.result_url}
+                    className="w-full h-full rounded-lg"
+                  />
+                </div>
               </div>
               
-              <div className="flex gap-2 justify-between items-center">
-                <p className="text-sm text-muted-foreground">
-                  {selectedVideo.completed_at && format(new Date(selectedVideo.completed_at), 'MMM d, yyyy h:mm a')}
-                </p>
-                <div className="flex gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => setShowVideoModal(false)}
-                  >
-                    Close
-                  </Button>
-                  <Button
-                    onClick={() => handleDownload(selectedVideo)}
-                    className="gap-2"
-                  >
-                    <Download className="h-4 w-4" />
-                    Download
-                  </Button>
+              {/* Details & Actions Panel - Right */}
+              <div className="w-full lg:w-80 bg-background/95 backdrop-blur-sm p-6 space-y-6 overflow-y-auto">
+                <div className="space-y-4">
+                  {/* Title */}
+                  <div>
+                    <h3 className="font-semibold text-lg line-clamp-2">
+                      {selectedVideo.title || selectedVideo.prompt}
+                    </h3>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {selectedVideo.completed_at && format(new Date(selectedVideo.completed_at), 'MMM d, yyyy h:mm a')}
+                    </p>
+                  </div>
+
+                  {/* Action Buttons */}
+                  <div className="space-y-2">
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-2"
+                      onClick={() => handleRegenerate(selectedVideo)}
+                    >
+                      <RotateCcw className="h-4 w-4" />
+                      Remix
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-2"
+                      onClick={() => handleDownload(selectedVideo)}
+                    >
+                      <Download className="h-4 w-4" />
+                      Download
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="w-full justify-start gap-2 text-destructive hover:text-destructive"
+                      onClick={() => {
+                        handleDelete(selectedVideo.id);
+                        setShowVideoModal(false);
+                      }}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                      Remove
+                    </Button>
+                  </div>
+
+                  {/* Separator */}
+                  <div className="border-t" />
+
+                  {/* Video Details */}
+                  <div className="space-y-3">
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Model</p>
+                      <p className="text-sm">AI Gesture</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Actor</p>
+                      <p className="text-sm">Custom Avatar</p>
+                    </div>
+                    
+                    <div>
+                      <p className="text-xs text-muted-foreground mb-1">Prompt</p>
+                      <p className="text-sm text-foreground/80 leading-relaxed">
+                        {selectedVideo.prompt}
+                      </p>
+                    </div>
+                  </div>
                 </div>
               </div>
             </div>
