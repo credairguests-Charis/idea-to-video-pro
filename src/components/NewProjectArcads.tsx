@@ -161,7 +161,8 @@ export function NewProjectArcads() {
             body: { 
               text: script,
               voice: ttsConfig.voice,
-              language: ttsConfig.language 
+              language: ttsConfig.language,
+              projectId: project.id
             }
           });
 
