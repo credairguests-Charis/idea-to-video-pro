@@ -150,7 +150,10 @@ export function NewProjectArcads() {
           }
         });
 
-        if (generationError) throw generationError;
+        if (generationError) {
+          const errorMsg = generationData?.error || generationError.message || "Video generation failed";
+          throw new Error(`Video Generation Error: ${errorMsg}`);
+        }
       } else {
         // TTS mode - generate separate audio for each actor with their specific settings
         for (const actor of selectedActors) {
@@ -166,7 +169,14 @@ export function NewProjectArcads() {
             }
           });
 
-          if (ttsError) throw ttsError;
+          if (ttsError) {
+            const errorMsg = ttsData?.error || ttsError.message || "TTS generation failed";
+            throw new Error(`TTS Error: ${errorMsg}`);
+          }
+          
+          if (!ttsData?.success) {
+            throw new Error(`TTS Error: ${ttsData?.error || "Unknown TTS error"}`);
+          }
 
           if (ttsData?.audioData) {
             const audioBlob = new Blob([
@@ -185,7 +195,7 @@ export function NewProjectArcads() {
               .getPublicUrl(audioPath);
 
             // Start OmniHuman generation for this actor with their specific audio
-            const { error: generationError } = await supabase.functions.invoke('generate-omnihuman', {
+            const { data: genData, error: generationError } = await supabase.functions.invoke('generate-omnihuman', {
               body: {
                 projectId: project.id,
                 actorIds: [actor.id],
@@ -194,7 +204,10 @@ export function NewProjectArcads() {
               }
             });
 
-            if (generationError) throw generationError;
+            if (generationError) {
+              const errorMsg = genData?.error || generationError.message || "Video generation failed";
+              throw new Error(`Video Generation Error for ${actor.name}: ${errorMsg}`);
+            }
           }
         }
       }
