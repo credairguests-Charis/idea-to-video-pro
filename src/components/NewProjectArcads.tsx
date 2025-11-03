@@ -204,8 +204,7 @@ export function NewProjectArcads() {
 
   return (
     <div className="flex flex-col items-center justify-center min-h-screen bg-background p-6">
-      {/* Header */}
-      <div className="text-center mb-8 max-w-2xl">
+      <div className="text-center mb-8">
         <div className="mb-6 flex justify-center">
           <Users className="h-20 w-20 text-muted-foreground/40" />
         </div>
@@ -215,105 +214,101 @@ export function NewProjectArcads() {
         <p className="text-muted-foreground">reactions and more.</p>
       </div>
 
-      {/* Generation Form Card */}
-      <Card className="w-full max-w-2xl shadow-lg">
-        <CardContent className="pt-6 space-y-4">
-          {/* Talking Actors Dropdown */}
-          <div className="space-y-2">
-            <Button
-              variant="outline"
-              onClick={() => setShowActorSelector(true)}
-              className="w-full justify-start text-left font-normal h-auto py-3"
-            >
-              <Users className="h-4 w-4 mr-2 flex-shrink-0" />
-              <span className="flex-1">
-                {selectedActors.length === 0 
-                  ? 'Talking Actors' 
-                  : `${selectedActors.length} Actor${selectedActors.length !== 1 ? 's' : ''} Selected`}
-              </span>
-            </Button>
-            {selectedActors.length > 0 && (
-              <div className="flex flex-wrap gap-2 p-2">
-                {selectedActors.map((actor) => (
-                  <div key={actor.id} className="relative group">
-                    <img
-                      src={actor.thumbnail_url}
-                      alt={actor.name}
-                      className="h-12 w-12 rounded-md object-cover border-2 border-primary"
-                    />
-                    <button
-                      onClick={() => handleRemoveActor(actor.id)}
-                      className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full h-4 w-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
-                    >
-                      ×
-                    </button>
-                  </div>
-                ))}
+      <div className="w-full max-w-2xl space-y-4">
+        {/* Talking Actors Dropdown */}
+        <Button
+          variant="outline"
+          onClick={() => setShowActorSelector(true)}
+          className="w-full justify-start text-left font-normal h-auto py-3"
+        >
+          <Users className="h-4 w-4 mr-2 flex-shrink-0" />
+          <span className="flex-1">
+            {selectedActors.length === 0 
+              ? 'Talking Actors' 
+              : `${selectedActors.length} Actor${selectedActors.length !== 1 ? 's' : ''} Selected`}
+          </span>
+        </Button>
+        
+        {selectedActors.length > 0 && (
+          <div className="flex flex-wrap gap-2 p-2 bg-muted/50 rounded-lg">
+            {selectedActors.map((actor) => (
+              <div key={actor.id} className="relative group">
+                <img
+                  src={actor.thumbnail_url}
+                  alt={actor.name}
+                  className="h-12 w-12 rounded-md object-cover border-2 border-primary"
+                />
+                <button
+                  onClick={() => handleRemoveActor(actor.id)}
+                  className="absolute -top-1 -right-1 bg-destructive text-destructive-foreground rounded-full h-4 w-4 flex items-center justify-center text-xs opacity-0 group-hover:opacity-100 transition-opacity"
+                >
+                  ×
+                </button>
               </div>
-            )}
+            ))}
           </div>
+        )}
 
-          {/* Script Textarea */}
-          <div className="space-y-2">
-            <Textarea
-              placeholder="Write script..."
-              value={prompt}
-              onChange={(e) => setPrompt(e.target.value)}
-              rows={6}
-              maxLength={5000}
-              className="resize-none"
-            />
-            <p className="text-xs text-muted-foreground text-right">
-              {prompt.length} / 5000
-            </p>
-          </div>
+        {/* Script Textarea */}
+        <div className="space-y-2">
+          <Textarea
+            placeholder="Write script..."
+            value={prompt}
+            onChange={(e) => setPrompt(e.target.value)}
+            rows={8}
+            maxLength={5000}
+            className="resize-none"
+          />
+          <p className="text-xs text-muted-foreground text-right">
+            {prompt.length} / 5000
+          </p>
+        </div>
 
-          {/* Bottom Controls */}
-          <div className="flex flex-wrap gap-3 items-center">
-            {/* Aspect Ratio Dropdown */}
-            <Select value={aspectRatio} onValueChange={setAspectRatio}>
-              <SelectTrigger className="w-auto min-w-[160px]">
-                <Video className="h-4 w-4 mr-2" />
-                <SelectValue placeholder="Aspect Ratio" />
-              </SelectTrigger>
-              <SelectContent className="bg-popover z-50">
-                <SelectItem value="portrait">9:16 – Portrait</SelectItem>
-                <SelectItem value="landscape">16:9 – Landscape</SelectItem>
-              </SelectContent>
-            </Select>
+        {/* Bottom Controls */}
+        <div className="flex gap-3 items-center">
+          {/* Aspect Ratio Dropdown */}
+          <Select value={aspectRatio} onValueChange={setAspectRatio}>
+            <SelectTrigger className="w-auto min-w-[160px]">
+              <Video className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="Aspect Ratio" />
+            </SelectTrigger>
+            <SelectContent className="bg-popover z-50">
+              <SelectItem value="portrait">9:16 – Portrait</SelectItem>
+              <SelectItem value="landscape">16:9 – Landscape</SelectItem>
+            </SelectContent>
+          </Select>
 
-            {/* Add Actors Button */}
-            <Button
-              variant="outline"
-              onClick={() => setShowActorSelector(true)}
-              className="ml-auto"
-            >
-              <Users className="h-4 w-4 mr-2" />
-              Add actors
-            </Button>
-          </div>
-
-          {/* Generate Button */}
+          {/* Add Actors Button */}
           <Button
-            onClick={handleGenerate}
-            disabled={isLoading || selectedActors.length === 0 || !prompt.trim()}
-            className="w-full"
-            size="lg"
+            variant="outline"
+            onClick={() => setShowActorSelector(true)}
+            className="ml-auto"
           >
-            {isLoading ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Generating Videos...
-              </>
-            ) : (
-              <>
-                <Video className="mr-2 h-4 w-4" />
-                Generate {selectedActors.length > 0 ? selectedActors.length : ''} Video{selectedActors.length !== 1 ? 's' : ''}
-              </>
-            )}
+            <Users className="h-4 w-4 mr-2" />
+            Add actors
           </Button>
-        </CardContent>
-      </Card>
+        </div>
+
+        {/* Generate Button */}
+        <Button
+          onClick={handleGenerate}
+          disabled={isLoading || selectedActors.length === 0 || !prompt.trim()}
+          className="w-full"
+          size="lg"
+        >
+          {isLoading ? (
+            <>
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+              Generating Videos...
+            </>
+          ) : (
+            <>
+              <Video className="mr-2 h-4 w-4" />
+              Generate {selectedActors.length > 0 ? selectedActors.length : ''} Video{selectedActors.length !== 1 ? 's' : ''}
+            </>
+          )}
+        </Button>
+      </div>
 
       {/* Generation History */}
       {generations.length > 0 && (
