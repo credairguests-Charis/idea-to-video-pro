@@ -41,8 +41,20 @@ export default function VideoGenerator() {
     if (user) {
       fetchGenerations();
       setupRealtimeSubscription();
+      
+      // Poll for status updates every 5 seconds if there are pending generations
+      const pollInterval = setInterval(async () => {
+        const hasPending = generations.some(g => g.status === 'waiting');
+        if (hasPending) {
+          await supabase.functions.invoke('sora-poll-status');
+        }
+      }, 5000);
+
+      return () => {
+        clearInterval(pollInterval);
+      };
     }
-  }, [user]);
+  }, [user, generations]);
 
   const setupRealtimeSubscription = () => {
     const channel = supabase
