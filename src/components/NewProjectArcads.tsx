@@ -6,6 +6,8 @@ import { VideoCard } from "@/components/VideoCard";
 import { BottomInputPanel } from "@/components/BottomInputPanel";
 import { ActorSelectionModal } from "@/components/ActorSelectionModal";
 import { VideoGenerationTracker } from "@/components/VideoGenerationTracker";
+import { VideoLibrary } from "@/components/VideoLibrary";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SelectedActor {
   id: string;
@@ -181,19 +183,36 @@ export function NewProjectArcads() {
 
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[#F7F7F8]">
-      {/* Main Content Area - Empty State */}
-      <div className="flex-1 flex items-center justify-center pb-[200px]">
-        <div className="text-center max-w-md">
-          <div className="mb-6 flex justify-center">
-            <Users className="h-20 w-20 text-gray-300" />
+      {/* Main Content Area */}
+      <div className="flex-1 overflow-auto pb-[200px]">
+        <Tabs defaultValue="generate" className="h-full">
+          <div className="px-6 pt-6">
+            <TabsList>
+              <TabsTrigger value="generate">Generate</TabsTrigger>
+              <TabsTrigger value="library">Video Library</TabsTrigger>
+            </TabsList>
           </div>
-          <h3 className="text-xl font-medium text-gray-600 mb-1">
-            Generate winning assets with talking actors,
-          </h3>
-          <p className="text-lg text-gray-500">
-            reactions and more.
-          </p>
-        </div>
+          
+          <TabsContent value="generate" className="h-full">
+            <div className="flex items-center justify-center h-full pb-12">
+              <div className="text-center max-w-md">
+                <div className="mb-6 flex justify-center">
+                  <Users className="h-20 w-20 text-gray-300" />
+                </div>
+                <h3 className="text-xl font-medium text-gray-600 mb-1">
+                  Generate winning assets with talking actors,
+                </h3>
+                <p className="text-lg text-gray-500">
+                  reactions and more.
+                </p>
+              </div>
+            </div>
+          </TabsContent>
+          
+          <TabsContent value="library" className="px-6 pb-6">
+            <VideoLibrary />
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Bottom Input Panel */}

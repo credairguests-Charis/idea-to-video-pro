@@ -70,9 +70,12 @@ export function VideoGenerationTracker() {
               description: "Your video is being generated. You'll be notified when ready.",
             });
           } else if (payload.eventType === 'UPDATE') {
-            setActiveGenerations(prev => 
-              prev.filter(gen => gen.task_id !== newRecord.task_id)
-            );
+            // Remove from active if it's no longer waiting
+            if (newRecord.status !== 'waiting') {
+              setActiveGenerations(prev => 
+                prev.filter(gen => gen.task_id !== newRecord.task_id)
+              );
+            }
 
             if (newRecord.status === 'success' && newRecord.result_url) {
               setCompletedVideo(newRecord);
