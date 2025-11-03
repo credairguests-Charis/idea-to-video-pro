@@ -62,13 +62,23 @@ export function NewProjectArcads() {
       // DISABLED: OmniHuman/TTS pipeline - migrated to Sora 2 Image-to-Video
       // Generate video using Sora 2
       
+      // Enhance prompt if product image is uploaded
+      const enhancedPrompt = productImage 
+        ? `${script}\n\nShowcase and promote the uploaded product clearly in the generated video.`
+        : script;
+      
       // If actors are selected, generate one video per actor
       if (selectedActors.length > 0) {
         for (const actor of selectedActors) {
+          // Build image_urls array: include actor + product if available
+          const imageUrls = productImage 
+            ? [actor.thumbnail_url, productImage.url]
+            : [actor.thumbnail_url];
+
           const { data: taskData, error: taskError } = await supabase.functions.invoke('sora-create-task', {
             body: {
-              prompt: script,
-              image_url: actor.thumbnail_url,
+              prompt: enhancedPrompt,
+              image_urls: imageUrls,
               aspect_ratio: aspectRatio,
               n_frames: "15",
               remove_watermark: true
@@ -93,8 +103,8 @@ export function NewProjectArcads() {
       else if (productImage) {
         const { data: taskData, error: taskError } = await supabase.functions.invoke('sora-create-task', {
           body: {
-            prompt: script,
-            image_url: productImage.url,
+            prompt: enhancedPrompt,
+            image_urls: [productImage.url],
             aspect_ratio: aspectRatio,
             n_frames: "15",
             remove_watermark: true

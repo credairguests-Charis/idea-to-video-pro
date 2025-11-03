@@ -46,14 +46,17 @@ serve(async (req) => {
       );
     }
 
-    const { prompt, image_url, aspect_ratio = 'landscape', n_frames = '10', remove_watermark = true } = await req.json();
+    const { prompt, image_url, image_urls, aspect_ratio = 'landscape', n_frames = '10', remove_watermark = true } = await req.json();
 
-    if (!prompt || !image_url) {
+    if (!prompt) {
       return new Response(
-        JSON.stringify({ error: 'Missing required parameters: prompt and image_url' }),
+        JSON.stringify({ error: 'Missing required parameter: prompt' }),
         { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
       );
     }
+
+    // Support both single image_url and multiple image_urls
+    const finalImageUrls = image_urls || (image_url ? [image_url] : []);
 
     console.log('Creating Sora 2 task for user:', user.id);
 
@@ -67,7 +70,7 @@ serve(async (req) => {
         model: 'sora-2-image-to-video',
         input: {
           prompt,
-          image_urls: [image_url],
+          image_urls: finalImageUrls.length > 0 ? finalImageUrls : undefined,
           aspect_ratio,
           n_frames,
           remove_watermark,
@@ -93,7 +96,7 @@ serve(async (req) => {
       .insert({
         user_id: user.id,
         prompt,
-        image_url,
+        image_url: finalImageUrls.length > 0 ? finalImageUrls[0] : null,
         task_id: taskId,
         status: 'waiting',
         aspect_ratio,
