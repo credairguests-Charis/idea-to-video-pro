@@ -1,6 +1,7 @@
 import { useEffect, useState, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { VideoPlayer } from "@/components/VideoPlayer";
+import { RegenerateVideoDialog } from "@/components/RegenerateVideoDialog";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -21,6 +22,9 @@ interface VideoGeneration {
   thumbnail_url: string | null;
   created_at: string;
   completed_at: string | null;
+  image_url: string | null;
+  n_frames: string;
+  remove_watermark: boolean | null;
 }
 
 export function VideoLibrary() {
@@ -30,6 +34,8 @@ export function VideoLibrary() {
   const [loading, setLoading] = useState(true);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
+  const [regenerateVideo, setRegenerateVideo] = useState<VideoGeneration | null>(null);
+  const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
   const { toast } = useToast();
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement }>({});
 
@@ -134,14 +140,9 @@ export function VideoLibrary() {
     }
   };
 
-  const handleRegenerate = async (video: VideoGeneration) => {
-    toast({
-      title: "Regenerating",
-      description: "Starting video regeneration...",
-    });
-    
-    // TODO: Trigger regeneration flow with same prompt and settings
-    console.log("Regenerate video:", video);
+  const handleRegenerate = (video: VideoGeneration) => {
+    setRegenerateVideo(video);
+    setShowRegenerateDialog(true);
   };
 
   const handleDelete = async (videoId: string) => {
@@ -186,6 +187,13 @@ export function VideoLibrary() {
 
   return (
     <>
+      <RegenerateVideoDialog
+        video={regenerateVideo}
+        open={showRegenerateDialog}
+        onOpenChange={setShowRegenerateDialog}
+        onSuccess={fetchVideos}
+      />
+      
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
         {videos.map((video) => {
           const isPortrait = !video.aspect_ratio || video.aspect_ratio === 'portrait' || video.aspect_ratio === '9:16';
