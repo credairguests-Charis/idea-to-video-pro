@@ -13,6 +13,7 @@ interface VideoGeneration {
   status: string;
   result_url: string | null;
   prompt: string;
+  user_id: string;
   created_at: string;
   completed_at: string | null;
   fail_msg: string | null;
