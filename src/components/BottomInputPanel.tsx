@@ -1,5 +1,5 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Users, ArrowUp, ChevronDown, Film } from "lucide-react";
+import { Users, ArrowUp, ChevronDown, Film, Image as ImageIcon, X } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -17,6 +17,11 @@ interface SelectedActor {
   thumbnail_url: string;
 }
 
+interface ProductImage {
+  url: string;
+  name: string;
+}
+
 interface BottomInputPanelProps {
   script: string;
   onScriptChange: (value: string) => void;
@@ -27,6 +32,8 @@ interface BottomInputPanelProps {
   onAspectRatioChange: (ratio: "portrait" | "landscape") => void;
   onSubmit: () => void;
   isLoading: boolean;
+  productImage: ProductImage | null;
+  onProductImageChange: (image: ProductImage | null) => void;
 }
 
 export function BottomInputPanel({
@@ -39,8 +46,11 @@ export function BottomInputPanel({
   onAspectRatioChange,
   onSubmit,
   isLoading,
+  productImage,
+  onProductImageChange,
 }: BottomInputPanelProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [charCount, setCharCount] = useState(0);
   const maxChars = 1500;
 
@@ -60,6 +70,27 @@ export function BottomInputPanel({
   useEffect(() => {
     adjustHeight();
   }, [script, adjustHeight]);
+
+  const handleProductImageUpload = useCallback((e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file && file.type.startsWith('image/')) {
+      const url = URL.createObjectURL(file);
+      onProductImageChange({
+        url,
+        name: file.name
+      });
+    }
+  }, [onProductImageChange]);
+
+  const handleRemoveProductImage = useCallback(() => {
+    if (productImage) {
+      URL.revokeObjectURL(productImage.url);
+      onProductImageChange(null);
+    }
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  }, [productImage, onProductImageChange]);
 
   return (
     <div className="fixed bottom-0 left-[240px] right-0 z-50 flex justify-center pb-6 pointer-events-none">
@@ -108,8 +139,8 @@ export function BottomInputPanel({
           />
         </div>
 
-        {/* Selected actors */}
-        {selectedActors.length > 0 && (
+        {/* Selected actors and product image */}
+        {(selectedActors.length > 0 || productImage) && (
           <div className="px-4 pb-3">
             <div className="flex flex-wrap gap-2 items-center">
               {selectedActors.map((actor) => (
@@ -121,6 +152,23 @@ export function BottomInputPanel({
                   disabled={isLoading}
                 />
               ))}
+              {productImage && (
+                <div className="relative inline-flex items-center gap-2 pl-1 pr-3 py-1 bg-white rounded-full border border-gray-200 shadow-sm">
+                  <img
+                    src={productImage.url}
+                    alt="Product"
+                    className="w-8 h-8 rounded-full object-cover"
+                  />
+                  <span className="text-sm font-medium text-gray-900">Product</span>
+                  <button
+                    onClick={handleRemoveProductImage}
+                    disabled={isLoading}
+                    className="ml-1 p-0.5 hover:bg-gray-100 rounded-full transition-colors disabled:opacity-50"
+                  >
+                    <X className="h-3 w-3 text-gray-500" />
+                  </button>
+                </div>
+              )}
             </div>
           </div>
         )}
@@ -173,6 +221,26 @@ export function BottomInputPanel({
             >
               <Users className="h-3.5 w-3.5 mr-1" />
               Add actors
+            </Button>
+
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              onChange={handleProductImageUpload}
+              className="hidden"
+              disabled={isLoading}
+            />
+            
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => fileInputRef.current?.click()}
+              className="h-7 text-xs text-gray-700 hover:text-gray-900"
+              disabled={isLoading}
+            >
+              <ImageIcon className="h-3.5 w-3.5 mr-1" />
+              Upload product
             </Button>
 
             <Button

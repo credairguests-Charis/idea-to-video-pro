@@ -28,6 +28,7 @@ export function NewProjectArcads() {
   const [aspectRatio, setAspectRatio] = useState<"portrait" | "landscape">("portrait");
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<VideoProject[]>([]);
+  const [productImage, setProductImage] = useState<{ url: string; name: string } | null>(null);
   const { toast } = useToast();
 
   // Mock project data for display
@@ -144,6 +145,8 @@ export function NewProjectArcads() {
         onAspectRatioChange={setAspectRatio}
         onSubmit={handleCreateProject}
         isLoading={isLoading}
+        productImage={productImage}
+        onProductImageChange={setProductImage}
       />
 
       {/* Actor Selection Modal */}
