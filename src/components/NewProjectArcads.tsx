@@ -264,7 +264,7 @@ export function NewProjectArcads() {
               className="resize-none"
             />
             <p className="text-xs text-muted-foreground text-right">
-              {prompt.length} / 1500
+              {prompt.length} / 5000
             </p>
           </div>
 
@@ -276,7 +276,7 @@ export function NewProjectArcads() {
                 <Video className="h-4 w-4 mr-2" />
                 <SelectValue placeholder="Aspect Ratio" />
               </SelectTrigger>
-              <SelectContent className="bg-popover">
+              <SelectContent className="bg-popover z-50">
                 <SelectItem value="portrait">9:16 – Portrait</SelectItem>
                 <SelectItem value="landscape">16:9 – Landscape</SelectItem>
               </SelectContent>
