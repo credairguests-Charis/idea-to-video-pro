@@ -56,3 +56,12 @@ verify_jwt = true
 
 [functions.customer-portal]
 verify_jwt = true
+
+[functions.sora-create-task]
+verify_jwt = true
+
+[functions.sora-poll-status]
+verify_jwt = false
+
+[functions.sora-poll-cron]
+verify_jwt = false

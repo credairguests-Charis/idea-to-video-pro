@@ -10,6 +10,7 @@ import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
+import VideoGenerator from "./pages/VideoGenerator";
 import { ArcadsLayout } from "./components/ArcadsLayout";
 import { AuthProvider } from "./hooks/useAuth";
 import { AuthGuard } from "./components/AuthGuard";
@@ -99,6 +100,7 @@ const App = () => (
                     <Route path="/projects" element={<Projects />} />
                     <Route path="/folders" element={<Folders />} />
                     <Route path="/settings" element={<Settings />} />
+                    <Route path="/video-generator" element={<VideoGenerator />} />
                     <Route path="/still-watching" element={<Projects />} />
                     {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                     <Route path="*" element={<NotFound />} />
