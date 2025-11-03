@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { VideoCard } from "@/components/VideoCard";
 import { BottomInputPanel } from "@/components/BottomInputPanel";
 import { ActorSelectionModal } from "@/components/ActorSelectionModal";
+import { VideoGenerationTracker } from "@/components/VideoGenerationTracker";
 
 interface SelectedActor {
   id: string;
@@ -217,6 +218,9 @@ export function NewProjectArcads() {
         onSelectActors={handleActorSelection}
         selectedActors={selectedActors}
       />
+
+      {/* Video Generation Tracker */}
+      <VideoGenerationTracker />
     </div>
   );
 }
