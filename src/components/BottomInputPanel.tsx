@@ -245,7 +245,7 @@ export function BottomInputPanel({
 
             <Button
               onClick={onSubmit}
-              disabled={isLoading || selectedActors.length === 0 || !script.trim()}
+              disabled={isLoading || !script.trim()}
               className="h-9 w-9 rounded-full p-0 bg-[#0f1729] hover:bg-[#0f1729]/90"
             >
               <ArrowUp className="h-4 w-4 text-white" />

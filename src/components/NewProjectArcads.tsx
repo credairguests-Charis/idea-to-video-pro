@@ -48,15 +48,6 @@ export function NewProjectArcads() {
   }, []);
 
   const handleCreateProject = useCallback(async () => {
-    if (selectedActors.length === 0) {
-      toast({
-        title: "No Actors Selected",
-        description: "Please select at least one actor",
-        variant: "destructive",
-      });
-      return;
-    }
-
     if (!script.trim()) {
       toast({
         title: "Content Required",
@@ -69,12 +60,41 @@ export function NewProjectArcads() {
     setIsLoading(true);
     try {
       // DISABLED: OmniHuman/TTS pipeline - migrated to Sora 2 Image-to-Video
-      // Generate video using Sora 2 for each actor
-      for (const actor of selectedActors) {
+      // Generate video using Sora 2
+      
+      // If actors are selected, generate one video per actor
+      if (selectedActors.length > 0) {
+        for (const actor of selectedActors) {
+          const { data: taskData, error: taskError } = await supabase.functions.invoke('sora-create-task', {
+            body: {
+              prompt: script,
+              image_url: actor.thumbnail_url,
+              aspect_ratio: aspectRatio,
+              n_frames: "15",
+              remove_watermark: true
+            }
+          });
+
+          if (taskError) {
+            throw new Error(`Sora 2 Error for ${actor.name}: ${taskError.message}`);
+          }
+
+          if (!taskData?.success) {
+            throw new Error(`Sora 2 Error for ${actor.name}: ${taskData?.error || "Unknown error"}`);
+          }
+        }
+        
+        toast({
+          title: "Generation Started!",
+          description: `${selectedActors.length} video(s) are being generated with Sora 2. You'll be notified when ready.`,
+        });
+      } 
+      // If product image is uploaded but no actors, use product image
+      else if (productImage) {
         const { data: taskData, error: taskError } = await supabase.functions.invoke('sora-create-task', {
           body: {
             prompt: script,
-            image_url: actor.thumbnail_url,
+            image_url: productImage.url,
             aspect_ratio: aspectRatio,
             n_frames: "15",
             remove_watermark: true
@@ -82,22 +102,47 @@ export function NewProjectArcads() {
         });
 
         if (taskError) {
-          throw new Error(`Sora 2 Error for ${actor.name}: ${taskError.message}`);
+          throw new Error(`Sora 2 Error: ${taskError.message}`);
         }
 
         if (!taskData?.success) {
-          throw new Error(`Sora 2 Error for ${actor.name}: ${taskData?.error || "Unknown error"}`);
+          throw new Error(`Sora 2 Error: ${taskData?.error || "Unknown error"}`);
         }
+        
+        toast({
+          title: "Generation Started!",
+          description: "Video is being generated with Sora 2. You'll be notified when ready.",
+        });
       }
+      // No actors or product image - generate from prompt only
+      else {
+        const { data: taskData, error: taskError } = await supabase.functions.invoke('sora-create-task', {
+          body: {
+            prompt: script,
+            aspect_ratio: aspectRatio,
+            n_frames: "15",
+            remove_watermark: true
+          }
+        });
 
-      toast({
-        title: "Generation Started!",
-        description: `${selectedActors.length} video(s) are being generated with Sora 2. You'll be notified when ready.`,
-      });
+        if (taskError) {
+          throw new Error(`Sora 2 Error: ${taskError.message}`);
+        }
+
+        if (!taskData?.success) {
+          throw new Error(`Sora 2 Error: ${taskData?.error || "Unknown error"}`);
+        }
+        
+        toast({
+          title: "Generation Started!",
+          description: "Video is being generated with Sora 2. You'll be notified when ready.",
+        });
+      }
 
       // Reset form
       setScript("");
       setSelectedActors([]);
+      setProductImage(null);
       setAspectRatio("portrait");
 
     } catch (error) {
@@ -110,7 +155,7 @@ export function NewProjectArcads() {
     } finally {
       setIsLoading(false);
     }
-  }, [script, selectedActors, aspectRatio, toast]);
+  }, [script, selectedActors, productImage, aspectRatio, toast]);
 
   const handleVideoClick = (project: VideoProject) => {
     // Handle video playback/preview
