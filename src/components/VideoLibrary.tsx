@@ -25,7 +25,10 @@ interface VideoGeneration {
   image_url: string | null;
   n_frames: string;
   remove_watermark: boolean | null;
+  user_id?: string;
+  project_id?: string | null;
 }
+
 
 interface VideoLibraryProps {
   projectId?: string
@@ -52,11 +55,13 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
     videos.forEach(async (video) => {
       if (!video.thumbnail_url && video.result_url && videoRefs.current[video.id]) {
         const thumbnail = await generateThumbnail(video.result_url, video.id);
-        // Update the video with thumbnail
-        await supabase
-          .from('video_generations')
-          .update({ thumbnail_url: thumbnail })
-          .eq('id', video.id);
+        // Only persist valid image thumbnails
+        if (thumbnail && thumbnail.startsWith('data:image')) {
+          await supabase
+            .from('video_generations')
+            .update({ thumbnail_url: thumbnail })
+            .eq('id', video.id);
+        }
       }
     });
   }, [videos]);
@@ -84,35 +89,96 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
     setLoading(false);
   };
 
+  // Realtime updates: add new completed videos without reload
+  useEffect(() => {
+    let channel: ReturnType<typeof supabase.channel> | null = null;
+    const setup = async () => {
+      const { data: authData } = await supabase.auth.getUser();
+      const currentUser = authData.user;
+      if (!currentUser) return;
+
+      channel = supabase
+        .channel('video-generations-realtime')
+        .on(
+          'postgres_changes',
+          { event: 'UPDATE', schema: 'public', table: 'video_generations' },
+          async (payload) => {
+            const rec = payload.new as VideoGeneration & { user_id: string; project_id?: string | null };
+            if (!rec || rec.user_id !== currentUser.id) return;
+            if (projectId && rec.project_id !== projectId) return;
+
+            if (rec.status === 'success' && rec.result_url) {
+              // Merge or insert
+              setVideos(prev => {
+                const exists = prev.some(v => v.id === rec.id);
+                const next = exists ? prev.map(v => (v.id === rec.id ? { ...v, ...rec } : v)) : [rec, ...prev];
+                return next;
+              });
+
+              // Auto-generate thumbnail if missing
+              if (!rec.thumbnail_url) {
+                const thumb = await generateThumbnail(rec.result_url, rec.id);
+                if (thumb && thumb.startsWith('data:image')) {
+                  await supabase.from('video_generations').update({ thumbnail_url: thumb }).eq('id', rec.id);
+                }
+              }
+            }
+          }
+        )
+        .subscribe();
+    };
+
+    setup();
+    return () => {
+      if (channel) supabase.removeChannel(channel);
+    };
+  }, [projectId]);
+
   const handleVideoClick = (video: VideoGeneration) => {
     setSelectedVideo(video);
     setShowVideoModal(true);
   };
 
   const generateThumbnail = async (videoUrl: string, videoId: string) => {
-    return new Promise<string>((resolve) => {
-      const video = document.createElement('video');
-      video.crossOrigin = 'anonymous';
-      video.src = videoUrl;
-      video.currentTime = 1.5; // Capture frame at 1.5 seconds for better content
-      
-      video.onloadeddata = () => {
-        setTimeout(() => {
-          const canvas = document.createElement('canvas');
-          canvas.width = video.videoWidth;
-          canvas.height = video.videoHeight;
-          const ctx = canvas.getContext('2d');
-          if (ctx) {
-            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-            const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.85);
-            resolve(thumbnailUrl);
-          } else {
-            resolve(videoUrl);
-          }
-        }, 100);
-      };
-      
-      video.onerror = () => resolve(videoUrl);
+    return new Promise<string | null>((resolve) => {
+      try {
+        const video = document.createElement('video');
+        video.crossOrigin = 'anonymous';
+        video.src = videoUrl;
+        video.currentTime = 1.5; // Capture frame at 1.5 seconds for better content
+        
+        video.onloadeddata = () => {
+          // Slight delay to ensure frame is available
+          setTimeout(() => {
+            try {
+              const canvas = document.createElement('canvas');
+              canvas.width = video.videoWidth || 0;
+              canvas.height = video.videoHeight || 0;
+              if (!canvas.width || !canvas.height) return resolve(null);
+              const ctx = canvas.getContext('2d');
+              if (ctx) {
+                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+                const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.85);
+                // Ensure we actually got an image
+                if (thumbnailUrl && thumbnailUrl.startsWith('data:image')) {
+                  resolve(thumbnailUrl);
+                } else {
+                  resolve(null);
+                }
+              } else {
+                resolve(null);
+              }
+            } catch (e) {
+              // Tainted canvas or other error
+              resolve(null);
+            }
+          }, 120);
+        };
+        
+        video.onerror = () => resolve(null);
+      } catch (e) {
+        resolve(null);
+      }
     });
   };
 
