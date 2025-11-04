@@ -134,6 +134,49 @@ export function useProjects() {
     }
   }
 
+  const duplicateProject = async (projectId: string) => {
+    if (!user) return null
+
+    try {
+      const originalProject = projects.find(p => p.id === projectId)
+      if (!originalProject) throw new Error('Project not found')
+
+      const { data, error } = await supabase
+        .from('projects')
+        .insert({
+          title: `${originalProject.title} (Copy)`,
+          script: originalProject.script,
+          selected_actors: originalProject.selected_actors,
+          aspect_ratio: originalProject.aspect_ratio,
+          audio_source: originalProject.audio_source,
+          tts_settings: originalProject.tts_settings,
+          folder_id: originalProject.folder_id,
+          user_id: user.id,
+          status: 'draft',
+        })
+        .select()
+        .single()
+
+      if (error) throw error
+
+      setProjects(prev => [data, ...prev])
+      toast({
+        title: "Success",
+        description: "Project duplicated successfully",
+      })
+      
+      return data
+    } catch (error) {
+      console.error('Error duplicating project:', error)
+      toast({
+        title: "Error",
+        description: "Failed to duplicate project",
+        variant: "destructive",
+      })
+      return null
+    }
+  }
+
   const deleteProject = async (projectId: string) => {
     if (!user) return false
 
@@ -173,6 +216,7 @@ export function useProjects() {
     loading,
     createProject,
     updateProject,
+    duplicateProject,
     deleteProject,
     refetch: fetchProjects,
   }

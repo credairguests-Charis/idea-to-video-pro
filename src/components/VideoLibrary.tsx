@@ -27,7 +27,11 @@ interface VideoGeneration {
   remove_watermark: boolean | null;
 }
 
-export function VideoLibrary() {
+interface VideoLibraryProps {
+  projectId?: string
+}
+
+export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
   const [videos, setVideos] = useState<VideoGeneration[]>([]);
   const [selectedVideo, setSelectedVideo] = useState<VideoGeneration | null>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
@@ -41,7 +45,7 @@ export function VideoLibrary() {
 
   useEffect(() => {
     fetchVideos();
-  }, []);
+  }, [projectId]);
 
   useEffect(() => {
     // Generate thumbnails for videos that don't have them
@@ -61,13 +65,18 @@ export function VideoLibrary() {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) return;
 
-    const { data, error } = await supabase
+    let query = supabase
       .from('video_generations')
       .select('*')
       .eq('user_id', user.user.id)
       .eq('status', 'success')
       .not('result_url', 'is', null)
-      .order('completed_at', { ascending: false });
+
+    if (projectId) {
+      query = query.eq('project_id', projectId)
+    }
+
+    const { data, error } = await query.order('completed_at', { ascending: false });
 
     if (!error && data) {
       setVideos(data);

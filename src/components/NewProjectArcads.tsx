@@ -30,7 +30,11 @@ interface VideoProject {
   status: 'completed' | 'processing' | 'failed';
 }
 
-export function NewProjectArcads() {
+interface NewProjectArcadsProps {
+  onProjectCreated?: (projectId: string) => void
+}
+
+export function NewProjectArcads({ onProjectCreated }: NewProjectArcadsProps = {}) {
   const [script, setScript] = useState("");
   const [selectedActors, setSelectedActors] = useState<SelectedActor[]>([]);
   const [showActorSelector, setShowActorSelector] = useState(false);

@@ -11,6 +11,7 @@ import Auth from "./pages/Auth";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import VideoGenerator from "./pages/VideoGenerator";
+import ProjectWorkspace from "./pages/ProjectWorkspace";
 import { ArcadsLayout } from "./components/ArcadsLayout";
 import { AuthProvider } from "./hooks/useAuth";
 import { AuthGuard } from "./components/AuthGuard";
@@ -97,6 +98,8 @@ const App = () => (
                 <ArcadsLayout>
                   <Routes>
                     <Route path="/" element={<Index />} />
+                    <Route path="/workspace" element={<ProjectWorkspace />} />
+                    <Route path="/workspace/:projectId" element={<ProjectWorkspace />} />
                     <Route path="/projects" element={<Projects />} />
                     <Route path="/folders" element={<Folders />} />
                     <Route path="/settings" element={<Settings />} />

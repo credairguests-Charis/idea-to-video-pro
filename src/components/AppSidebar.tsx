@@ -18,9 +18,9 @@ import {
 
 const items = [
   { title: "New Project", url: "/", icon: Home },
+  { title: "Workspace", url: "/workspace", icon: FolderOpen },
   { title: "Projects", url: "/projects", icon: Video },
   { title: "Video Generator", url: "/video-generator", icon: Wand2 },
-  { title: "Folders", url: "/folders", icon: FolderOpen },
   { title: "Settings", url: "/settings", icon: Settings },
 ]
 

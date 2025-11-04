@@ -580,6 +580,7 @@ export type Database = {
           id: string
           image_url: string
           n_frames: string | null
+          project_id: string | null
           prompt: string
           remove_watermark: boolean | null
           result_url: string | null
@@ -600,6 +601,7 @@ export type Database = {
           id?: string
           image_url: string
           n_frames?: string | null
+          project_id?: string | null
           prompt: string
           remove_watermark?: boolean | null
           result_url?: string | null
@@ -620,6 +622,7 @@ export type Database = {
           id?: string
           image_url?: string
           n_frames?: string | null
+          project_id?: string | null
           prompt?: string
           remove_watermark?: boolean | null
           result_url?: string | null
@@ -630,7 +633,15 @@ export type Database = {
           updated_at?: string | null
           user_id?: string
         }
-        Relationships: []
+        Relationships: [
+          {
+            foreignKeyName: "video_generations_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
       }
     }
     Views: {

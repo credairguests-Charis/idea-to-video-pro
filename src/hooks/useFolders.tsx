@@ -75,6 +75,38 @@ export function useFolders() {
     }
   }
 
+  const renameFolder = async (folderId: string, newName: string) => {
+    if (!user) return false
+
+    try {
+      const { error } = await supabase
+        .from('folders')
+        .update({ name: newName })
+        .eq('id', folderId)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      setFolders(prev => prev.map(folder => 
+        folder.id === folderId ? { ...folder, name: newName } : folder
+      ))
+      toast({
+        title: "Success",
+        description: "Folder renamed successfully",
+      })
+      
+      return true
+    } catch (error) {
+      console.error('Error renaming folder:', error)
+      toast({
+        title: "Error",
+        description: "Failed to rename folder",
+        variant: "destructive",
+      })
+      return false
+    }
+  }
+
   const deleteFolder = async (folderId: string) => {
     if (!user) return false
 
@@ -113,6 +145,7 @@ export function useFolders() {
     folders,
     loading,
     createFolder,
+    renameFolder,
     deleteFolder,
     refetch: fetchFolders,
   }
