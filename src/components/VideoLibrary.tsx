@@ -308,12 +308,12 @@ export function VideoLibrary() {
 
       {/* Video Preview Modal */}
       <Dialog open={showVideoModal} onOpenChange={setShowVideoModal}>
-        <DialogContent className="max-w-6xl p-0 gap-0 bg-black border-0">
+        <DialogContent className="max-w-5xl max-h-[85vh] overflow-hidden p-0 gap-0 bg-black border-0">
           {selectedVideo?.result_url && (
-            <div className="flex flex-col lg:flex-row h-[80vh]">
+            <div className="flex flex-col lg:flex-row max-h-[85vh]">
               {/* Video Section - Left */}
-              <div className="flex-1 flex items-center justify-center bg-black p-4">
-                <div className={selectedVideo.aspect_ratio === 'portrait' || selectedVideo.aspect_ratio === '9:16' ? 'w-full max-w-md' : 'w-full'}>
+              <div className="flex-1 flex items-center justify-center bg-black p-4 lg:p-6">
+                <div className={selectedVideo.aspect_ratio === 'portrait' || selectedVideo.aspect_ratio === '9:16' ? 'w-full max-w-md max-h-[70vh]' : 'w-full max-h-[70vh]'}>
                   <VideoPlayer 
                     src={selectedVideo.result_url}
                     className="w-full h-full rounded-lg"
