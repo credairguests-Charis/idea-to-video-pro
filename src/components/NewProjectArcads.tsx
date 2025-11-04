@@ -182,7 +182,7 @@ export function NewProjectArcads({ onProjectCreated, projectId }: NewProjectArca
     } finally {
       setIsLoading(false);
     }
-  }, [script, selectedActors, productImage, aspectRatio, toast]);
+  }, [script, selectedActors, productImage, aspectRatio, toast, projectId]);
 
   const handleVideoClick = (project: VideoProject) => {
     // Handle video playback/preview
@@ -218,7 +218,7 @@ export function NewProjectArcads({ onProjectCreated, projectId }: NewProjectArca
           </TabsContent>
           
           <TabsContent value="library" className="px-6 pb-6">
-            <VideoLibrary />
+            <VideoLibrary projectId={projectId} />
           </TabsContent>
         </Tabs>
       </div>

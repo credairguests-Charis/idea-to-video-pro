@@ -21,7 +21,7 @@ export default function ProjectWorkspace() {
 
   const handleProjectSelect = (id: string) => {
     setCurrentProjectId(id)
-    navigate(`/workspace/${id}`)
+    navigate(`/app/workspace/${id}`)
   }
 
   const handleNewProject = async () => {
@@ -33,7 +33,7 @@ export default function ProjectWorkspace() {
     
     if (newProject) {
       setCurrentProjectId(newProject.id)
-      navigate(`/workspace/${newProject.id}`)
+      navigate(`/app/workspace/${newProject.id}`)
     }
   }
 
