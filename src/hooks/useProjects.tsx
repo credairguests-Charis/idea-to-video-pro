@@ -42,6 +42,9 @@ export function useProjects() {
 
       if (error) throw error
       setProjects(data || [])
+      
+      // Migration: Assign orphaned videos to projects
+      await migrateOrphanedVideos()
     } catch (error) {
       console.error('Error fetching projects:', error)
       toast({
@@ -51,6 +54,51 @@ export function useProjects() {
       })
     } finally {
       setLoading(false)
+    }
+  }
+
+  const migrateOrphanedVideos = async () => {
+    if (!user) return
+
+    try {
+      // Check for videos without project_id
+      const { data: orphanedVideos, error: fetchError } = await supabase
+        .from('video_generations')
+        .select('id')
+        .eq('user_id', user.id)
+        .is('project_id', null)
+        .limit(1)
+
+      if (fetchError) throw fetchError
+
+      // If there are orphaned videos, create a default project for them
+      if (orphanedVideos && orphanedVideos.length > 0) {
+        const { data: defaultProject, error: projectError } = await supabase
+          .from('projects')
+          .insert({
+            title: 'My First Project',
+            user_id: user.id,
+            status: 'draft',
+          })
+          .select()
+          .single()
+
+        if (projectError) throw projectError
+
+        // Assign all orphaned videos to this project
+        const { error: updateError } = await supabase
+          .from('video_generations')
+          .update({ project_id: defaultProject.id })
+          .eq('user_id', user.id)
+          .is('project_id', null)
+
+        if (updateError) throw updateError
+
+        // Refresh projects list
+        fetchProjects()
+      }
+    } catch (error) {
+      console.error('Error migrating orphaned videos:', error)
     }
   }
 

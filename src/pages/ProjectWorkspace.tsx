@@ -12,15 +12,20 @@ export default function ProjectWorkspace() {
   const { projectId } = useParams()
   const { projects, loading, createProject } = useProjects()
   const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId)
+  const [viewMode, setViewMode] = useState<'generate' | 'library'>('generate')
 
   useEffect(() => {
     if (projectId) {
       setCurrentProjectId(projectId)
+      setViewMode('library')
+    } else {
+      setViewMode('generate')
     }
   }, [projectId])
 
   const handleProjectSelect = (id: string) => {
     setCurrentProjectId(id)
+    setViewMode('library')
     navigate(`/app/workspace/${id}`)
   }
 
@@ -33,6 +38,7 @@ export default function ProjectWorkspace() {
     
     if (newProject) {
       setCurrentProjectId(newProject.id)
+      setViewMode('generate')
       navigate(`/app/workspace/${newProject.id}`)
     }
   }
@@ -68,29 +74,7 @@ export default function ProjectWorkspace() {
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
         {currentProject ? (
-          <div className="flex-1 overflow-auto">
-            <div className="p-6 space-y-8">
-              {/* Project Header */}
-              <div>
-                <h1 className="text-2xl font-bold">{currentProject.title}</h1>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Generate and manage videos in this project
-                </p>
-              </div>
-
-              {/* Video Generation Interface */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold">Generate New Video</h2>
-                <NewProjectArcads projectId={currentProjectId} />
-              </div>
-
-              {/* Existing Videos */}
-              <div className="space-y-4">
-                <h2 className="text-lg font-semibold">Project Videos</h2>
-                <VideoLibrary projectId={currentProjectId} />
-              </div>
-            </div>
-          </div>
+          <NewProjectArcads projectId={currentProjectId} mode={viewMode} />
         ) : (
           <div className="flex-1 flex items-center justify-center">
             <div className="text-center space-y-4">

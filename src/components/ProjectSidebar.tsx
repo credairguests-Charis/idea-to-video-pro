@@ -1,8 +1,11 @@
-import { useState, useEffect } from "react"
-import { ChevronRight, ChevronDown, FolderOpen, Folder, FileText, Plus, MoreVertical, Edit2, Copy, Trash2 } from "lucide-react"
+import { useState, useEffect, useCallback, useRef } from "react"
+import { ChevronRight, ChevronDown, FolderOpen, Folder, FileText, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut } from "lucide-react"
+import { useNavigate } from "react-router-dom"
+import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { ScrollArea } from "@/components/ui/scroll-area"
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,6 +31,8 @@ interface ProjectSidebarProps {
 }
 
 export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject }: ProjectSidebarProps) {
+  const navigate = useNavigate()
+  const { user, signOut } = useAuth()
   const { folders, createFolder, renameFolder, deleteFolder } = useFolders()
   const { projects, updateProject, duplicateProject, deleteProject } = useProjects()
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
@@ -35,6 +40,9 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
   const [newFolderName, setNewFolderName] = useState("")
   const [renamingItem, setRenamingItem] = useState<{ id: string; type: 'folder' | 'project'; name: string } | null>(null)
   const [renameValue, setRenameValue] = useState("")
+  const [deletingFolder, setDeletingFolder] = useState<{ id: string; name: string } | null>(null)
+  const [displayedProjects, setDisplayedProjects] = useState(20)
+  const scrollRef = useRef<HTMLDivElement>(null)
 
   // Auto-expand folder containing current project
   useEffect(() => {
@@ -89,23 +97,72 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
     await updateProject(projectId, { folder_id: folderId })
   }
 
-  const standaloneProjects = projects.filter(p => !p.folder_id)
+  const handleDeleteFolder = async (folderId: string) => {
+    const folderProjects = projects.filter(p => p.folder_id === folderId)
+    
+    if (folderProjects.length > 0) {
+      // Show confirmation dialog if folder has projects
+      const folder = folders.find(f => f.id === folderId)
+      if (folder) {
+        setDeletingFolder({ id: folderId, name: folder.name })
+        return
+      }
+    }
+    
+    // No projects, delete directly
+    await deleteFolder(folderId)
+  }
+
+  const confirmDeleteFolder = async () => {
+    if (!deletingFolder) return
+
+    // Delete all projects in the folder first
+    const folderProjects = projects.filter(p => p.folder_id === deletingFolder.id)
+    for (const project of folderProjects) {
+      await deleteProject(project.id)
+    }
+
+    // Then delete the folder
+    await deleteFolder(deletingFolder.id)
+    setDeletingFolder(null)
+  }
+
+  // Infinite scroll handler
+  const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
+    const target = e.target as HTMLDivElement
+    const bottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 100
+    
+    if (bottom && displayedProjects < projects.length) {
+      setDisplayedProjects(prev => Math.min(prev + 20, projects.length))
+    }
+  }, [displayedProjects, projects.length])
+
+  const standaloneProjects = projects.filter(p => !p.folder_id).slice(0, displayedProjects)
 
   return (
     <div className="flex flex-col h-full bg-sidebar border-r">
-      <div className="p-4 border-b space-y-2">
-        <Button onClick={onNewProject} className="w-full" size="sm">
-          <Plus className="h-4 w-4 mr-2" />
-          New Project
-        </Button>
-        <Button onClick={() => setNewFolderDialog(true)} variant="outline" className="w-full" size="sm">
-          <FolderOpen className="h-4 w-4 mr-2" />
-          New Folder
-        </Button>
+      {/* Header */}
+      <div className="p-4 border-b">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-sm">S</span>
+          </div>
+          <span className="font-semibold text-foreground">SmartUGC</span>
+        </div>
+        <div className="space-y-2">
+          <Button onClick={onNewProject} className="w-full" size="sm">
+            <Plus className="h-4 w-4 mr-2" />
+            New Project
+          </Button>
+          <Button onClick={() => setNewFolderDialog(true)} variant="outline" className="w-full" size="sm">
+            <FolderOpen className="h-4 w-4 mr-2" />
+            New Folder
+          </Button>
+        </div>
       </div>
 
-      <ScrollArea className="flex-1">
-        <div className="p-2 space-y-1">
+      <ScrollArea className="flex-1" onScrollCapture={handleScroll}>
+        <div className="p-2 space-y-1" ref={scrollRef}>
           {/* Folders */}
           {folders.map(folder => {
             const folderProjects = projects.filter(p => p.folder_id === folder.id)
@@ -153,7 +210,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                         Rename
                       </DropdownMenuItem>
                       <DropdownMenuItem
-                        onClick={() => deleteFolder(folder.id)}
+                        onClick={() => handleDeleteFolder(folder.id)}
                         className="text-destructive"
                       >
                         <Trash2 className="h-4 w-4 mr-2" />
@@ -288,6 +345,34 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
         </div>
       </ScrollArea>
 
+      {/* Footer with user info and actions */}
+      <div className="p-4 border-t mt-auto bg-sidebar">
+        {user && (
+          <div className="mb-2 text-xs text-muted-foreground truncate">
+            {user.email}
+          </div>
+        )}
+        <div className="flex gap-2">
+          <Button
+            variant="ghost"
+            className="flex-1 justify-start gap-2 text-muted-foreground hover:text-foreground"
+            onClick={() => navigate('/app/settings')}
+            size="sm"
+          >
+            <Settings className="h-4 w-4" />
+            <span>Settings</span>
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            className="text-muted-foreground hover:text-foreground"
+            onClick={() => signOut()}
+          >
+            <LogOut className="h-4 w-4" />
+          </Button>
+        </div>
+      </div>
+
       {/* New Folder Dialog */}
       <Dialog open={newFolderDialog} onOpenChange={setNewFolderDialog}>
         <DialogContent>
@@ -333,6 +418,24 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Delete Folder Confirmation */}
+      <AlertDialog open={!!deletingFolder} onOpenChange={() => setDeletingFolder(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete Folder?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will permanently delete the folder "{deletingFolder?.name}" and all {projects.filter(p => p.folder_id === deletingFolder?.id).length} project(s) inside it. This action cannot be undone.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmDeleteFolder} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Delete
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   )
 }

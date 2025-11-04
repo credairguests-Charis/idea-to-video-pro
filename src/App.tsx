@@ -98,20 +98,18 @@ const App = () => (
           <Route path="/app/*" element={
             <AuthGuard>
               <SubscriptionGuard>
-                <ArcadsLayout>
-                  <Routes>
-                    <Route path="/" element={<Index />} />
-                    <Route path="/workspace" element={<ProjectWorkspace />} />
-                    <Route path="/workspace/:projectId" element={<ProjectWorkspace />} />
-                    <Route path="/projects" element={<Projects />} />
-                    <Route path="/folders" element={<Folders />} />
-                    <Route path="/settings" element={<Settings />} />
-                    <Route path="/video-generator" element={<VideoGenerator />} />
-                    <Route path="/still-watching" element={<Projects />} />
-                    {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-                    <Route path="*" element={<NotFound />} />
-                  </Routes>
-                </ArcadsLayout>
+                <Routes>
+                  <Route path="/" element={<ProjectWorkspace />} />
+                  <Route path="/workspace" element={<ProjectWorkspace />} />
+                  <Route path="/workspace/:projectId" element={<ProjectWorkspace />} />
+                  <Route path="/settings" element={
+                    <ArcadsLayout>
+                      <Settings />
+                    </ArcadsLayout>
+                  } />
+                  {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+                  <Route path="*" element={<NotFound />} />
+                </Routes>
               </SubscriptionGuard>
             </AuthGuard>
           } />
