@@ -43,6 +43,20 @@ export function VideoLibrary() {
     fetchVideos();
   }, []);
 
+  useEffect(() => {
+    // Generate thumbnails for videos that don't have them
+    videos.forEach(async (video) => {
+      if (!video.thumbnail_url && video.result_url && videoRefs.current[video.id]) {
+        const thumbnail = await generateThumbnail(video.result_url, video.id);
+        // Update the video with thumbnail
+        await supabase
+          .from('video_generations')
+          .update({ thumbnail_url: thumbnail })
+          .eq('id', video.id);
+      }
+    });
+  }, [videos]);
+
   const fetchVideos = async () => {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) return;
@@ -71,16 +85,22 @@ export function VideoLibrary() {
       const video = document.createElement('video');
       video.crossOrigin = 'anonymous';
       video.src = videoUrl;
-      video.currentTime = 1; // Capture frame at 1 second
+      video.currentTime = 1.5; // Capture frame at 1.5 seconds for better content
       
       video.onloadeddata = () => {
-        const canvas = document.createElement('canvas');
-        canvas.width = video.videoWidth;
-        canvas.height = video.videoHeight;
-        const ctx = canvas.getContext('2d');
-        ctx?.drawImage(video, 0, 0);
-        const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.8);
-        resolve(thumbnailUrl);
+        setTimeout(() => {
+          const canvas = document.createElement('canvas');
+          canvas.width = video.videoWidth;
+          canvas.height = video.videoHeight;
+          const ctx = canvas.getContext('2d');
+          if (ctx) {
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.85);
+            resolve(thumbnailUrl);
+          } else {
+            resolve(videoUrl);
+          }
+        }, 100);
       };
       
       video.onerror = () => resolve(videoUrl);
@@ -202,14 +222,24 @@ export function VideoLibrary() {
             <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow group">
               <div className={`relative bg-muted ${isPortrait ? 'aspect-[9/16]' : 'aspect-video'}`}>
                 {video.result_url && (
-                  <video
-                    ref={(el) => { if (el) videoRefs.current[video.id] = el; }}
-                    src={video.result_url}
-                    className="w-full h-full object-cover"
-                    preload="metadata"
-                    muted
-                    playsInline
-                  />
+                  <>
+                    {video.thumbnail_url ? (
+                      <img 
+                        src={video.thumbnail_url} 
+                        alt={video.title || video.prompt}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <video
+                        ref={(el) => { if (el) videoRefs.current[video.id] = el; }}
+                        src={video.result_url}
+                        className="w-full h-full object-cover"
+                        preload="metadata"
+                        muted
+                        playsInline
+                      />
+                    )}
+                  </>
                 )}
                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2">
                   <Button
@@ -313,7 +343,7 @@ export function VideoLibrary() {
             <div className="flex flex-col lg:flex-row max-h-[85vh]">
               {/* Video Section - Left */}
               <div className="flex-1 flex items-center justify-center bg-black p-4 lg:p-6">
-                <div className={selectedVideo.aspect_ratio === 'portrait' || selectedVideo.aspect_ratio === '9:16' ? 'w-full max-w-md max-h-[70vh]' : 'w-full max-h-[70vh]'}>
+                <div className={selectedVideo.aspect_ratio === 'portrait' || selectedVideo.aspect_ratio === '9:16' ? 'w-full max-w-md h-[70vh]' : 'w-full h-[70vh]'}>
                   <VideoPlayer 
                     src={selectedVideo.result_url}
                     className="w-full h-full rounded-lg"
