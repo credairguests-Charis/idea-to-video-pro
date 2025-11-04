@@ -25,7 +25,7 @@ export default function Pricing() {
   // Redirect if already subscribed
   useEffect(() => {
     if (subscriptionStatus?.subscribed) {
-      const timer = setTimeout(() => navigate("/"), 2000);
+      const timer = setTimeout(() => navigate("/app"), 2000);
       return () => clearTimeout(timer);
     }
   }, [subscriptionStatus, navigate]);

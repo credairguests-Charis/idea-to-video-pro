@@ -3,6 +3,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 // Removed TooltipProvider to avoid Radix runtime error
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
+import Landing from "./pages/Landing";
 import Index from "./pages/Index";
 import Projects from "./pages/Projects";
 import Folders from "./pages/Folders";
@@ -35,6 +36,8 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
+          {/* Landing Page */}
+          <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
           
           {/* Admin Routes */}
@@ -92,7 +95,7 @@ const App = () => (
           <Route path="/pricing" element={<Pricing />} />
 
           {/* User Routes - Protected by Auth + Subscription */}
-          <Route path="/*" element={
+          <Route path="/app/*" element={
             <AuthGuard>
               <SubscriptionGuard>
                 <ArcadsLayout>

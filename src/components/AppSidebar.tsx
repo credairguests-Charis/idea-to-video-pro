@@ -17,11 +17,11 @@ import {
 } from "@/components/ui/sidebar"
 
 const items = [
-  { title: "New Project", url: "/", icon: Home },
-  { title: "Workspace", url: "/workspace", icon: FolderOpen },
-  { title: "Projects", url: "/projects", icon: Video },
-  { title: "Video Generator", url: "/video-generator", icon: Wand2 },
-  { title: "Settings", url: "/settings", icon: Settings },
+  { title: "New Project", url: "/app", icon: Home },
+  { title: "Workspace", url: "/app/workspace", icon: FolderOpen },
+  { title: "Projects", url: "/app/projects", icon: Video },
+  { title: "Video Generator", url: "/app/video-generator", icon: Wand2 },
+  { title: "Settings", url: "/app/settings", icon: Settings },
 ]
 
 export function AppSidebar() {
@@ -49,9 +49,9 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <NavLink 
+                     <NavLink 
                       to={item.url} 
-                      end={item.url === "/"}
+                      end={item.url === "/app"}
                       className={({ isActive }) => 
                         isActive ? "bg-accent text-accent-foreground" : ""
                       }

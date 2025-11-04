@@ -23,7 +23,7 @@ export default function Auth() {
     if (user) {
       checkSubscription().then(() => {
         // Navigate based on subscription status will be handled by SubscriptionGuard
-        navigate("/")
+        navigate("/app")
       })
     }
   }, [user, checkSubscription, navigate])
@@ -31,7 +31,7 @@ export default function Auth() {
   // Redirect if already authenticated
   if (user && subscriptionStatus) {
     if (subscriptionStatus.subscribed) {
-      return <Navigate to="/" replace />
+      return <Navigate to="/app" replace />
     } else {
       return <Navigate to="/pricing" replace />
     }
