@@ -193,8 +193,8 @@ export function NewProject() {
           }
         }
 
-        // Navigate to projects page
-        navigate("/projects")
+        // Navigate to workspace for the created project
+        navigate(`/app/workspace/${project.id}`)
       }
     } catch (error) {
       console.error('Project creation error:', error)
