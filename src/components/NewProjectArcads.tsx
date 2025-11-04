@@ -32,9 +32,10 @@ interface VideoProject {
 
 interface NewProjectArcadsProps {
   onProjectCreated?: (projectId: string) => void
+  projectId?: string
 }
 
-export function NewProjectArcads({ onProjectCreated }: NewProjectArcadsProps = {}) {
+export function NewProjectArcads({ onProjectCreated, projectId }: NewProjectArcadsProps = {}) {
   const [script, setScript] = useState("");
   const [selectedActors, setSelectedActors] = useState<SelectedActor[]>([]);
   const [showActorSelector, setShowActorSelector] = useState(false);
@@ -94,7 +95,8 @@ export function NewProjectArcads({ onProjectCreated }: NewProjectArcadsProps = {
               image_urls: imageUrls,
               aspect_ratio: aspectRatio,
               n_frames: "15",
-              remove_watermark: true
+              remove_watermark: true,
+              project_id: projectId
             }
           });
 
@@ -120,7 +122,8 @@ export function NewProjectArcads({ onProjectCreated }: NewProjectArcadsProps = {
             image_urls: [productImage.url],
             aspect_ratio: aspectRatio,
             n_frames: "15",
-            remove_watermark: true
+            remove_watermark: true,
+            project_id: projectId
           }
         });
 
@@ -144,7 +147,8 @@ export function NewProjectArcads({ onProjectCreated }: NewProjectArcadsProps = {
             prompt: script,
             aspect_ratio: aspectRatio,
             n_frames: "15",
-            remove_watermark: true
+            remove_watermark: true,
+            project_id: projectId
           }
         });
 

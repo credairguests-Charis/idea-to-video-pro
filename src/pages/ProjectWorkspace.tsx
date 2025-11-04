@@ -3,16 +3,15 @@ import { useNavigate, useParams } from "react-router-dom"
 import { ProjectSidebar } from "@/components/ProjectSidebar"
 import { VideoLibrary } from "@/components/VideoLibrary"
 import { NewProjectArcads } from "@/components/NewProjectArcads"
+import { VideoGenerationTracker } from "@/components/VideoGenerationTracker"
 import { useProjects } from "@/hooks/useProjects"
 import { Button } from "@/components/ui/button"
-import { ArrowLeft } from "lucide-react"
 
 export default function ProjectWorkspace() {
   const navigate = useNavigate()
   const { projectId } = useParams()
-  const { projects, loading } = useProjects()
+  const { projects, loading, createProject } = useProjects()
   const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId)
-  const [showNewProject, setShowNewProject] = useState(false)
 
   useEffect(() => {
     if (projectId) {
@@ -25,13 +24,21 @@ export default function ProjectWorkspace() {
     navigate(`/workspace/${id}`)
   }
 
-  const handleNewProject = () => {
-    setShowNewProject(true)
+  const handleNewProject = async () => {
+    // Create a new project first
+    const newProject = await createProject({
+      title: 'Untitled Project',
+      aspect_ratio: 'portrait',
+    })
+    
+    if (newProject) {
+      setCurrentProjectId(newProject.id)
+      navigate(`/workspace/${newProject.id}`)
+    }
   }
 
   const handleProjectCreated = (projectId: string) => {
-    setShowNewProject(false)
-    handleProjectSelect(projectId)
+    // Not needed anymore since we're on the same page
   }
 
   const currentProject = projects.find(p => p.id === currentProjectId)
@@ -60,24 +67,29 @@ export default function ProjectWorkspace() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {showNewProject ? (
+        {currentProject ? (
           <div className="flex-1 overflow-auto">
-            <div className="p-4">
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={() => setShowNewProject(false)}
-                className="mb-4"
-              >
-                <ArrowLeft className="h-4 w-4 mr-2" />
-                Back
-              </Button>
-              <NewProjectArcads onProjectCreated={handleProjectCreated} />
+            <div className="p-6 space-y-8">
+              {/* Project Header */}
+              <div>
+                <h1 className="text-2xl font-bold">{currentProject.title}</h1>
+                <p className="text-sm text-muted-foreground mt-1">
+                  Generate and manage videos in this project
+                </p>
+              </div>
+
+              {/* Video Generation Interface */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Generate New Video</h2>
+                <NewProjectArcads projectId={currentProjectId} />
+              </div>
+
+              {/* Existing Videos */}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Project Videos</h2>
+                <VideoLibrary projectId={currentProjectId} />
+              </div>
             </div>
-          </div>
-        ) : currentProject ? (
-          <div className="flex-1 overflow-auto">
-            <VideoLibrary projectId={currentProjectId} />
           </div>
         ) : (
           <div className="flex-1 flex items-center justify-center">
@@ -95,6 +107,9 @@ export default function ProjectWorkspace() {
           </div>
         )}
       </div>
+
+      {/* Global Video Generation Tracker */}
+      <VideoGenerationTracker />
     </div>
   )
 }

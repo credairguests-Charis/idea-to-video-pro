@@ -46,7 +46,7 @@ serve(async (req) => {
       );
     }
 
-    const { prompt, image_url, image_urls, aspect_ratio = 'landscape', n_frames = '10', remove_watermark = true } = await req.json();
+    const { prompt, image_url, image_urls, aspect_ratio = 'landscape', n_frames = '10', remove_watermark = true, project_id } = await req.json();
 
     if (!prompt) {
       return new Response(
@@ -102,6 +102,7 @@ serve(async (req) => {
         aspect_ratio,
         n_frames,
         remove_watermark,
+        project_id: project_id || null,
       })
       .select()
       .single();
