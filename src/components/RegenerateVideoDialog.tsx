@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -24,16 +24,16 @@ interface RegenerateVideoDialogProps {
 }
 
 export function RegenerateVideoDialog({ video, open, onOpenChange, onSuccess }: RegenerateVideoDialogProps) {
-  const [prompt, setPrompt] = useState(video?.prompt || "");
+  const [prompt, setPrompt] = useState("");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const { toast } = useToast();
 
   // Update prompt when video changes
-  useState(() => {
+  useEffect(() => {
     if (video) {
       setPrompt(video.prompt);
     }
-  });
+  }, [video]);
 
   const handleRegenerate = async () => {
     if (!video || !prompt.trim()) {
@@ -84,7 +84,7 @@ export function RegenerateVideoDialog({ video, open, onOpenChange, onSuccess }: 
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl">
+      <DialogContent className="max-w-xl max-h-[85vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
             <Sparkles className="h-5 w-5 text-primary" />
@@ -95,11 +95,11 @@ export function RegenerateVideoDialog({ video, open, onOpenChange, onSuccess }: 
           </DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-4 py-4">
+        <div className="space-y-3">
           {video?.image_url && (
             <div className="space-y-2">
               <Label>Product Image</Label>
-              <div className="relative aspect-video w-full max-w-xs rounded-lg overflow-hidden border bg-muted">
+              <div className="relative aspect-video w-full max-w-[200px] rounded-md overflow-hidden border bg-muted">
                 <img 
                   src={video.image_url} 
                   alt="Product" 
@@ -116,7 +116,7 @@ export function RegenerateVideoDialog({ video, open, onOpenChange, onSuccess }: 
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
               placeholder="Enter your video script or prompt..."
-              className="min-h-[200px] resize-none"
+              className="min-h-[120px] resize-none"
               disabled={isRegenerating}
             />
             <p className="text-xs text-muted-foreground">
@@ -125,7 +125,7 @@ export function RegenerateVideoDialog({ video, open, onOpenChange, onSuccess }: 
           </div>
         </div>
 
-        <div className="flex justify-end gap-2">
+        <div className="flex justify-end gap-2 pt-2">
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
