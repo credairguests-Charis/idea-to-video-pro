@@ -51,16 +51,32 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
   }, [projectId]);
 
   useEffect(() => {
-    // Generate thumbnails for videos that don't have them
+    // Generate thumbnails for videos that don't have them OR have invalid thumbnails (video URLs)
     videos.forEach(async (video) => {
-      if (!video.thumbnail_url && video.result_url && videoRefs.current[video.id]) {
+      if (!video.result_url) return;
+      
+      // Check if thumbnail is missing or invalid (like a .mp4 URL)
+      const hasInvalidThumbnail = video.thumbnail_url && 
+        (video.thumbnail_url.endsWith('.mp4') || 
+         video.thumbnail_url.endsWith('.webm') || 
+         !video.thumbnail_url.startsWith('data:image'));
+      
+      if ((!video.thumbnail_url || hasInvalidThumbnail) && videoRefs.current[video.id]) {
+        console.log(`Regenerating thumbnail for video ${video.id}`);
         const thumbnail = await generateThumbnail(video.result_url, video.id);
         // Only persist valid image thumbnails
         if (thumbnail && thumbnail.startsWith('data:image')) {
-          await supabase
+          const { error } = await supabase
             .from('video_generations')
             .update({ thumbnail_url: thumbnail })
             .eq('id', video.id);
+          
+          if (!error) {
+            // Update local state immediately
+            setVideos(prev => prev.map(v => 
+              v.id === video.id ? { ...v, thumbnail_url: thumbnail } : v
+            ));
+          }
         }
       }
     });
@@ -296,9 +312,9 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
           return (
             <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow group">
               <div className={`relative bg-muted ${isPortrait ? 'aspect-[9/16]' : 'aspect-video'}`}>
-                {video.result_url && (
+              {video.result_url && (
                   <>
-                    {video.thumbnail_url ? (
+                    {video.thumbnail_url && video.thumbnail_url.startsWith('data:image') ? (
                       <img 
                         src={video.thumbnail_url} 
                         alt={video.title || video.prompt}
