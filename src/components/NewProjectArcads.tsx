@@ -7,6 +7,7 @@ import { BottomInputPanel } from "@/components/BottomInputPanel";
 import { ActorSelectionModal } from "@/components/ActorSelectionModal";
 import { VideoGenerationTracker } from "@/components/VideoGenerationTracker";
 import { VideoLibrary } from "@/components/VideoLibrary";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface SelectedActor {
   id: string;
@@ -32,10 +33,9 @@ interface VideoProject {
 interface NewProjectArcadsProps {
   onProjectCreated?: (projectId: string) => void
   projectId?: string
-  mode?: "generate" | "library"
 }
 
-export function NewProjectArcads({ onProjectCreated, projectId, mode = "library" }: NewProjectArcadsProps = {}) {
+export function NewProjectArcads({ onProjectCreated, projectId }: NewProjectArcadsProps = {}) {
   const [script, setScript] = useState("");
   const [selectedActors, setSelectedActors] = useState<SelectedActor[]>([]);
   const [showActorSelector, setShowActorSelector] = useState(false);
@@ -193,24 +193,34 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = "library"
     <div className="flex flex-col h-screen overflow-hidden bg-[#F7F7F8]">
       {/* Main Content Area */}
       <div className="flex-1 overflow-auto pb-[200px]">
-        {/* Conditional content without tabs */}
-        {mode === "generate" ? (
-          <div className="flex items-center justify-center h-full pb-12">
-            <div className="text-center max-w-md">
-              <div className="mb-6 flex justify-center">
-                <Users className="h-20 w-20 text-gray-300" />
+        <Tabs defaultValue="generate" className="h-full">
+          <div className="px-6 pt-6">
+            <TabsList>
+              <TabsTrigger value="generate">Generate</TabsTrigger>
+              <TabsTrigger value="library">Video Library</TabsTrigger>
+            </TabsList>
+          </div>
+          
+          <TabsContent value="generate" className="h-full">
+            <div className="flex items-center justify-center h-full pb-12">
+              <div className="text-center max-w-md">
+                <div className="mb-6 flex justify-center">
+                  <Users className="h-20 w-20 text-gray-300" />
+                </div>
+                <h3 className="text-xl font-medium text-gray-600 mb-1">
+                  Generate winning assets with talking actors,
+                </h3>
+                <p className="text-lg text-gray-500">
+                  reactions and more.
+                </p>
               </div>
-              <h3 className="text-xl font-medium text-gray-600 mb-1">
-                Generate winning assets with talking actors,
-              </h3>
-              <p className="text-lg text-gray-500">reactions and more.</p>
             </div>
-          </div>
-        ) : (
-          <div className="px-6 pb-6">
+          </TabsContent>
+          
+          <TabsContent value="library" className="px-6 pb-6">
             <VideoLibrary projectId={projectId} />
-          </div>
-        )}
+          </TabsContent>
+        </Tabs>
       </div>
 
       {/* Bottom Input Panel */}

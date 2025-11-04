@@ -12,7 +12,7 @@ export default function ProjectWorkspace() {
   const { projectId } = useParams()
   const { projects, loading, createProject } = useProjects()
   const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId)
-  const [viewMode, setViewMode] = useState<"generate" | "library">("library")
+
   useEffect(() => {
     if (projectId) {
       setCurrentProjectId(projectId)
@@ -21,7 +21,6 @@ export default function ProjectWorkspace() {
 
   const handleProjectSelect = (id: string) => {
     setCurrentProjectId(id)
-    setViewMode("library")
     navigate(`/app/workspace/${id}`)
   }
 
@@ -34,7 +33,6 @@ export default function ProjectWorkspace() {
     
     if (newProject) {
       setCurrentProjectId(newProject.id)
-      setViewMode("generate")
       navigate(`/app/workspace/${newProject.id}`)
     }
   }
@@ -83,16 +81,14 @@ export default function ProjectWorkspace() {
               {/* Video Generation Interface */}
               <div className="space-y-4">
                 <h2 className="text-lg font-semibold">Generate New Video</h2>
-                <NewProjectArcads projectId={currentProjectId} mode={viewMode} />
+                <NewProjectArcads projectId={currentProjectId} />
               </div>
 
               {/* Existing Videos */}
-              {viewMode !== "library" && (
-                <div className="space-y-4">
-                  <h2 className="text-lg font-semibold">Project Videos</h2>
-                  <VideoLibrary projectId={currentProjectId} />
-                </div>
-              )}
+              <div className="space-y-4">
+                <h2 className="text-lg font-semibold">Project Videos</h2>
+                <VideoLibrary projectId={currentProjectId} />
+              </div>
             </div>
           </div>
         ) : (

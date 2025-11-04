@@ -211,7 +211,7 @@ export function ArcadsLayout({ children }: ArcadsLayoutProps) {
                 projects.slice(0, 3).map((project) => (
                   <li key={project.id}>
                     <NavLink
-                      to={`/app/workspace/${project.id}`}
+                      to="/projects"
                       className="flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground"
                     >
                       <div className="w-4 h-4 bg-muted rounded" />
