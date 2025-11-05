@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react"
-import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut, FolderInput } from "lucide-react"
+import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut, FolderPlus } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
@@ -237,7 +237,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                           setSelectedProjectsToMove(new Set())
                         }}
                       >
-                        <FolderInput className="h-4 w-4 mr-2" />
+                        <FolderPlus className="h-4 w-4 mr-2" />
                         Move Projects Here
                       </DropdownMenuItem>
                       <DropdownMenuItem
@@ -268,12 +268,12 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                           variant="ghost"
                           size="sm"
                           className={cn(
-                            "flex-1 justify-start px-3 h-9 hover:bg-transparent",
+                            "flex-1 justify-start px-3 min-h-10 py-2 hover:bg-transparent",
                             currentProjectId === project.id && "bg-muted hover:bg-muted"
                           )}
                           onClick={() => onProjectSelect(project.id)}
                         >
-                          <span className="truncate text-sm">{project.title}</span>
+                          <span className="text-sm whitespace-normal break-words line-clamp-2 pr-1">{project.title}</span>
                         </Button>
 
                         <DropdownMenu>
