@@ -204,7 +204,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
             return (
               <div key={folder.id} className="space-y-0.5">
-                <div className="group flex items-center rounded-md mx-2 my-0.5 hover:bg-accent/50 transition-colors">
+                <div className="relative group flex items-center rounded-md mx-2 my-0.5 hover:bg-accent/50 transition-colors">
                   <Button
                     variant="ghost"
                     size="sm"
@@ -226,11 +226,11 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 hover:opacity-100 transition-opacity mr-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="z-50 w-48">
+                    <DropdownMenuContent align="end" className="z-50 w-48 bg-popover text-popover-foreground border border-border shadow-md">
                       <DropdownMenuItem
                         onClick={() => {
                           setMovingToFolder({ id: folder.id, name: folder.name })
@@ -263,7 +263,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                 {isExpanded && (
                   <div className="ml-8 space-y-0.5">
                     {folderProjects.map(project => (
-                        <div key={project.id} className="group flex items-center rounded-md hover:bg-accent/50 transition-colors mx-2 my-0.5">
+                        <div key={project.id} className="relative group flex items-center rounded-md hover:bg-accent/50 transition-colors mx-2 my-0.5">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -278,11 +278,11 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                             <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 hover:opacity-100 transition-opacity mr-1 shrink-0">
+                             <Button variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="z-50 w-48">
+                          <DropdownMenuContent align="end" className="z-50 w-48 bg-popover text-popover-foreground border border-border shadow-md">
                             <DropdownMenuItem
                               onClick={() => {
                                 setRenamingItem({ id: project.id, type: 'project', name: project.title })
@@ -319,7 +319,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
           {/* Standalone Projects */}
           {standaloneProjects.map(project => (
-            <div key={project.id} className="group flex items-center rounded-md hover:bg-accent/50 transition-colors mx-2 my-0.5">
+            <div key={project.id} className="relative group flex items-center rounded-md hover:bg-accent/50 transition-colors mx-2 my-0.5">
               <Button
                 variant="ghost"
                 size="sm"
@@ -334,11 +334,11 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto opacity-0 group-hover:opacity-100 focus:opacity-100 focus-visible:opacity-100 hover:opacity-100 transition-opacity mr-1 shrink-0">
+                  <Button variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="z-50 w-48">
+                <DropdownMenuContent align="end" className="z-50 w-48 bg-popover text-popover-foreground border border-border shadow-md">
                   <DropdownMenuItem
                     onClick={() => {
                       setRenamingItem({ id: project.id, type: 'project', name: project.title })
