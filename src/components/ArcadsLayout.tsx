@@ -62,8 +62,8 @@ export function ArcadsLayout({ children }: ArcadsLayoutProps) {
   };
 
   const handleCreateProject = async () => {
+    // Title will be auto-generated from script when user enters it
     const result = await createProject({
-      title: "Untitled Project",
       script: ""
     });
     

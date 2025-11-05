@@ -73,6 +73,39 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = 'generate
 
     setIsLoading(true);
     try {
+      // Update project title from script if it's still "Untitled Project"
+      if (projectId) {
+        const { data: currentProject } = await supabase
+          .from('projects')
+          .select('title')
+          .eq('id', projectId)
+          .single();
+        
+        if (currentProject?.title === 'Untitled Project') {
+          // Auto-generate title from script
+          const words = script.trim().split(/\s+/);
+          const titleWords = words.slice(0, 10);
+          let newTitle = titleWords.join(' ');
+          if (words.length > 10) {
+            newTitle += '...';
+          }
+          if (newTitle.length > 60) {
+            newTitle = newTitle.substring(0, 57) + '...';
+          }
+          
+          await supabase
+            .from('projects')
+            .update({ title: newTitle, script: script })
+            .eq('id', projectId);
+        } else {
+          // Just update the script
+          await supabase
+            .from('projects')
+            .update({ script: script })
+            .eq('id', projectId);
+        }
+      }
+      
       // DISABLED: OmniHuman/TTS pipeline - migrated to Sora 2 Image-to-Video
       // Generate video using Sora 2
       

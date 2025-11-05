@@ -30,9 +30,8 @@ export default function ProjectWorkspace() {
   }
 
   const handleNewProject = async () => {
-    // Create a new project first
+    // Create a new project first (title will be auto-generated from script when user enters it)
     const newProject = await createProject({
-      title: 'Untitled Project',
       aspect_ratio: 'portrait',
     })
     

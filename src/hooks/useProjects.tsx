@@ -103,7 +103,7 @@ export function useProjects() {
   }
 
   const createProject = async (projectData: {
-    title: string
+    title?: string
     script?: string
     selected_actors?: string[]
     aspect_ratio?: string
@@ -115,10 +115,33 @@ export function useProjects() {
     if (!user) return null
 
     try {
+      // Auto-generate title from script if not provided or is default
+      let finalTitle = projectData.title
+      if ((!finalTitle || finalTitle === 'Untitled Project') && projectData.script) {
+        // Extract first 8-10 words from script
+        const words = projectData.script.trim().split(/\s+/)
+        const titleWords = words.slice(0, 10)
+        finalTitle = titleWords.join(' ')
+        // Add ellipsis if script is longer
+        if (words.length > 10) {
+          finalTitle += '...'
+        }
+        // Limit to 60 characters max for better display
+        if (finalTitle.length > 60) {
+          finalTitle = finalTitle.substring(0, 57) + '...'
+        }
+      }
+      
+      // Fallback to default if still no title
+      if (!finalTitle) {
+        finalTitle = 'Untitled Project'
+      }
+
       const { data, error } = await supabase
         .from('projects')
         .insert({
           ...projectData,
+          title: finalTitle,
           user_id: user.id,
           status: 'draft',
         })

@@ -14,6 +14,7 @@ interface VideoGeneration {
   aspect_ratio: string;
   n_frames: string;
   remove_watermark: boolean | null;
+  project_id?: string | null;
 }
 
 interface RegenerateVideoDialogProps {
@@ -21,9 +22,10 @@ interface RegenerateVideoDialogProps {
   open: boolean;
   onOpenChange: (open: boolean) => void;
   onSuccess?: () => void;
+  projectId?: string;
 }
 
-export function RegenerateVideoDialog({ video, open, onOpenChange, onSuccess }: RegenerateVideoDialogProps) {
+export function RegenerateVideoDialog({ video, open, onOpenChange, onSuccess, projectId }: RegenerateVideoDialogProps) {
   const [prompt, setPrompt] = useState("");
   const [isRegenerating, setIsRegenerating] = useState(false);
   const { toast } = useToast();
@@ -55,6 +57,7 @@ export function RegenerateVideoDialog({ video, open, onOpenChange, onSuccess }: 
           aspect_ratio: video.aspect_ratio,
           n_frames: video.n_frames,
           remove_watermark: video.remove_watermark ?? true,
+          project_id: projectId || video.project_id,
         },
       });
 
