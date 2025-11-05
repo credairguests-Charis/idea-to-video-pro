@@ -204,11 +204,11 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
             return (
               <div key={folder.id} className="space-y-0.5">
-                <div className="flex items-center gap-0 group rounded-md hover:bg-accent transition-colors mx-2 my-0.5">
+                <div className="group/row flex items-center rounded-md mx-2 my-0.5 hover:bg-accent/50 transition-colors">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex-1 justify-start px-2.5 h-10 hover:bg-transparent"
+                    className="flex-1 justify-start px-3 h-10 hover:bg-transparent"
                     onClick={() => toggleFolder(folder.id)}
                   >
                     {isExpanded ? (
@@ -226,7 +226,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity mr-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto opacity-0 group-hover/row:opacity-100 focus:opacity-100 focus-visible:opacity-100 hover:opacity-100 transition-opacity mr-1 shrink-0">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -263,7 +263,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                 {isExpanded && (
                   <div className="ml-8 space-y-0.5">
                     {folderProjects.map(project => (
-                      <div key={project.id} className="flex items-center gap-0 group rounded-md hover:bg-accent transition-colors mx-2 my-0.5">
+                       <div key={project.id} className="group/row flex items-center rounded-md hover:bg-accent/50 transition-colors mx-2 my-0.5">
                         <Button
                           variant="ghost"
                           size="sm"
@@ -278,7 +278,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity mr-1 shrink-0">
+                             <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto opacity-0 group-hover/row:opacity-100 focus:opacity-100 focus-visible:opacity-100 hover:opacity-100 transition-opacity mr-1 shrink-0">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -319,12 +319,12 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
           {/* Standalone Projects */}
           {standaloneProjects.map(project => (
-            <div key={project.id} className="flex items-center gap-0 group rounded-md hover:bg-accent transition-colors mx-2 my-0.5">
+            <div key={project.id} className="group/row flex items-center rounded-md hover:bg-accent/50 transition-colors mx-2 my-0.5">
               <Button
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "flex-1 justify-start px-2.5 h-10 hover:bg-transparent text-left",
+                  "flex-1 justify-start px-3 h-10 hover:bg-transparent text-left",
                   currentProjectId === project.id && "bg-muted hover:bg-muted"
                 )}
                 onClick={() => onProjectSelect(project.id)}
@@ -334,7 +334,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity mr-1 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 ml-auto opacity-0 group-hover/row:opacity-100 focus:opacity-100 focus-visible:opacity-100 hover:opacity-100 transition-opacity mr-1 shrink-0">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
