@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react"
-import { ChevronRight, ChevronDown, FolderOpen, Folder, FileText, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut } from "lucide-react"
+import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut, FolderInput } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
@@ -43,6 +43,8 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
   const [deletingFolder, setDeletingFolder] = useState<{ id: string; name: string } | null>(null)
   const [displayedProjects, setDisplayedProjects] = useState(20)
   const scrollRef = useRef<HTMLDivElement>(null)
+  const [movingToFolder, setMovingToFolder] = useState<{ id: string; name: string } | null>(null)
+  const [selectedProjectsToMove, setSelectedProjectsToMove] = useState<Set<string>>(new Set())
 
   // Auto-expand folder containing current project
   useEffect(() => {
@@ -127,6 +129,29 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
     setDeletingFolder(null)
   }
 
+  const handleMoveProjectsToFolder = () => {
+    if (!movingToFolder) return
+    
+    selectedProjectsToMove.forEach(projectId => {
+      handleMoveToFolder(projectId, movingToFolder.id)
+    })
+    
+    setMovingToFolder(null)
+    setSelectedProjectsToMove(new Set())
+  }
+
+  const toggleProjectSelection = (projectId: string) => {
+    setSelectedProjectsToMove(prev => {
+      const newSet = new Set(prev)
+      if (newSet.has(projectId)) {
+        newSet.delete(projectId)
+      } else {
+        newSet.add(projectId)
+      }
+      return newSet
+    })
+  }
+
   // Infinite scroll handler
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement
@@ -142,19 +167,28 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
   return (
     <div className="flex flex-col h-full bg-sidebar border-r">
       {/* Header */}
-      <div className="p-4 border-b">
-        <div className="flex items-center gap-3 mb-4">
+      <div className="p-3 border-b">
+        <div className="flex items-center gap-3 mb-3">
           <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-sm">S</span>
           </div>
           <span className="font-semibold text-foreground">SmartUGC</span>
         </div>
         <div className="space-y-2">
-          <Button onClick={onNewProject} className="w-full" size="sm">
+          <Button 
+            onClick={onNewProject} 
+            className="w-full justify-start rounded-lg h-10 bg-background hover:bg-accent text-foreground shadow-none border" 
+            variant="outline"
+          >
             <Plus className="h-4 w-4 mr-2" />
             New Project
           </Button>
-          <Button onClick={() => setNewFolderDialog(true)} variant="outline" className="w-full" size="sm">
+          <Button 
+            onClick={() => setNewFolderDialog(true)} 
+            variant="ghost" 
+            className="w-full justify-start rounded-lg h-9" 
+            size="sm"
+          >
             <FolderOpen className="h-4 w-4 mr-2" />
             New Folder
           </Button>
@@ -162,44 +196,50 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
       </div>
 
       <ScrollArea className="flex-1" onScrollCapture={handleScroll}>
-        <div className="p-2 space-y-1" ref={scrollRef}>
+        <div className="p-2 space-y-0.5" ref={scrollRef}>
           {/* Folders */}
           {folders.map(folder => {
             const folderProjects = projects.filter(p => p.folder_id === folder.id)
             const isExpanded = expandedFolders.has(folder.id)
 
             return (
-              <div key={folder.id} className="space-y-1">
-                <div className="flex items-center gap-1 group">
+              <div key={folder.id} className="space-y-0.5">
+                <div className="flex items-center gap-1 group rounded-lg hover:bg-accent/50 transition-colors">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex-1 justify-start px-2 h-8"
+                    className="flex-1 justify-start px-3 h-9 hover:bg-transparent"
                     onClick={() => toggleFolder(folder.id)}
                   >
                     {isExpanded ? (
-                      <ChevronDown className="h-4 w-4 mr-1 shrink-0" />
+                      <ChevronDown className="h-3.5 w-3.5 mr-2 shrink-0 text-muted-foreground" />
                     ) : (
-                      <ChevronRight className="h-4 w-4 mr-1 shrink-0" />
+                      <ChevronRight className="h-3.5 w-3.5 mr-2 shrink-0 text-muted-foreground" />
                     )}
                     {isExpanded ? (
-                      <FolderOpen className="h-4 w-4 mr-2 shrink-0" />
+                      <FolderOpen className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />
                     ) : (
-                      <Folder className="h-4 w-4 mr-2 shrink-0" />
+                      <Folder className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />
                     )}
-                    <span className="truncate text-sm">{folder.name}</span>
-                    <span className="ml-auto text-xs text-muted-foreground">
-                      {folderProjects.length}
-                    </span>
+                    <span className="truncate text-sm font-medium">{folder.name}</span>
                   </Button>
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                      <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 mr-1 shrink-0">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
+                    <DropdownMenuContent align="end" className="w-48">
+                      <DropdownMenuItem
+                        onClick={() => {
+                          setMovingToFolder({ id: folder.id, name: folder.name })
+                          setSelectedProjectsToMove(new Set())
+                        }}
+                      >
+                        <FolderInput className="h-4 w-4 mr-2" />
+                        Move Projects Here
+                      </DropdownMenuItem>
                       <DropdownMenuItem
                         onClick={() => {
                           setRenamingItem({ id: folder.id, type: 'folder', name: folder.name })
@@ -221,29 +261,28 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                 </div>
 
                 {isExpanded && (
-                  <div className="ml-6 space-y-1">
+                  <div className="ml-6 space-y-0.5">
                     {folderProjects.map(project => (
-                      <div key={project.id} className="flex items-center gap-1 group">
+                      <div key={project.id} className="flex items-center gap-1 group rounded-lg hover:bg-accent/50 transition-colors">
                         <Button
                           variant="ghost"
                           size="sm"
                           className={cn(
-                            "flex-1 justify-start px-2 h-8",
-                            currentProjectId === project.id && "bg-accent"
+                            "flex-1 justify-start px-3 h-9 hover:bg-transparent",
+                            currentProjectId === project.id && "bg-muted hover:bg-muted"
                           )}
                           onClick={() => onProjectSelect(project.id)}
                         >
-                          <FileText className="h-4 w-4 mr-2 shrink-0" />
                           <span className="truncate text-sm">{project.title}</span>
                         </Button>
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 mr-1 shrink-0">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
+                          <DropdownMenuContent align="end" className="w-48">
                             <DropdownMenuItem
                               onClick={() => {
                                 setRenamingItem({ id: project.id, type: 'project', name: project.title })
@@ -280,27 +319,26 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
           {/* Standalone Projects */}
           {standaloneProjects.map(project => (
-            <div key={project.id} className="flex items-center gap-1 group">
+            <div key={project.id} className="flex items-center gap-1 group rounded-lg hover:bg-accent/50 transition-colors">
               <Button
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "flex-1 justify-start px-2 h-8",
-                  currentProjectId === project.id && "bg-accent"
+                  "flex-1 justify-start px-3 h-9 hover:bg-transparent",
+                  currentProjectId === project.id && "bg-muted hover:bg-muted"
                 )}
                 onClick={() => onProjectSelect(project.id)}
               >
-                <FileText className="h-4 w-4 mr-2 shrink-0" />
                 <span className="truncate text-sm">{project.title}</span>
               </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100">
+                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 mr-1 shrink-0">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="w-48">
                   <DropdownMenuItem
                     onClick={() => {
                       setRenamingItem({ id: project.id, type: 'project', name: project.title })
@@ -316,7 +354,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                   </DropdownMenuItem>
                   {folders.length > 0 && (
                     <>
-                      <DropdownMenuItem disabled className="text-xs text-muted-foreground">
+                      <DropdownMenuItem disabled className="text-xs text-muted-foreground pointer-events-none">
                         Move to folder:
                       </DropdownMenuItem>
                       {folders.map(folder => (
@@ -346,31 +384,33 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
       </ScrollArea>
 
       {/* Footer with user info and actions */}
-      <div className="p-4 border-t mt-auto bg-sidebar">
+      <div className="p-3 border-t mt-auto bg-sidebar space-y-2">
+        <Button
+          variant="ghost"
+          className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-accent/50 h-9"
+          onClick={() => navigate('/app/settings')}
+          size="sm"
+        >
+          <Settings className="h-4 w-4" />
+          <span className="text-sm">Settings</span>
+        </Button>
         {user && (
-          <div className="mb-2 text-xs text-muted-foreground truncate">
-            {user.email}
+          <div className="flex items-center gap-2 px-2">
+            <div className="flex-1 min-w-0">
+              <div className="text-xs text-muted-foreground truncate">
+                {user.email}
+              </div>
+            </div>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0"
+              onClick={() => signOut()}
+            >
+              <LogOut className="h-3.5 w-3.5" />
+            </Button>
           </div>
         )}
-        <div className="flex gap-2">
-          <Button
-            variant="ghost"
-            className="flex-1 justify-start gap-2 text-muted-foreground hover:text-foreground"
-            onClick={() => navigate('/app/settings')}
-            size="sm"
-          >
-            <Settings className="h-4 w-4" />
-            <span>Settings</span>
-          </Button>
-          <Button
-            variant="ghost"
-            size="icon"
-            className="text-muted-foreground hover:text-foreground"
-            onClick={() => signOut()}
-          >
-            <LogOut className="h-4 w-4" />
-          </Button>
-        </div>
       </div>
 
       {/* New Folder Dialog */}
@@ -436,6 +476,65 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* Move Projects to Folder Dialog */}
+      <Dialog open={!!movingToFolder} onOpenChange={() => setMovingToFolder(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Move Projects to "{movingToFolder?.name}"</DialogTitle>
+            <DialogDescription>
+              Select projects to move into this folder
+            </DialogDescription>
+          </DialogHeader>
+          <ScrollArea className="max-h-[400px] pr-4">
+            <div className="space-y-2">
+              {standaloneProjects.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
+                  No projects available to move
+                </p>
+              ) : (
+                standaloneProjects.map(project => (
+                  <div
+                    key={project.id}
+                    onClick={() => toggleProjectSelection(project.id)}
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                      selectedProjectsToMove.has(project.id)
+                        ? "bg-primary/10 border-primary"
+                        : "hover:bg-accent"
+                    )}
+                  >
+                    <div className={cn(
+                      "h-4 w-4 rounded border-2 flex items-center justify-center shrink-0",
+                      selectedProjectsToMove.has(project.id)
+                        ? "bg-primary border-primary"
+                        : "border-muted-foreground"
+                    )}>
+                      {selectedProjectsToMove.has(project.id) && (
+                        <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
+                        </svg>
+                      )}
+                    </div>
+                    <span className="text-sm flex-1 truncate">{project.title}</span>
+                  </div>
+                ))
+              )}
+            </div>
+          </ScrollArea>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setMovingToFolder(null)}>
+              Cancel
+            </Button>
+            <Button 
+              onClick={handleMoveProjectsToFolder}
+              disabled={selectedProjectsToMove.size === 0}
+            >
+              Move {selectedProjectsToMove.size > 0 && `(${selectedProjectsToMove.size})`}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
