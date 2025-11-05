@@ -204,17 +204,17 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
             return (
               <div key={folder.id} className="space-y-0.5">
-                <div className="flex items-center gap-1 group rounded-lg hover:bg-accent/50 transition-colors">
+                <div className="flex items-center gap-0 group rounded-md hover:bg-accent transition-colors mx-2 my-0.5">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex-1 justify-start px-3 h-9 hover:bg-transparent"
+                    className="flex-1 justify-start px-2.5 h-10 hover:bg-transparent"
                     onClick={() => toggleFolder(folder.id)}
                   >
                     {isExpanded ? (
-                      <ChevronDown className="h-3.5 w-3.5 mr-2 shrink-0 text-muted-foreground" />
+                      <ChevronDown className="h-4 w-4 mr-1.5 shrink-0 text-muted-foreground" />
                     ) : (
-                      <ChevronRight className="h-3.5 w-3.5 mr-2 shrink-0 text-muted-foreground" />
+                      <ChevronRight className="h-4 w-4 mr-1.5 shrink-0 text-muted-foreground" />
                     )}
                     {isExpanded ? (
                       <FolderOpen className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />
@@ -226,7 +226,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 mr-1 shrink-0">
+                      <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity mr-1 shrink-0">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -261,14 +261,14 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                 </div>
 
                 {isExpanded && (
-                  <div className="ml-6 space-y-0.5">
+                  <div className="ml-8 space-y-0.5">
                     {folderProjects.map(project => (
-                      <div key={project.id} className="flex items-center gap-1 group rounded-lg hover:bg-accent/50 transition-colors">
+                      <div key={project.id} className="flex items-center gap-0 group rounded-md hover:bg-accent transition-colors mx-2 my-0.5">
                         <Button
                           variant="ghost"
                           size="sm"
                           className={cn(
-                            "flex-1 justify-start px-3 min-h-10 py-2 hover:bg-transparent",
+                            "flex-1 justify-start px-2.5 min-h-10 py-2 hover:bg-transparent text-left",
                             currentProjectId === project.id && "bg-muted hover:bg-muted"
                           )}
                           onClick={() => onProjectSelect(project.id)}
@@ -278,7 +278,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 mr-1 shrink-0">
+                            <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity mr-1 shrink-0">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -319,12 +319,12 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
           {/* Standalone Projects */}
           {standaloneProjects.map(project => (
-            <div key={project.id} className="flex items-center gap-1 group rounded-lg hover:bg-accent/50 transition-colors">
+            <div key={project.id} className="flex items-center gap-0 group rounded-md hover:bg-accent transition-colors mx-2 my-0.5">
               <Button
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "flex-1 justify-start px-3 h-9 hover:bg-transparent",
+                  "flex-1 justify-start px-2.5 h-10 hover:bg-transparent text-left",
                   currentProjectId === project.id && "bg-muted hover:bg-muted"
                 )}
                 onClick={() => onProjectSelect(project.id)}
@@ -334,7 +334,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="h-7 w-7 opacity-0 group-hover:opacity-100 mr-1 shrink-0">
+                  <Button variant="ghost" size="icon" className="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity mr-1 shrink-0">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
