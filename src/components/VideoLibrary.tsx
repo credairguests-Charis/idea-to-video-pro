@@ -10,6 +10,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import { Download, Play, Loader2, MoreVertical, Edit2, RotateCcw, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { Skeleton } from "@/components/ui/skeleton";
 
 interface VideoGeneration {
   id: string;
@@ -364,10 +365,25 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
     }
   };
 
+  const VideoCardSkeleton = () => (
+    <Card className="overflow-hidden">
+      <Skeleton className="aspect-video w-full" />
+      <div className="p-3 space-y-2">
+        <Skeleton className="h-4 w-3/4" />
+        <div className="flex items-center justify-between gap-2">
+          <Skeleton className="h-3 w-20" />
+          <Skeleton className="h-7 w-7 rounded-md" />
+        </div>
+      </div>
+    </Card>
+  );
+
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <Loader2 className="h-8 w-8 animate-spin text-primary" />
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        {Array.from({ length: VIDEOS_PER_PAGE }).map((_, i) => (
+          <VideoCardSkeleton key={i} />
+        ))}
       </div>
     );
   }
@@ -513,12 +529,17 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
         })}
         </div>
 
-        {/* Infinite scroll trigger */}
-        {hasMore && (
-          <div ref={observerRef} className="flex justify-center py-8">
-            {loadingMore && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
+        {/* Loading more skeletons */}
+        {loadingMore && (
+          <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+            {Array.from({ length: 8 }).map((_, i) => (
+              <VideoCardSkeleton key={`loading-${i}`} />
+            ))}
           </div>
         )}
+
+        {/* Infinite scroll trigger */}
+        <div ref={observerRef} className="h-4" />
 
         {/* End of results message */}
         {!hasMore && videos.length > 0 && (
