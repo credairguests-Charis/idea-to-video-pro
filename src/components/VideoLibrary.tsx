@@ -412,7 +412,7 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
           const isPortrait = !video.aspect_ratio || video.aspect_ratio === 'portrait' || video.aspect_ratio === '9:16';
           
           return (
-            <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow group">
+            <Card key={video.id} className="overflow-hidden hover:shadow-lg transition-shadow group animate-fade-in">
               <div className={`relative bg-muted ${isPortrait ? 'aspect-[9/16]' : 'aspect-video'}`}>
               {video.result_url && (
                   <>
