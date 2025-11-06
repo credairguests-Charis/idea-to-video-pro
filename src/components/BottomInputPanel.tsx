@@ -284,20 +284,20 @@ export function BottomInputPanel({
                     <ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="bg-white z-50">
-                  <DropdownMenuItem onClick={() => onBulkGenerate(2)}>
+                <DropdownMenuContent align="end" className="z-[100] bg-white shadow-lg border border-gray-200">
+                  <DropdownMenuItem onClick={() => onBulkGenerate(2)} className="cursor-pointer hover:bg-gray-100">
                     2 videos
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onBulkGenerate(4)}>
+                  <DropdownMenuItem onClick={() => onBulkGenerate(4)} className="cursor-pointer hover:bg-gray-100">
                     4 videos
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onBulkGenerate(6)}>
+                  <DropdownMenuItem onClick={() => onBulkGenerate(6)} className="cursor-pointer hover:bg-gray-100">
                     6 videos
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onBulkGenerate(8)}>
+                  <DropdownMenuItem onClick={() => onBulkGenerate(8)} className="cursor-pointer hover:bg-gray-100">
                     8 videos
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onBulkGenerate(10)}>
+                  <DropdownMenuItem onClick={() => onBulkGenerate(10)} className="cursor-pointer hover:bg-gray-100">
                     10 videos
                   </DropdownMenuItem>
                 </DropdownMenuContent>
