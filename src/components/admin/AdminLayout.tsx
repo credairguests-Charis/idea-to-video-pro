@@ -1,5 +1,5 @@
 import { AdminSidebar } from "./AdminSidebar";
-import { SidebarProvider } from "@/components/ui/sidebar";
+import { SidebarProvider, SidebarTrigger, SidebarInset } from "@/components/ui/sidebar";
 import { useState, useEffect } from "react";
 
 export function AdminLayout({ children }: { children: React.ReactNode }) {
@@ -17,11 +17,17 @@ export function AdminLayout({ children }: { children: React.ReactNode }) {
     <SidebarProvider defaultOpen={true}>
       <div className="min-h-screen flex w-full bg-background">
         <AdminSidebar isDarkMode={isDarkMode} setIsDarkMode={setIsDarkMode} />
-        <main className="flex-1 ml-[var(--sidebar-width)] p-6 md:p-8 overflow-y-auto max-w-[calc(100vw-var(--sidebar-width))]">
-          <div className="w-full max-w-[1600px] mx-auto">
-            {children}
-          </div>
-        </main>
+        <SidebarInset>
+          <header className="sticky top-0 z-10 flex h-14 items-center gap-4 border-b bg-background px-6">
+            <SidebarTrigger className="-ml-1" />
+            <h1 className="text-lg font-semibold text-foreground">Admin Dashboard</h1>
+          </header>
+          <main className="flex-1 p-6 md:p-8 overflow-y-auto">
+            <div className="w-full max-w-[1600px] mx-auto">
+              {children}
+            </div>
+          </main>
+        </SidebarInset>
       </div>
     </SidebarProvider>
   );
