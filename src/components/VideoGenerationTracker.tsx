@@ -22,34 +22,48 @@ export function VideoGenerationTracker() {
 
   useEffect(() => {
     let currentUserId: string | null = null;
+    let isSubscribed = true;
 
     // Initialize tracker - fetch user ID once and load pending generations
     const initializeTracker = async () => {
-      const { data: user } = await supabase.auth.getUser();
-      if (!user.user) return;
+      try {
+        const { data: user } = await supabase.auth.getUser();
+        if (!user.user || !isSubscribed) return;
 
-      currentUserId = user.user.id;
-      console.log('📹 VideoGenerationTracker initialized for user:', currentUserId);
+        currentUserId = user.user.id;
+        console.log('📹 VideoGenerationTracker initialized for user:', currentUserId);
 
-      // Fetch initial pending generations
-      const { data, error } = await supabase
-        .from('video_generations')
-        .select('*')
-        .eq('user_id', currentUserId)
-        .in('status', ['waiting', 'processing'])
-        .order('created_at', { ascending: false });
+        // Fetch initial pending generations
+        const { data, error } = await supabase
+          .from('video_generations')
+          .select('*')
+          .eq('user_id', currentUserId)
+          .in('status', ['waiting', 'processing'])
+          .order('created_at', { ascending: false });
 
-      if (!error && data) {
-        console.log('📹 Initial pending generations:', data.length);
-        setActiveGenerations(data);
+        if (error) {
+          console.error('📹 Error fetching initial generations:', error);
+          return;
+        }
+
+        if (data && isSubscribed) {
+          console.log('📹 Initial pending generations:', data.length);
+          setActiveGenerations(data);
+        }
+      } catch (error) {
+        console.error('📹 Error initializing tracker:', error);
       }
     };
 
     initializeTracker();
 
-    // Subscribe to realtime changes (synchronous handler for instant updates)
+    // Subscribe to realtime changes
     const channel = supabase
-      .channel('video-generation-changes')
+      .channel('video-generation-changes', {
+        config: {
+          broadcast: { self: true },
+        },
+      })
       .on(
         'postgres_changes',
         {
@@ -58,21 +72,32 @@ export function VideoGenerationTracker() {
           table: 'video_generations'
         },
         (payload) => {
-          const newRecord = payload.new as VideoGeneration;
+          if (!isSubscribed) return;
           
-          // Only handle records for current user (instant check with cached ID)
-          if (!currentUserId || newRecord.user_id !== currentUserId) return;
+          const newRecord = payload.new as VideoGeneration;
+          const oldRecord = payload.old as VideoGeneration;
+          
+          // Only handle records for current user
+          if (!currentUserId) return;
+          if (newRecord && newRecord.user_id !== currentUserId) return;
+          if (oldRecord && oldRecord.user_id !== currentUserId) return;
 
-          console.log('📹 Real-time event:', payload.eventType, newRecord.id, newRecord.status);
+          console.log('📹 Real-time event:', payload.eventType, newRecord?.id || oldRecord?.id, newRecord?.status);
 
-          if (payload.eventType === 'INSERT' && (newRecord.status === 'waiting' || newRecord.status === 'processing')) {
-            console.log('📹 Adding to active generations:', newRecord.id);
-            setActiveGenerations(prev => [newRecord, ...prev]);
-            
-            toast({
-              title: "Generation Started",
-              description: "Your video is being generated. Check the Video Library for updates.",
-            });
+          if (payload.eventType === 'INSERT') {
+            if (newRecord.status === 'waiting' || newRecord.status === 'processing') {
+              console.log('📹 Adding to active generations:', newRecord.id);
+              setActiveGenerations(prev => {
+                // Avoid duplicates
+                if (prev.some(g => g.id === newRecord.id)) return prev;
+                return [newRecord, ...prev];
+              });
+              
+              toast({
+                title: "Generation Started",
+                description: "Your video is being generated. Check the Video Library for updates.",
+              });
+            }
           } else if (payload.eventType === 'UPDATE') {
             // Update active generation status
             if (newRecord.status === 'waiting' || newRecord.status === 'processing') {
@@ -82,6 +107,7 @@ export function VideoGenerationTracker() {
                 if (exists) {
                   return prev.map(g => g.id === newRecord.id ? newRecord : g);
                 }
+                // Add if not exists (in case we missed the INSERT)
                 return [newRecord, ...prev];
               });
             } else {
@@ -104,12 +130,29 @@ export function VideoGenerationTracker() {
                 variant: "destructive",
               });
             }
+          } else if (payload.eventType === 'DELETE' && oldRecord) {
+            console.log('📹 Removing deleted generation:', oldRecord.id);
+            setActiveGenerations(prev => 
+              prev.filter(gen => gen.id !== oldRecord.id)
+            );
           }
         }
       )
-      .subscribe();
+      .subscribe((status, err) => {
+        if (status === 'SUBSCRIBED') {
+          console.log('📹 Realtime subscription active');
+        } else if (status === 'CHANNEL_ERROR') {
+          console.error('📹 Realtime subscription error:', err);
+        } else if (status === 'TIMED_OUT') {
+          console.error('📹 Realtime subscription timed out');
+        } else if (status === 'CLOSED') {
+          console.log('📹 Realtime subscription closed');
+        }
+      });
 
     return () => {
+      isSubscribed = false;
+      console.log('📹 Cleaning up VideoGenerationTracker');
       supabase.removeChannel(channel);
     };
   }, [toast]);
