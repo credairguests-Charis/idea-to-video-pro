@@ -209,7 +209,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex-1 justify-start px-4 h-10 hover:bg-transparent"
+                    className="flex-1 min-w-0 justify-start px-4 h-10 hover:bg-transparent"
                     onClick={() => toggleFolder(folder.id)}
                   >
                     {isExpanded ? (
@@ -225,7 +225,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                     <TooltipProvider delayDuration={300}>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="truncate text-sm font-medium" title={folder.name}>{folder.name}</span>
+                          <span className="truncate text-sm font-medium whitespace-nowrap overflow-hidden text-ellipsis flex-1 min-w-0" title={folder.name}>{folder.name}</span>
                         </TooltipTrigger>
                         <TooltipContent side="right" align="start" className="max-w-xs break-words">
                           {folder.name}
@@ -283,7 +283,16 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                           )}
                           onClick={() => onProjectSelect(project.id)}
                         >
-                          <span className="text-sm truncate" title={project.title}>{project.title}</span>
+                          <TooltipProvider delayDuration={300}>
+                            <Tooltip>
+                              <TooltipTrigger asChild>
+                                <span className="text-sm truncate whitespace-nowrap overflow-hidden text-ellipsis flex-1 min-w-0" title={project.title}>{project.title}</span>
+                              </TooltipTrigger>
+                              <TooltipContent side="right" align="start" className="max-w-xs break-words">
+                                {project.title}
+                              </TooltipContent>
+                            </Tooltip>
+                          </TooltipProvider>
                         </Button>
 
                         <DropdownMenu>
@@ -339,7 +348,16 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                 )}
                 onClick={() => onProjectSelect(project.id)}
               >
-                <span className="truncate text-sm" title={project.title}>{project.title}</span>
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <span className="text-sm truncate whitespace-nowrap overflow-hidden text-ellipsis flex-1 min-w-0" title={project.title}>{project.title}</span>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="start" className="max-w-xs break-words">
+                      {project.title}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
               </Button>
 
               <DropdownMenu>
