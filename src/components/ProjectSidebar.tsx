@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react"
-import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut, FolderPlus, GripVertical } from "lucide-react"
+import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut, FolderPlus } from "lucide-react"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
@@ -23,26 +23,6 @@ import {
 import { useFolders } from "@/hooks/useFolders"
 import { useProjects } from "@/hooks/useProjects"
 import { cn } from "@/lib/utils"
-import { 
-  DndContext, 
-  closestCenter,
-  KeyboardSensor,
-  PointerSensor,
-  useSensor,
-  useSensors,
-  DragEndEvent,
-  DragOverlay,
-  DragStartEvent,
-  useDraggable,
-  useDroppable
-} from '@dnd-kit/core'
-import { CSS } from '@dnd-kit/utilities'
-import { 
-  SortableContext, 
-  sortableKeyboardCoordinates,
-  verticalListSortingStrategy,
-  useSortable
-} from '@dnd-kit/sortable'
 
 interface ProjectSidebarProps {
   currentProjectId?: string
@@ -54,7 +34,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
   const navigate = useNavigate()
   const { user, signOut } = useAuth()
   const { folders, createFolder, renameFolder, deleteFolder } = useFolders()
-  const { projects, updateProject, duplicateProject, deleteProject, reorderProjects } = useProjects()
+  const { projects, updateProject, duplicateProject, deleteProject } = useProjects()
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set())
   const [newFolderDialog, setNewFolderDialog] = useState(false)
   const [newFolderName, setNewFolderName] = useState("")
@@ -65,18 +45,6 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
   const scrollRef = useRef<HTMLDivElement>(null)
   const [movingToFolder, setMovingToFolder] = useState<{ id: string; name: string } | null>(null)
   const [selectedProjectsToMove, setSelectedProjectsToMove] = useState<Set<string>>(new Set())
-  const [activeId, setActiveId] = useState<string | null>(null)
-
-  const sensors = useSensors(
-    useSensor(PointerSensor, {
-      activationConstraint: {
-        distance: 5,
-      },
-    }),
-    useSensor(KeyboardSensor, {
-      coordinateGetter: sortableKeyboardCoordinates,
-    })
-  )
 
   // Auto-expand folder containing current project
   useEffect(() => {
@@ -194,165 +162,9 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
     }
   }, [displayedProjects, projects.length])
 
-  const handleDragStart = (event: DragStartEvent) => {
-    setActiveId(event.active.id as string)
-  }
-
-  const handleDragEnd = (event: DragEndEvent) => {
-    const { active, over } = event
-    setActiveId(null)
-
-    if (!over || active.id === over.id) return
-
-    const activeProject = projects.find(p => p.id === active.id)
-    if (!activeProject) return
-
-    // Check if dropped over a folder
-    const overFolder = folders.find(f => f.id === over.id)
-    if (overFolder) {
-      // Move project to folder
-      reorderProjects(activeProject.id, 0, overFolder.id)
-      setExpandedFolders(prev => new Set(prev).add(overFolder.id))
-      return
-    }
-
-    // Check if dropped over a project
-    const overProject = projects.find(p => p.id === over.id)
-    if (!overProject) return
-
-    // Calculate new order based on position
-    const activeIndex = projects.findIndex(p => p.id === active.id)
-    const overIndex = projects.findIndex(p => p.id === over.id)
-
-    if (activeIndex === overIndex) return
-
-    // Calculate display_order for the dropped position
-    const newOrder = overProject.display_order || overIndex * 100
-    const newFolderId = overProject.folder_id
-
-    reorderProjects(activeProject.id, newOrder, newFolderId)
-  }
-
   const standaloneProjects = projects.filter(p => !p.folder_id).slice(0, displayedProjects)
 
-  // Draggable project component
-  const DraggableProject = ({ project, isInFolder }: { project: any; isInFolder: boolean }) => {
-    const {
-      attributes,
-      listeners,
-      setNodeRef,
-      transform,
-      transition,
-      isDragging,
-    } = useSortable({ id: project.id })
-
-    const style = {
-      transform: CSS.Transform.toString(transform),
-      transition,
-      opacity: isDragging ? 0.5 : 1,
-    }
-
-    return (
-      <div 
-        ref={setNodeRef} 
-        style={style}
-        className={cn(
-          "relative group flex items-center rounded-md hover:bg-accent/50 transition-colors my-0.5",
-          isInFolder ? "mx-2" : "mx-2"
-        )}
-      >
-        <div {...attributes} {...listeners} className="flex items-center px-2 py-2 cursor-grab active:cursor-grabbing">
-          <GripVertical className="h-4 w-4 text-muted-foreground/50" />
-        </div>
-        <Button
-          variant="ghost"
-          size="sm"
-          className={cn(
-            "flex-1 justify-start px-2 h-10 hover:bg-transparent text-left pr-10",
-            currentProjectId === project.id && "bg-muted hover:bg-muted"
-          )}
-          onClick={() => onProjectSelect(project.id)}
-        >
-          <span className="truncate text-sm">{project.title}</span>
-        </Button>
-
-        <DropdownMenu>
-          <DropdownMenuTrigger asChild>
-            <Button variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
-              <MoreVertical className="h-4 w-4" />
-            </Button>
-          </DropdownMenuTrigger>
-          <DropdownMenuContent align="end" className="z-50 w-48 bg-popover text-popover-foreground border border-border shadow-md">
-            <DropdownMenuItem
-              onClick={() => {
-                setRenamingItem({ id: project.id, type: 'project', name: project.title })
-                setRenameValue(project.title)
-              }}
-            >
-              <Edit2 className="h-4 w-4 mr-2" />
-              Rename
-            </DropdownMenuItem>
-            <DropdownMenuItem onClick={() => handleDuplicate(project.id)}>
-              <Copy className="h-4 w-4 mr-2" />
-              Duplicate
-            </DropdownMenuItem>
-            {isInFolder ? (
-              <DropdownMenuItem onClick={() => handleMoveToFolder(project.id, null)}>
-                <FolderOpen className="h-4 w-4 mr-2" />
-                Remove from folder
-              </DropdownMenuItem>
-            ) : (
-              folders.length > 0 && (
-                <>
-                  <DropdownMenuItem disabled className="text-xs text-muted-foreground pointer-events-none">
-                    Move to folder:
-                  </DropdownMenuItem>
-                  {folders.map(folder => (
-                    <DropdownMenuItem
-                      key={folder.id}
-                      onClick={() => handleMoveToFolder(project.id, folder.id)}
-                      className="pl-6"
-                    >
-                      <Folder className="h-4 w-4 mr-2" />
-                      {folder.name}
-                    </DropdownMenuItem>
-                  ))}
-                </>
-              )
-            )}
-            <DropdownMenuItem
-              onClick={() => deleteProject(project.id)}
-              className="text-destructive"
-            >
-              <Trash2 className="h-4 w-4 mr-2" />
-              Delete
-            </DropdownMenuItem>
-          </DropdownMenuContent>
-        </DropdownMenu>
-      </div>
-    )
-  }
-
-  // Droppable folder component
-  const DroppableFolder = ({ folder, children }: { folder: any; children: React.ReactNode }) => {
-    const { setNodeRef, isOver } = useDroppable({
-      id: folder.id,
-    })
-
-    return (
-      <div ref={setNodeRef} className={cn("space-y-0.5", isOver && "bg-accent/30 rounded-md")}>
-        {children}
-      </div>
-    )
-  }
-
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCenter}
-      onDragStart={handleDragStart}
-      onDragEnd={handleDragEnd}
-    >
     <div className="flex flex-col h-full bg-sidebar border-r">
       {/* Header */}
       <div className="p-3 border-b">
@@ -385,15 +197,13 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
       <ScrollArea className="flex-1" onScrollCapture={handleScroll}>
         <div className="p-2 space-y-0.5" ref={scrollRef}>
-          <SortableContext items={projects.map(p => p.id)} strategy={verticalListSortingStrategy}>
-            {/* Folders */}
-            {folders.map(folder => {
-              const folderProjects = projects.filter(p => p.folder_id === folder.id)
-              const isExpanded = expandedFolders.has(folder.id)
+          {/* Folders */}
+          {folders.map(folder => {
+            const folderProjects = projects.filter(p => p.folder_id === folder.id)
+            const isExpanded = expandedFolders.has(folder.id)
 
-              return (
-                <DroppableFolder key={folder.id} folder={folder}>
-                  <div className="space-y-0.5">
+            return (
+              <div key={folder.id} className="space-y-0.5">
                 <div className="relative group flex items-center rounded-md mx-2 my-0.5 hover:bg-accent/50 transition-colors">
                   <Button
                     variant="ghost"
@@ -453,20 +263,123 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                 {isExpanded && (
                   <div className="ml-8 space-y-0.5">
                     {folderProjects.map(project => (
-                      <DraggableProject key={project.id} project={project} isInFolder={true} />
+                        <div key={project.id} className="relative group flex items-center rounded-md hover:bg-accent/50 transition-colors mx-2 my-0.5">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className={cn(
+                            "flex-1 justify-start px-3 h-10 hover:bg-transparent text-left pr-10",
+                            currentProjectId === project.id && "bg-muted hover:bg-muted"
+                          )}
+                          onClick={() => onProjectSelect(project.id)}
+                        >
+                          <span className="text-sm truncate">{project.title}</span>
+                        </Button>
+
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                             <Button variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
+                              <MoreVertical className="h-4 w-4" />
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end" className="z-50 w-48 bg-popover text-popover-foreground border border-border shadow-md">
+                            <DropdownMenuItem
+                              onClick={() => {
+                                setRenamingItem({ id: project.id, type: 'project', name: project.title })
+                                setRenameValue(project.title)
+                              }}
+                            >
+                              <Edit2 className="h-4 w-4 mr-2" />
+                              Rename
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleDuplicate(project.id)}>
+                              <Copy className="h-4 w-4 mr-2" />
+                              Duplicate
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => handleMoveToFolder(project.id, null)}>
+                              <FolderOpen className="h-4 w-4 mr-2" />
+                              Remove from folder
+                            </DropdownMenuItem>
+                            <DropdownMenuItem
+                              onClick={() => deleteProject(project.id)}
+                              className="text-destructive"
+                            >
+                              <Trash2 className="h-4 w-4 mr-2" />
+                              Delete
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </div>
                     ))}
                   </div>
                 )}
               </div>
-            </DroppableFolder>
             )
           })}
 
           {/* Standalone Projects */}
           {standaloneProjects.map(project => (
-            <DraggableProject key={project.id} project={project} isInFolder={false} />
+            <div key={project.id} className="relative group flex items-center rounded-md hover:bg-accent/50 transition-colors mx-2 my-0.5">
+              <Button
+                variant="ghost"
+                size="sm"
+                className={cn(
+                  "flex-1 justify-start px-3 h-10 hover:bg-transparent text-left pr-10",
+                  currentProjectId === project.id && "bg-muted hover:bg-muted"
+                )}
+                onClick={() => onProjectSelect(project.id)}
+              >
+                <span className="truncate text-sm">{project.title}</span>
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
+                    <MoreVertical className="h-4 w-4" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="z-50 w-48 bg-popover text-popover-foreground border border-border shadow-md">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      setRenamingItem({ id: project.id, type: 'project', name: project.title })
+                      setRenameValue(project.title)
+                    }}
+                  >
+                    <Edit2 className="h-4 w-4 mr-2" />
+                    Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => handleDuplicate(project.id)}>
+                    <Copy className="h-4 w-4 mr-2" />
+                    Duplicate
+                  </DropdownMenuItem>
+                  {folders.length > 0 && (
+                    <>
+                      <DropdownMenuItem disabled className="text-xs text-muted-foreground pointer-events-none">
+                        Move to folder:
+                      </DropdownMenuItem>
+                      {folders.map(folder => (
+                        <DropdownMenuItem
+                          key={folder.id}
+                          onClick={() => handleMoveToFolder(project.id, folder.id)}
+                          className="pl-6"
+                        >
+                          <Folder className="h-4 w-4 mr-2" />
+                          {folder.name}
+                        </DropdownMenuItem>
+                      ))}
+                    </>
+                  )}
+                  <DropdownMenuItem
+                    onClick={() => deleteProject(project.id)}
+                    className="text-destructive"
+                  >
+                    <Trash2 className="h-4 w-4 mr-2" />
+                    Delete
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           ))}
-          </SortableContext>
         </div>
       </ScrollArea>
 
@@ -623,6 +536,5 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
         </DialogContent>
       </Dialog>
     </div>
-    </DndContext>
   )
 }

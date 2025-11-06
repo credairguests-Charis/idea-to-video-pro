@@ -440,7 +440,6 @@ export type Database = {
           aspect_ratio: string | null
           audio_source: string | null
           created_at: string
-          display_order: number | null
           folder_id: string | null
           generated_video_url: string | null
           generation_progress: number | null
@@ -461,7 +460,6 @@ export type Database = {
           aspect_ratio?: string | null
           audio_source?: string | null
           created_at?: string
-          display_order?: number | null
           folder_id?: string | null
           generated_video_url?: string | null
           generation_progress?: number | null
@@ -482,7 +480,6 @@ export type Database = {
           aspect_ratio?: string | null
           audio_source?: string | null
           created_at?: string
-          display_order?: number | null
           folder_id?: string | null
           generated_video_url?: string | null
           generation_progress?: number | null
