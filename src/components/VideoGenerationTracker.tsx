@@ -21,26 +21,33 @@ export function VideoGenerationTracker() {
   const { toast } = useToast();
 
   useEffect(() => {
-    // Fetch initial pending generations
-    const fetchPendingGenerations = async () => {
+    let currentUserId: string | null = null;
+
+    // Initialize tracker - fetch user ID once and load pending generations
+    const initializeTracker = async () => {
       const { data: user } = await supabase.auth.getUser();
       if (!user.user) return;
 
+      currentUserId = user.user.id;
+      console.log('📹 VideoGenerationTracker initialized for user:', currentUserId);
+
+      // Fetch initial pending generations
       const { data, error } = await supabase
         .from('video_generations')
         .select('*')
-        .eq('user_id', user.user.id)
+        .eq('user_id', currentUserId)
         .in('status', ['waiting', 'processing'])
         .order('created_at', { ascending: false });
 
       if (!error && data) {
+        console.log('📹 Initial pending generations:', data.length);
         setActiveGenerations(data);
       }
     };
 
-    fetchPendingGenerations();
+    initializeTracker();
 
-    // Subscribe to realtime changes
+    // Subscribe to realtime changes (synchronous handler for instant updates)
     const channel = supabase
       .channel('video-generation-changes')
       .on(
@@ -50,14 +57,16 @@ export function VideoGenerationTracker() {
           schema: 'public',
           table: 'video_generations'
         },
-        async (payload) => {
+        (payload) => {
           const newRecord = payload.new as VideoGeneration;
-          const { data: user } = await supabase.auth.getUser();
           
-          // Only handle records for current user
-          if (!user.user || newRecord.user_id !== user.user.id) return;
+          // Only handle records for current user (instant check with cached ID)
+          if (!currentUserId || newRecord.user_id !== currentUserId) return;
+
+          console.log('📹 Real-time event:', payload.eventType, newRecord.id, newRecord.status);
 
           if (payload.eventType === 'INSERT' && (newRecord.status === 'waiting' || newRecord.status === 'processing')) {
+            console.log('📹 Adding to active generations:', newRecord.id);
             setActiveGenerations(prev => [newRecord, ...prev]);
             
             toast({
@@ -67,6 +76,7 @@ export function VideoGenerationTracker() {
           } else if (payload.eventType === 'UPDATE') {
             // Update active generation status
             if (newRecord.status === 'waiting' || newRecord.status === 'processing') {
+              console.log('📹 Updating active generation:', newRecord.id, newRecord.status);
               setActiveGenerations(prev => {
                 const exists = prev.some(g => g.id === newRecord.id);
                 if (exists) {
@@ -76,6 +86,7 @@ export function VideoGenerationTracker() {
               });
             } else {
               // Remove from active if completed/failed
+              console.log('📹 Removing from active generations:', newRecord.id, newRecord.status);
               setActiveGenerations(prev => 
                 prev.filter(gen => gen.id !== newRecord.id)
               );
