@@ -88,16 +88,16 @@ export function AdminSidebar({ isDarkMode, setIsDarkMode }: AdminSidebarProps) {
                             className={({ isActive }) =>
                               `flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 w-full ${
                                 isActive
-                                  ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-sm"
-                                  : "!text-sidebar-foreground hover:bg-sidebar-accent/20 hover:text-sidebar-accent-foreground"
+                                  ? "bg-primary text-primary-foreground font-semibold shadow-sm"
+                                  : "text-sidebar-foreground hover:bg-sidebar-accent/20 hover:text-sidebar-accent-foreground"
                               }`
                             }
                           >
                             {({ isActive }) => (
                               <>
-                                <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-sidebar-accent-foreground' : '!text-sidebar-foreground'}`} />
+                                <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-primary-foreground' : 'text-sidebar-foreground'}`} />
                                 {!isCollapsed && (
-                                  <span className={`${isActive ? 'text-sidebar-accent-foreground' : '!text-sidebar-foreground'} flex-1`}>
+                                  <span className={`flex-1 ${isActive ? 'text-primary-foreground' : 'text-sidebar-foreground'}`}>
                                     {item.title}
                                   </span>
                                 )}
