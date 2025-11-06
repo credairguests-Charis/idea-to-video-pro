@@ -71,31 +71,45 @@ export function useProjects() {
 
       if (fetchError) throw fetchError
 
-      // If there are orphaned videos, create a default project for them
+      // Only create a default project for orphaned videos if the user has no projects yet
       if (orphanedVideos && orphanedVideos.length > 0) {
-        const { data: defaultProject, error: projectError } = await supabase
+        // Check if user already has any project
+        const { data: existingProjects, error: existingErr } = await supabase
           .from('projects')
-          .insert({
-            title: 'My First Project',
-            user_id: user.id,
-            status: 'draft',
-          })
-          .select()
-          .single()
-
-        if (projectError) throw projectError
-
-        // Assign all orphaned videos to this project
-        const { error: updateError } = await supabase
-          .from('video_generations')
-          .update({ project_id: defaultProject.id })
+          .select('id')
           .eq('user_id', user.id)
-          .is('project_id', null)
+          .limit(1);
 
-        if (updateError) throw updateError
+        if (existingErr) throw existingErr
 
-        // Refresh projects list
-        fetchProjects()
+        if (!existingProjects || existingProjects.length === 0) {
+          const { data: defaultProject, error: projectError } = await supabase
+            .from('projects')
+            .insert({
+              title: 'My First Project',
+              user_id: user.id,
+              status: 'draft',
+            })
+            .select()
+            .single()
+
+          if (projectError) throw projectError
+
+          // Assign all orphaned videos to this new project
+          const { error: updateError } = await supabase
+            .from('video_generations')
+            .update({ project_id: defaultProject.id })
+            .eq('user_id', user.id)
+            .is('project_id', null)
+
+          if (updateError) throw updateError
+
+          // Refresh projects list
+          fetchProjects()
+        } else {
+          // Do not create a new project; leave orphaned videos untouched to avoid unexpected duplicates
+          console.log('Orphaned videos detected but user already has projects; skipping auto-project creation.')
+        }
       }
     } catch (error) {
       console.error('Error migrating orphaned videos:', error)
