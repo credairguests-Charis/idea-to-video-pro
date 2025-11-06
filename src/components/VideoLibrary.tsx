@@ -117,6 +117,31 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
         .channel('video-generations-realtime')
         .on(
           'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'video_generations' },
+          async (payload) => {
+            const rec = payload.new as VideoGeneration & { user_id: string; project_id?: string | null };
+            if (!rec || rec.user_id !== currentUser.id) return;
+            if (projectId && rec.project_id !== projectId) return;
+
+            if (rec.status === 'success' && rec.result_url) {
+              // Add new video to the list
+              setVideos(prev => {
+                const exists = prev.some(v => v.id === rec.id);
+                return exists ? prev : [rec, ...prev];
+              });
+
+              // Auto-generate thumbnail if missing
+              if (!rec.thumbnail_url) {
+                const thumb = await generateThumbnail(rec.result_url, rec.id);
+                if (thumb && thumb.startsWith('data:image')) {
+                  await supabase.from('video_generations').update({ thumbnail_url: thumb }).eq('id', rec.id);
+                }
+              }
+            }
+          }
+        )
+        .on(
+          'postgres_changes',
           { event: 'UPDATE', schema: 'public', table: 'video_generations' },
           async (payload) => {
             const rec = payload.new as VideoGeneration & { user_id: string; project_id?: string | null };

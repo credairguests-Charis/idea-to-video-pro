@@ -199,11 +199,9 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = 'generate
         });
       }
 
-      // Reset form
+      // Reset form (keep product image and aspect ratio for multiple generations)
       setScript("");
       setSelectedActors([]);
-      setProductImage(null);
-      setAspectRatio("portrait");
 
     } catch (error) {
       console.error('Video generation error:', error);

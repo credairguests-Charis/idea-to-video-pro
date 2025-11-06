@@ -112,6 +112,11 @@ export function BottomInputPanel({
         name: file.name,
         isUploading: false
       });
+      
+      // Reset file input to allow uploading another image
+      if (fileInputRef.current) {
+        fileInputRef.current.value = '';
+      }
     } catch (error) {
       console.error('Error uploading product image:', error);
       URL.revokeObjectURL(localUrl);
