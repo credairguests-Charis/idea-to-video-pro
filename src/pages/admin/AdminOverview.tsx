@@ -21,6 +21,11 @@ interface HealthCheckData {
   checked_at: string;
 }
 
+interface TrendData {
+  value: number;
+  isPositive: boolean;
+}
+
 interface DashboardData {
   users: number;
   pausedUsers: number;
@@ -48,6 +53,10 @@ interface DashboardData {
     project_id: string;
     created_at: string;
   }>;
+  userTrend?: TrendData;
+  subscriptionTrend?: TrendData;
+  revenueTrend?: TrendData;
+  videoTrend?: TrendData;
 }
 
 export default function AdminOverview() {
@@ -219,22 +228,6 @@ export default function AdminOverview() {
     }))
   ].sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime());
 
-  // Calculate real trend data
-  const calculateTrend = (current: number, baseline: number) => {
-    if (baseline === 0) return { value: 0, isPositive: true };
-    const percentChange = ((current - baseline) / baseline) * 100;
-    return {
-      value: Math.abs(parseFloat(percentChange.toFixed(1))),
-      isPositive: percentChange >= 0
-    };
-  };
-
-  // Mock baseline data (in production, fetch from historical data)
-  const userTrend = calculateTrend(data.users, Math.floor(data.users * 0.89));
-  const subscriptionTrend = calculateTrend(data.activeSubscriptions, Math.floor(data.activeSubscriptions * 0.92));
-  const revenueTrend = calculateTrend(data.monthlyRevenue, Math.floor(data.monthlyRevenue * 0.87));
-  const generationTrend = calculateTrend(data.generations, Math.floor(data.generations * 1.03));
-
   return (
     <div className="space-y-6 w-full">
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -251,21 +244,33 @@ export default function AdminOverview() {
           title="Total Users"
           value={data.users}
           icon={Users}
-          trend={{ ...userTrend, period: 'from last month' }}
+          trend={data.userTrend ? {
+            value: data.userTrend.value,
+            isPositive: data.userTrend.isPositive,
+            period: 'from last month'
+          } : undefined}
           loading={loading}
         />
         <EnhancedKPICard
           title="Active Subscriptions"
           value={data.activeSubscriptions}
           icon={DollarSign}
-          trend={{ ...subscriptionTrend, period: 'from last month' }}
+          trend={data.subscriptionTrend ? {
+            value: data.subscriptionTrend.value,
+            isPositive: data.subscriptionTrend.isPositive,
+            period: 'from last month'
+          } : undefined}
           loading={loading}
         />
         <EnhancedKPICard
           title="Monthly Revenue"
           value={`$${data.monthlyRevenue.toLocaleString()}`}
           icon={DollarSign}
-          trend={{ ...revenueTrend, period: 'from last month' }}
+          trend={data.revenueTrend ? {
+            value: data.revenueTrend.value,
+            isPositive: data.revenueTrend.isPositive,
+            period: 'from last month'
+          } : undefined}
           loading={loading}
         />
         <EnhancedKPICard
@@ -273,7 +278,11 @@ export default function AdminOverview() {
           value={data.generations}
           icon={Video}
           description={`${data.failedJobs} failed`}
-          trend={{ ...generationTrend, period: 'from last week' }}
+          trend={data.videoTrend ? {
+            value: data.videoTrend.value,
+            isPositive: data.videoTrend.isPositive,
+            period: 'from last week'
+          } : undefined}
           loading={loading}
         />
       </div>

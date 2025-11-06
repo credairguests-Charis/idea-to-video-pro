@@ -48,8 +48,20 @@ Deno.serve(async (req) => {
   }
 
   try {
+    // Calculate date ranges for trend comparison
+    const now = new Date();
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+    const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
+
     // Get accurate user count from auth.users via RPC
     const { data: userCount } = await supabase.rpc('get_total_user_count');
+
+    // Get user count from 30 days ago
+    const { count: userCountLastMonth } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .lt('created_at', thirtyDaysAgo.toISOString());
 
     // Get paused user count
     const { count: pausedUserCount } = await supabase
@@ -72,6 +84,37 @@ Deno.serve(async (req) => {
       .select('*', { count: 'exact', head: true });
     
     const generationCount = (omnihumanCount || 0) + (videoGenCount || 0);
+
+    // Get completed generations in last 7 days for trend
+    const { count: omnihumanLastWeek } = await supabase
+      .from('omnihuman_generations')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', sevenDaysAgo.toISOString())
+      .eq('status', 'completed');
+    
+    const { count: videoLastWeek } = await supabase
+      .from('video_generations')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', sevenDaysAgo.toISOString())
+      .eq('status', 'completed');
+
+    // Get completed generations in previous 7 days (8-14 days ago)
+    const { count: omnihumanPrevWeek } = await supabase
+      .from('omnihuman_generations')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', fourteenDaysAgo.toISOString())
+      .lt('created_at', sevenDaysAgo.toISOString())
+      .eq('status', 'completed');
+    
+    const { count: videoPrevWeek } = await supabase
+      .from('video_generations')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', fourteenDaysAgo.toISOString())
+      .lt('created_at', sevenDaysAgo.toISOString())
+      .eq('status', 'completed');
+
+    const generationsLastWeek = (omnihumanLastWeek || 0) + (videoLastWeek || 0);
+    const generationsPrevWeek = (omnihumanPrevWeek || 0) + (videoPrevWeek || 0);
 
     // Get pending generations from both tables
     const { count: omnihumanPending } = await supabase
@@ -129,7 +172,9 @@ Deno.serve(async (req) => {
 
     // Fetch Stripe subscription and revenue data
     let activeSubscriptions = 0;
+    let activeSubscriptionsLastMonth = 0;
     let monthlyRevenue = 0;
+    let monthlyRevenueLastMonth = 0;
     const historicalRevenue: Array<{ month: string; revenue: number }> = [];
     
     try {
@@ -144,9 +189,28 @@ Deno.serve(async (req) => {
         });
         
         activeSubscriptions = subscriptions.data.length;
+
+        // Get subscriptions from 30 days ago
+        const lastMonthTimestamp = Math.floor(thirtyDaysAgo.getTime() / 1000);
+        const subscriptionsLastMonth = await stripe.subscriptions.list({
+          status: 'active',
+          created: { lte: lastMonthTimestamp },
+          limit: 100,
+        });
+        activeSubscriptionsLastMonth = subscriptionsLastMonth.data.length;
         
-        // Calculate monthly revenue from active subscriptions
+        // Calculate monthly revenue from active subscriptions (current)
         monthlyRevenue = subscriptions.data.reduce((total, sub) => {
+          const subTotal = sub.items.data.reduce((itemTotal, item) => {
+            const amount = item.price.unit_amount || 0;
+            const quantity = item.quantity || 1;
+            return itemTotal + (amount * quantity);
+          }, 0);
+          return total + subTotal;
+        }, 0) / 100;
+
+        // Calculate monthly revenue from last month's subscriptions
+        monthlyRevenueLastMonth = subscriptionsLastMonth.data.reduce((total, sub) => {
           const subTotal = sub.items.data.reduce((itemTotal, item) => {
             const amount = item.price.unit_amount || 0;
             const quantity = item.quantity || 1;
@@ -196,6 +260,21 @@ Deno.serve(async (req) => {
 
     console.log('Dashboard data fetched successfully');
 
+    // Calculate trends
+    const calculateTrend = (current: number, previous: number) => {
+      if (previous === 0) return { value: 0, isPositive: true };
+      const percentChange = ((current - previous) / previous) * 100;
+      return {
+        value: Math.abs(Math.round(percentChange * 10) / 10),
+        isPositive: percentChange >= 0
+      };
+    };
+
+    const userTrend = calculateTrend(userCount || 0, userCountLastMonth || 0);
+    const subscriptionTrend = calculateTrend(activeSubscriptions, activeSubscriptionsLastMonth);
+    const revenueTrend = calculateTrend(monthlyRevenue, monthlyRevenueLastMonth);
+    const videoTrend = calculateTrend(generationsLastWeek, generationsPrevWeek);
+
     return new Response(JSON.stringify({
       users: userCount || 0,
       pausedUsers: pausedUserCount || 0,
@@ -209,7 +288,12 @@ Deno.serve(async (req) => {
       historicalRevenue,
       apiHealth: apiHealth?.[0] || { status: 'unknown', checked_at: new Date().toISOString() },
       recentActions: recentActions || [],
-      recentErrors: recentErrors || []
+      recentErrors: recentErrors || [],
+      // Trend data
+      userTrend,
+      subscriptionTrend,
+      revenueTrend,
+      videoTrend,
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' }
     });

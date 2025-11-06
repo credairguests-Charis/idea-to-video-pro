@@ -64,7 +64,7 @@ export function EnhancedKPICard({
           {trend && (
             <div className={cn(
               "flex items-center gap-1 text-xs font-medium",
-              trend.isPositive ? "text-success" : "text-destructive"
+              trend.isPositive ? "text-green-500" : "text-red-500"
             )}>
               {trend.isPositive ? (
                 <TrendingUp className="h-3 w-3" />
