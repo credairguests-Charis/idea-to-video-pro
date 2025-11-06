@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 export default function AdminHealth() {
   const [checking, setChecking] = useState(false);
   const [healthData, setHealthData] = useState<any>(null);
+  const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
   const runHealthCheck = async () => {
@@ -19,12 +20,14 @@ export default function AdminHealth() {
       if (error) throw error;
 
       setHealthData(data);
+      setLoading(false);
       toast({
         title: "Health Check Complete",
         description: `Status: ${data.status}`,
       });
     } catch (error) {
       console.error('Error running health check:', error);
+      setLoading(false);
       toast({
         title: "Error",
         description: "Failed to run health check",
@@ -47,6 +50,49 @@ export default function AdminHealth() {
         return <AlertTriangle className="h-6 w-6 text-gray-500" />;
     }
   };
+
+  if (loading) {
+    return (
+      <div className="space-y-8">
+        <div className="flex justify-between items-center">
+          <div className="h-9 w-64 bg-muted rounded animate-pulse" />
+          <div className="h-10 w-40 bg-muted rounded animate-pulse" />
+        </div>
+
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-48 bg-muted rounded animate-pulse" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              <div className="flex items-center gap-4">
+                <div className="h-6 w-6 bg-muted rounded-full animate-pulse" />
+                <div>
+                  <div className="h-8 w-24 bg-muted rounded animate-pulse mb-2" />
+                  <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-40 bg-muted rounded animate-pulse" />
+          </CardHeader>
+          <CardContent>
+            <div className="flex items-center gap-4">
+              <div className="h-6 w-6 bg-muted rounded-full animate-pulse" />
+              <div>
+                <div className="h-8 w-20 bg-muted rounded animate-pulse mb-2" />
+                <div className="h-4 w-28 bg-muted rounded animate-pulse" />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-8">

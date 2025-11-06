@@ -72,8 +72,8 @@ export function AdminSidebar({ isDarkMode, setIsDarkMode }: AdminSidebarProps) {
                       className={({ isActive }) =>
                         `flex items-center gap-3 px-4 py-3 rounded-md transition-colors w-full ${
                           isActive
-                            ? "bg-sidebar-accent text-sidebar-primary font-semibold"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/50"
+                            ? "bg-primary text-primary-foreground font-semibold"
+                            : "text-sidebar-foreground hover:bg-sidebar-accent"
                         }`
                       }
                     >

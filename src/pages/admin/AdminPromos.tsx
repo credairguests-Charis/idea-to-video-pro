@@ -104,8 +104,30 @@ export default function AdminPromos() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin text-[#0f1729]" />
+      <div className="space-y-8">
+        <div className="flex justify-between items-center">
+          <div className="h-9 w-56 bg-muted rounded animate-pulse" />
+          <div className="h-10 w-48 bg-muted rounded animate-pulse" />
+        </div>
+
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-40 bg-muted rounded animate-pulse" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-4">
+              {[...Array(5)].map((_, i) => (
+                <div key={i} className="flex items-center justify-between py-4 border-b">
+                  <div className="flex-1 space-y-2">
+                    <div className="h-5 w-32 bg-muted rounded animate-pulse" />
+                    <div className="h-4 w-24 bg-muted rounded animate-pulse" />
+                  </div>
+                  <div className="h-8 w-20 bg-muted rounded animate-pulse" />
+                </div>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
       </div>
     );
   }

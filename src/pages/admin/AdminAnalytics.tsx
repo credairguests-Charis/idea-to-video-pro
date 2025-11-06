@@ -201,8 +201,64 @@ export default function AdminAnalytics() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-96">
-        <Loader2 className="h-8 w-8 animate-spin" />
+      <div className="space-y-6 w-full">
+        <div className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+          <div>
+            <div className="h-9 w-64 bg-muted rounded animate-pulse mb-2" />
+            <div className="h-5 w-96 bg-muted rounded animate-pulse" />
+          </div>
+          <div className="flex gap-3">
+            <div className="h-9 w-36 bg-muted rounded animate-pulse" />
+            <div className="h-9 w-24 bg-muted rounded animate-pulse" />
+          </div>
+        </div>
+
+        {/* AI Summary Skeleton */}
+        <Card>
+          <CardHeader>
+            <div className="h-6 w-48 bg-muted rounded animate-pulse mb-2" />
+            <div className="h-4 w-full bg-muted rounded animate-pulse" />
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              {[...Array(4)].map((_, i) => (
+                <div key={i} className="h-4 w-full bg-muted rounded animate-pulse" />
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Charts Skeleton */}
+        <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
+          {[...Array(4)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <div className="h-6 w-48 bg-muted rounded animate-pulse mb-2" />
+                <div className="h-4 w-64 bg-muted rounded animate-pulse" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-80 w-full bg-muted rounded animate-pulse" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
+
+        {/* Metric Cards Skeleton */}
+        <div className="grid gap-6 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
+          {[...Array(3)].map((_, i) => (
+            <Card key={i}>
+              <CardHeader>
+                <div className="h-5 w-32 bg-muted rounded animate-pulse mb-2" />
+                <div className="h-4 w-48 bg-muted rounded animate-pulse" />
+              </CardHeader>
+              <CardContent>
+                <div className="h-10 w-20 bg-muted rounded animate-pulse mb-3" />
+                <div className="h-2 w-full bg-muted rounded animate-pulse mb-2" />
+                <div className="h-3 w-32 bg-muted rounded animate-pulse" />
+              </CardContent>
+            </Card>
+          ))}
+        </div>
       </div>
     );
   }
