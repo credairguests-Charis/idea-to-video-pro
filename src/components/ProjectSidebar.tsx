@@ -20,6 +20,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { useFolders } from "@/hooks/useFolders"
 import { useProjects } from "@/hooks/useProjects"
 import { cn } from "@/lib/utils"
@@ -221,12 +222,21 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                     ) : (
                       <Folder className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />
                     )}
-                    <span className="truncate text-sm font-medium">{folder.name}</span>
+                    <TooltipProvider delayDuration={300}>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <span className="truncate text-sm font-medium" title={folder.name}>{folder.name}</span>
+                        </TooltipTrigger>
+                        <TooltipContent side="right" align="start" className="max-w-xs break-words">
+                          {folder.name}
+                        </TooltipContent>
+                      </Tooltip>
+                    </TooltipProvider>
                   </Button>
 
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
+                      <Button aria-label="Folder options" variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-20 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
                         <MoreVertical className="h-4 w-4" />
                       </Button>
                     </DropdownMenuTrigger>
@@ -268,17 +278,17 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                           variant="ghost"
                           size="sm"
                           className={cn(
-                            "flex-1 justify-start px-4 h-10 hover:bg-transparent text-left pr-12",
+                            "flex-1 min-w-0 justify-start px-4 h-10 hover:bg-transparent text-left pr-12",
                              currentProjectId === project.id && "bg-muted hover:bg-muted"
                           )}
                           onClick={() => onProjectSelect(project.id)}
                         >
-                          <span className="text-sm truncate">{project.title}</span>
+                          <span className="text-sm truncate" title={project.title}>{project.title}</span>
                         </Button>
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                             <Button variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
+                             <Button aria-label="Project options" variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-20 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -324,17 +334,17 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "flex-1 justify-start px-4 h-10 hover:bg-transparent text-left pr-12",
+                  "flex-1 min-w-0 justify-start px-4 h-10 hover:bg-transparent text-left pr-12",
                    currentProjectId === project.id && "bg-muted hover:bg-muted"
                 )}
                 onClick={() => onProjectSelect(project.id)}
               >
-                <span className="truncate text-sm">{project.title}</span>
+                <span className="truncate text-sm" title={project.title}>{project.title}</span>
               </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-10 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
+                  <Button aria-label="Project options" variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-20 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
