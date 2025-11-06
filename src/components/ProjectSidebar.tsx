@@ -268,12 +268,12 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                           variant="ghost"
                           size="sm"
                           className={cn(
-                            "flex-1 justify-start px-2.5 min-h-10 py-2 hover:bg-transparent text-left",
+                            "flex-1 justify-start px-3 h-10 hover:bg-transparent text-left pr-10",
                             currentProjectId === project.id && "bg-muted hover:bg-muted"
                           )}
                           onClick={() => onProjectSelect(project.id)}
                         >
-                          <span className="text-sm whitespace-normal break-words line-clamp-2 pr-1">{project.title}</span>
+                          <span className="text-sm truncate">{project.title}</span>
                         </Button>
 
                         <DropdownMenu>
@@ -324,7 +324,7 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "flex-1 justify-start px-3 h-10 hover:bg-transparent text-left",
+                  "flex-1 justify-start px-3 h-10 hover:bg-transparent text-left pr-10",
                   currentProjectId === project.id && "bg-muted hover:bg-muted"
                 )}
                 onClick={() => onProjectSelect(project.id)}
