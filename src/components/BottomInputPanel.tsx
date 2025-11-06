@@ -32,6 +32,7 @@ interface BottomInputPanelProps {
   aspectRatio: "portrait" | "landscape";
   onAspectRatioChange: (ratio: "portrait" | "landscape") => void;
   onSubmit: () => void;
+  onBulkGenerate?: (count: number) => void;
   isLoading: boolean;
   productImage: ProductImage | null;
   onProductImageChange: (image: ProductImage | null) => void;
@@ -46,6 +47,7 @@ export function BottomInputPanel({
   aspectRatio,
   onAspectRatioChange,
   onSubmit,
+  onBulkGenerate,
   isLoading,
   productImage,
   onProductImageChange,
@@ -267,6 +269,40 @@ export function BottomInputPanel({
               <Users className="h-3.5 w-3.5 mr-1" />
               Add actors
             </Button>
+
+            {onBulkGenerate && (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    className="h-7 text-xs text-gray-700 hover:text-gray-900"
+                    disabled={isLoading || !script.trim() || productImage?.isUploading}
+                  >
+                    <Film className="h-3.5 w-3.5 mr-1" />
+                    Bulk Generate
+                    <ChevronDown className="h-3 w-3 ml-1" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end">
+                  <DropdownMenuItem onClick={() => onBulkGenerate(2)}>
+                    2 videos
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onBulkGenerate(4)}>
+                    4 videos
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onBulkGenerate(6)}>
+                    6 videos
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onBulkGenerate(8)}>
+                    8 videos
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => onBulkGenerate(10)}>
+                    10 videos
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            )}
 
             <input
               ref={fileInputRef}

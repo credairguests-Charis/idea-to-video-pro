@@ -61,6 +61,140 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = 'generate
     setSelectedActors(prev => prev.filter(actor => actor.id !== actorId));
   }, []);
 
+  const handleBulkGenerate = useCallback(async (count: number) => {
+    if (!script.trim()) {
+      toast({
+        title: "Content Required",
+        description: "Please provide a script/prompt",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsLoading(true);
+    try {
+      // Update project title from script if it's still "Untitled Project"
+      if (projectId) {
+        const { data: currentProject } = await supabase
+          .from('projects')
+          .select('title')
+          .eq('id', projectId)
+          .single();
+        
+        if (currentProject?.title === 'Untitled Project') {
+          const words = script.trim().split(/\s+/);
+          const titleWords = words.slice(0, 10);
+          let newTitle = titleWords.join(' ');
+          if (words.length > 10) {
+            newTitle += '...';
+          }
+          if (newTitle.length > 60) {
+            newTitle = newTitle.substring(0, 57) + '...';
+          }
+          
+          await supabase
+            .from('projects')
+            .update({ title: newTitle, script: script })
+            .eq('id', projectId);
+        } else {
+          await supabase
+            .from('projects')
+            .update({ script: script })
+            .eq('id', projectId);
+        }
+      }
+      
+      const enhancedPrompt = productImage 
+        ? `${script}\n\nShowcase and promote the uploaded product clearly in the generated video.`
+        : script;
+
+      // Generate multiple videos simultaneously
+      const generationPromises = [];
+      
+      for (let i = 0; i < count; i++) {
+        // If actors are selected, use them (cycle through if count > actors.length)
+        if (selectedActors.length > 0) {
+          const actor = selectedActors[i % selectedActors.length];
+          const imageUrls = productImage 
+            ? [actor.thumbnail_url, productImage.url]
+            : [actor.thumbnail_url];
+
+          generationPromises.push(
+            supabase.functions.invoke('sora-create-task', {
+              body: {
+                prompt: enhancedPrompt,
+                image_urls: imageUrls,
+                aspect_ratio: aspectRatio,
+                n_frames: "15",
+                remove_watermark: true,
+                project_id: projectId
+              }
+            })
+          );
+        } 
+        // If product image but no actors
+        else if (productImage) {
+          generationPromises.push(
+            supabase.functions.invoke('sora-create-task', {
+              body: {
+                prompt: enhancedPrompt,
+                image_urls: [productImage.url],
+                aspect_ratio: aspectRatio,
+                n_frames: "15",
+                remove_watermark: true,
+                project_id: projectId
+              }
+            })
+          );
+        }
+        // No actors or product - prompt only
+        else {
+          generationPromises.push(
+            supabase.functions.invoke('sora-create-task', {
+              body: {
+                prompt: script,
+                aspect_ratio: aspectRatio,
+                n_frames: "15",
+                remove_watermark: true,
+                project_id: projectId
+              }
+            })
+          );
+        }
+      }
+
+      // Execute all generations in parallel
+      const results = await Promise.allSettled(generationPromises);
+      
+      // Count successes and failures
+      const successful = results.filter(r => r.status === 'fulfilled' && r.value.data?.success).length;
+      const failed = results.length - successful;
+
+      if (successful > 0) {
+        toast({
+          title: "Bulk Generation Started!",
+          description: `${successful} video${successful > 1 ? 's are' : ' is'} being generated with Sora 2. ${failed > 0 ? `(${failed} failed)` : ''}`,
+        });
+      } else {
+        throw new Error("All bulk generation requests failed");
+      }
+
+      // Reset form
+      setScript("");
+      setSelectedActors([]);
+
+    } catch (error) {
+      console.error('Bulk generation error:', error);
+      toast({
+        title: "Bulk Generation Failed",
+        description: error instanceof Error ? error.message : "Failed to generate videos",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  }, [script, selectedActors, productImage, aspectRatio, toast, projectId]);
+
   const handleCreateProject = useCallback(async () => {
     if (!script.trim()) {
       toast({
@@ -255,6 +389,7 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = 'generate
         aspectRatio={aspectRatio}
         onAspectRatioChange={setAspectRatio}
         onSubmit={handleCreateProject}
+        onBulkGenerate={handleBulkGenerate}
         isLoading={isLoading}
         productImage={productImage}
         onProductImageChange={setProductImage}
