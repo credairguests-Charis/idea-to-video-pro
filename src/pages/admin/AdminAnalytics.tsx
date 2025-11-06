@@ -15,6 +15,7 @@ interface AnalyticsData {
   activeSubscriptions: number;
   monthlyRevenue: number;
   failedJobs: number;
+  historicalRevenue?: Array<{ month: string; revenue: number }>;
   userGrowthData: Array<{ name: string; users: number }>;
   videoGenerationData: Array<{ name: string; videos: number }>;
   revenueData: Array<{ name: string; revenue: number }>;
@@ -43,14 +44,24 @@ export default function AdminAnalytics() {
       
       if (profilesError) throw profilesError;
 
-      // Fetch historical generation data
-      const { data: generations, error: generationsError } = await supabase
-        .from('generations')
+      // Fetch historical generation data from both tables
+      const { data: omnihumanGens, error: omnihumanError } = await supabase
+        .from('omnihuman_generations')
         .select('created_at, status')
         .order('created_at', { ascending: false })
         .limit(1000);
       
-      if (generationsError) throw generationsError;
+      const { data: videoGens, error: videoError } = await supabase
+        .from('video_generations')
+        .select('created_at, status')
+        .order('created_at', { ascending: false })
+        .limit(1000);
+      
+      if (omnihumanError) console.error('Error fetching omnihuman generations:', omnihumanError);
+      if (videoError) console.error('Error fetching video generations:', videoError);
+      
+      // Combine both generation types
+      const generations = [...(omnihumanGens || []), ...(videoGens || [])];
 
       // Process user growth data (last 6 months)
       const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -72,7 +83,7 @@ export default function AdminAnalytics() {
       }
 
       // Process video generation data (last 7 days)
-      const dayNames = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       const videoGenerationData = [];
       
       for (let i = 6; i >= 0; i--) {
@@ -83,10 +94,10 @@ export default function AdminAnalytics() {
         const nextDay = new Date(dayDate);
         nextDay.setDate(nextDay.getDate() + 1);
         
-        const videosInDay = generations?.filter(g => {
+        const videosInDay = generations.filter(g => {
           const createdDate = new Date(g.created_at);
           return createdDate >= dayDate && createdDate < nextDay;
-        }).length || 0;
+        }).length;
         
         videoGenerationData.push({
           name: dayNames[dayDate.getDay()],
@@ -94,15 +105,20 @@ export default function AdminAnalytics() {
         });
       }
 
-      // Mock revenue data (replace with Stripe data when available)
-      const revenueData = [
-        { name: 'Jan', revenue: 2400 },
-        { name: 'Feb', revenue: 3100 },
-        { name: 'Mar', revenue: 2800 },
-        { name: 'Apr', revenue: 3900 },
-        { name: 'May', revenue: 4200 },
-        { name: 'Jun', revenue: dashboardData.monthlyRevenue },
-      ];
+      // Use real revenue data from Stripe
+      const revenueData = dashboardData.historicalRevenue && dashboardData.historicalRevenue.length > 0
+        ? dashboardData.historicalRevenue.map(item => ({
+            name: item.month,
+            revenue: item.revenue
+          }))
+        : [
+            { name: 'Jan', revenue: 0 },
+            { name: 'Feb', revenue: 0 },
+            { name: 'Mar', revenue: 0 },
+            { name: 'Apr', revenue: 0 },
+            { name: 'May', revenue: 0 },
+            { name: 'Jun', revenue: dashboardData.monthlyRevenue },
+          ];
 
       setData({
         ...dashboardData,

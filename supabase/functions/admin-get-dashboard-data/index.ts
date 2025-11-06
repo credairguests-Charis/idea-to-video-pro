@@ -110,6 +110,7 @@ Deno.serve(async (req) => {
     // Fetch Stripe subscription and revenue data
     let activeSubscriptions = 0;
     let monthlyRevenue = 0;
+    const historicalRevenue: Array<{ month: string; revenue: number }> = [];
     
     try {
       const stripeKey = Deno.env.get('STRIPE_SECRET_KEY');
@@ -126,22 +127,51 @@ Deno.serve(async (req) => {
         
         // Calculate monthly revenue from active subscriptions
         monthlyRevenue = subscriptions.data.reduce((total, sub) => {
-          // Sum up all line items in the subscription
           const subTotal = sub.items.data.reduce((itemTotal, item) => {
             const amount = item.price.unit_amount || 0;
             const quantity = item.quantity || 1;
             return itemTotal + (amount * quantity);
           }, 0);
           return total + subTotal;
-        }, 0) / 100; // Convert from cents to dollars
+        }, 0) / 100;
         
-        console.log('Stripe data fetched:', { activeSubscriptions, monthlyRevenue });
+        // Fetch historical revenue data for last 6 months
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const now = new Date();
+        
+        for (let i = 5; i >= 0; i--) {
+          const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+          
+          const startTimestamp = Math.floor(monthStart.getTime() / 1000);
+          const endTimestamp = Math.floor(monthEnd.getTime() / 1000);
+          
+          // Fetch charges for this month
+          const charges = await stripe.charges.list({
+            created: {
+              gte: startTimestamp,
+              lte: endTimestamp,
+            },
+            limit: 100,
+          });
+          
+          const monthRevenue = charges.data
+            .filter(charge => charge.paid && !charge.refunded)
+            .reduce((sum, charge) => sum + charge.amount, 0) / 100;
+          
+          historicalRevenue.push({
+            month: monthNames[monthStart.getMonth()],
+            revenue: monthRevenue
+          });
+        }
+        
+        console.log('Stripe data fetched:', { activeSubscriptions, monthlyRevenue, historicalRevenue });
       } else {
         console.warn('STRIPE_SECRET_KEY not configured');
       }
     } catch (stripeError) {
       console.error('Error fetching Stripe data:', stripeError);
-      // Continue with 0 values if Stripe fails
+      // Continue with empty values if Stripe fails
     }
 
     console.log('Dashboard data fetched successfully');
@@ -156,6 +186,7 @@ Deno.serve(async (req) => {
       failedJobs: failedCount || 0,
       activeSubscriptions,
       monthlyRevenue,
+      historicalRevenue,
       apiHealth: apiHealth?.[0] || { status: 'unknown', checked_at: new Date().toISOString() },
       recentActions: recentActions || [],
       recentErrors: recentErrors || []
