@@ -11,6 +11,7 @@ import { HealthWidget } from "@/components/admin/HealthWidget";
 import { RecentActivityPanel } from "@/components/admin/RecentActivityPanel";
 import { QuickActions } from "@/components/admin/QuickActions";
 import { LiveLogsViewer } from "@/components/admin/LiveLogsViewer";
+import { AlertsPanel } from "@/components/admin/AlertsPanel";
 
 interface HealthCheckData {
   service_name: string;
@@ -325,6 +326,9 @@ export default function AdminOverview() {
           </CardContent>
         </Card>
       </div>
+
+      {/* System Alerts */}
+      <AlertsPanel />
 
       {/* Health Widgets - Real-time Updates */}
       <div className="grid gap-4 grid-cols-1 md:grid-cols-2 lg:grid-cols-3">
