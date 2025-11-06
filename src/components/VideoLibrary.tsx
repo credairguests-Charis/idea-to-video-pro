@@ -367,7 +367,7 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
 
   const VideoCardSkeleton = () => (
     <Card className="overflow-hidden">
-      <Skeleton className="aspect-video w-full" />
+      <Skeleton className="aspect-[9/16] w-full" />
       <div className="p-3 space-y-2">
         <Skeleton className="h-4 w-3/4" />
         <div className="flex items-center justify-between gap-2">
