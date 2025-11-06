@@ -73,14 +73,14 @@ export function AdminSidebar({ isDarkMode, setIsDarkMode }: AdminSidebarProps) {
                         `flex items-center gap-3 px-4 py-3 rounded-md transition-all duration-200 w-full ${
                           isActive
                             ? "bg-sidebar-accent text-sidebar-accent-foreground font-semibold shadow-sm"
-                            : "text-sidebar-foreground hover:bg-sidebar-accent/20 hover:text-sidebar-accent-foreground"
+                            : "!text-sidebar-foreground hover:bg-sidebar-accent/20 hover:text-sidebar-accent-foreground"
                         }`
                       }
                     >
                       {({ isActive }) => (
                         <>
-                          <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-sidebar-accent-foreground' : 'text-sidebar-foreground'}`} />
-                          <span className="flex-1">{item.title}</span>
+                          <item.icon className={`h-5 w-5 flex-shrink-0 ${isActive ? 'text-sidebar-accent-foreground' : '!text-sidebar-foreground'}`} />
+                          <span className={`${isActive ? 'text-sidebar-accent-foreground' : '!text-sidebar-foreground'} flex-1`}>{item.title}</span>
                         </>
                       )}
                     </NavLink>
