@@ -180,6 +180,18 @@ export default function AdminAnalytics() {
           fetchAnalytics();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'video_generations'
+        },
+        () => {
+          console.log('Video generation data changed, refreshing analytics...');
+          fetchAnalytics();
+        }
+      )
       .subscribe();
 
     return () => {

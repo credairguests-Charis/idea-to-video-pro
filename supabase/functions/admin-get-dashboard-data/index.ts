@@ -62,22 +62,42 @@ Deno.serve(async (req) => {
       .from('projects')
       .select('*', { count: 'exact', head: true });
 
-    // Get generation count
-    const { count: generationCount } = await supabase
+    // Get generation count from both tables
+    const { count: omnihumanCount } = await supabase
       .from('omnihuman_generations')
       .select('*', { count: 'exact', head: true });
+    
+    const { count: videoGenCount } = await supabase
+      .from('video_generations')
+      .select('*', { count: 'exact', head: true });
+    
+    const generationCount = (omnihumanCount || 0) + (videoGenCount || 0);
 
-    // Get pending generations
-    const { count: pendingCount } = await supabase
+    // Get pending generations from both tables
+    const { count: omnihumanPending } = await supabase
       .from('omnihuman_generations')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'pending');
+    
+    const { count: videoPending } = await supabase
+      .from('video_generations')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'pending');
+    
+    const pendingCount = (omnihumanPending || 0) + (videoPending || 0);
 
-    // Get failed generations
-    const { count: failedCount } = await supabase
+    // Get failed generations from both tables
+    const { count: omnihumanFailed } = await supabase
       .from('omnihuman_generations')
       .select('*', { count: 'exact', head: true })
       .eq('status', 'failed');
+    
+    const { count: videoFailed } = await supabase
+      .from('video_generations')
+      .select('*', { count: 'exact', head: true })
+      .eq('status', 'failed');
+    
+    const failedCount = (omnihumanFailed || 0) + (videoFailed || 0);
 
     // Get recent errors
     const { data: recentErrors } = await supabase
