@@ -39,15 +39,26 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
   const [selectedVideo, setSelectedVideo] = useState<VideoGeneration | null>(null);
   const [showVideoModal, setShowVideoModal] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [loadingMore, setLoadingMore] = useState(false);
+  const [hasMore, setHasMore] = useState(true);
+  const [page, setPage] = useState(0);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editTitle, setEditTitle] = useState("");
   const [regenerateVideo, setRegenerateVideo] = useState<VideoGeneration | null>(null);
   const [showRegenerateDialog, setShowRegenerateDialog] = useState(false);
   const { toast } = useToast();
   const videoRefs = useRef<{ [key: string]: HTMLVideoElement }>({});
+  const observerRef = useRef<HTMLDivElement>(null);
+  
+  const VIDEOS_PER_PAGE = 12;
 
   useEffect(() => {
-    fetchVideos();
+    // Reset and fetch initial videos when project changes
+    setVideos([]);
+    setPage(0);
+    setHasMore(true);
+    setLoading(true);
+    fetchVideos(0, true);
   }, [projectId]);
 
   useEffect(() => {
@@ -82,9 +93,12 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
     });
   }, [videos]);
 
-  const fetchVideos = async () => {
+  const fetchVideos = async (pageNum: number = 0, isInitial: boolean = false) => {
     const { data: user } = await supabase.auth.getUser();
     if (!user.user) return;
+
+    const from = pageNum * VIDEOS_PER_PAGE;
+    const to = from + VIDEOS_PER_PAGE - 1;
 
     let query = supabase
       .from('video_generations')
@@ -92,18 +106,63 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
       .eq('user_id', user.user.id)
       .eq('status', 'success')
       .not('result_url', 'is', null)
+      .order('completed_at', { ascending: false })
+      .range(from, to);
 
     if (projectId) {
-      query = query.eq('project_id', projectId)
+      query = query.eq('project_id', projectId);
     }
 
-    const { data, error } = await query.order('completed_at', { ascending: false });
+    const { data, error } = await query;
 
     if (!error && data) {
-      setVideos(data);
+      if (isInitial) {
+        setVideos(data);
+      } else {
+        setVideos(prev => [...prev, ...data]);
+      }
+      
+      // Check if there are more videos to load
+      setHasMore(data.length === VIDEOS_PER_PAGE);
     }
-    setLoading(false);
+    
+    if (isInitial) {
+      setLoading(false);
+    } else {
+      setLoadingMore(false);
+    }
   };
+
+  const loadMoreVideos = () => {
+    if (loadingMore || !hasMore) return;
+    
+    setLoadingMore(true);
+    const nextPage = page + 1;
+    setPage(nextPage);
+    fetchVideos(nextPage, false);
+  };
+
+  // Infinite scroll observer
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && hasMore && !loadingMore && !loading) {
+          loadMoreVideos();
+        }
+      },
+      { threshold: 0.1 }
+    );
+
+    if (observerRef.current) {
+      observer.observe(observerRef.current);
+    }
+
+    return () => {
+      if (observerRef.current) {
+        observer.unobserve(observerRef.current);
+      }
+    };
+  }, [hasMore, loadingMore, loading, page]);
 
   // Realtime updates: add new completed videos without reload
   useEffect(() => {
@@ -331,8 +390,9 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
         projectId={projectId}
       />
       
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
-        {videos.map((video) => {
+      <div className="space-y-6">
+        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+          {videos.map((video) => {
           const isPortrait = !video.aspect_ratio || video.aspect_ratio === 'portrait' || video.aspect_ratio === '9:16';
           
           return (
@@ -451,6 +511,21 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
             </Card>
           );
         })}
+        </div>
+
+        {/* Infinite scroll trigger */}
+        {hasMore && (
+          <div ref={observerRef} className="flex justify-center py-8">
+            {loadingMore && <Loader2 className="h-6 w-6 animate-spin text-primary" />}
+          </div>
+        )}
+
+        {/* End of results message */}
+        {!hasMore && videos.length > 0 && (
+          <div className="text-center py-8 text-muted-foreground text-sm">
+            All videos loaded
+          </div>
+        )}
       </div>
 
       {/* Video Preview Modal */}
