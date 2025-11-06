@@ -284,7 +284,7 @@ export function BottomInputPanel({
                     <ChevronDown className="h-3 w-3 ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
+                <DropdownMenuContent align="end" className="bg-white z-50">
                   <DropdownMenuItem onClick={() => onBulkGenerate(2)}>
                     2 videos
                   </DropdownMenuItem>
