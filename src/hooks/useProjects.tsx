@@ -22,6 +22,7 @@ export interface Project {
   tts_settings?: any | null
   generation_status?: string | null
   generation_progress?: number | null
+  display_order?: number | null
 }
 
 export function useProjects() {
@@ -38,7 +39,8 @@ export function useProjects() {
         .from('projects')
         .select('*')
         .eq('user_id', user.id)
-        .order('updated_at', { ascending: false })
+        .order('display_order', { ascending: true })
+        .order('created_at', { ascending: false })
 
       if (error) throw error
       setProjects(data || [])
@@ -292,6 +294,42 @@ export function useProjects() {
     }
   }
 
+  const reorderProjects = async (projectId: string, newOrder: number, newFolderId: string | null) => {
+    if (!user) return false
+
+    try {
+      const { error } = await supabase
+        .from('projects')
+        .update({ 
+          display_order: newOrder,
+          folder_id: newFolderId 
+        })
+        .eq('id', projectId)
+        .eq('user_id', user.id)
+
+      if (error) throw error
+
+      // Optimistically update local state
+      setProjects(prev => 
+        prev.map(project => 
+          project.id === projectId 
+            ? { ...project, display_order: newOrder, folder_id: newFolderId }
+            : project
+        )
+      )
+      
+      return true
+    } catch (error) {
+      console.error('Error reordering project:', error)
+      toast({
+        title: "Error",
+        description: "Failed to reorder project",
+        variant: "destructive",
+      })
+      return false
+    }
+  }
+
   useEffect(() => {
     fetchProjects()
   }, [user])
@@ -303,6 +341,7 @@ export function useProjects() {
     updateProject,
     duplicateProject,
     deleteProject,
+    reorderProjects,
     refetch: fetchProjects,
   }
 }
