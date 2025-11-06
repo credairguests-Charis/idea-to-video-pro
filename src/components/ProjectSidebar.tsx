@@ -196,19 +196,19 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
       </div>
 
       <ScrollArea className="flex-1" onScrollCapture={handleScroll}>
-        <div className="p-2 space-y-0.5" ref={scrollRef}>
+        <div className="p-3 space-y-0.5" ref={scrollRef}>
           {/* Folders */}
           {folders.map(folder => {
             const folderProjects = projects.filter(p => p.folder_id === folder.id)
             const isExpanded = expandedFolders.has(folder.id)
 
             return (
-              <div key={folder.id} className="space-y-0.5">
-                <div className="relative group flex items-center rounded-md mx-2 my-0.5 hover:bg-accent/50 transition-colors">
+                <div key={folder.id} className="space-y-0.5">
+                <div className="relative group flex items-center rounded-lg mx-0 my-0.5 hover:bg-accent/50 transition-colors">
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="flex-1 justify-start px-3 h-10 hover:bg-transparent"
+                    className="flex-1 justify-start px-4 h-10 hover:bg-transparent"
                     onClick={() => toggleFolder(folder.id)}
                   >
                     {isExpanded ? (
@@ -263,13 +263,13 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
                 {isExpanded && (
                   <div className="ml-8 space-y-0.5">
                     {folderProjects.map(project => (
-                        <div key={project.id} className="relative group flex items-center rounded-md hover:bg-accent/50 transition-colors mx-2 my-0.5">
+                        <div key={project.id} className="relative group flex items-center rounded-lg hover:bg-accent/50 transition-colors mx-0 my-0.5">
                         <Button
                           variant="ghost"
                           size="sm"
                           className={cn(
-                            "flex-1 justify-start px-3 h-10 hover:bg-transparent text-left pr-10",
-                            currentProjectId === project.id && "bg-muted hover:bg-muted"
+                            "flex-1 justify-start px-4 h-10 hover:bg-transparent text-left pr-12",
+                             currentProjectId === project.id && "bg-muted hover:bg-muted"
                           )}
                           onClick={() => onProjectSelect(project.id)}
                         >
@@ -319,13 +319,13 @@ export function ProjectSidebar({ currentProjectId, onProjectSelect, onNewProject
 
           {/* Standalone Projects */}
           {standaloneProjects.map(project => (
-            <div key={project.id} className="relative group flex items-center rounded-md hover:bg-accent/50 transition-colors mx-2 my-0.5">
+            <div key={project.id} className="relative group flex items-center rounded-lg hover:bg-accent/50 transition-colors mx-0 my-0.5">
               <Button
                 variant="ghost"
                 size="sm"
                 className={cn(
-                  "flex-1 justify-start px-3 h-10 hover:bg-transparent text-left pr-10",
-                  currentProjectId === project.id && "bg-muted hover:bg-muted"
+                  "flex-1 justify-start px-4 h-10 hover:bg-transparent text-left pr-12",
+                   currentProjectId === project.id && "bg-muted hover:bg-muted"
                 )}
                 onClick={() => onProjectSelect(project.id)}
               >
