@@ -51,16 +51,24 @@ Deno.serve(async (req) => {
     // Calculate date ranges for trend comparison
     const now = new Date();
     const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+    const sixtyDaysAgo = new Date(now.getTime() - 60 * 24 * 60 * 60 * 1000);
     const sevenDaysAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
     const fourteenDaysAgo = new Date(now.getTime() - 14 * 24 * 60 * 60 * 1000);
 
     // Get accurate user count from auth.users via RPC
     const { data: userCount } = await supabase.rpc('get_total_user_count');
 
-    // Get user count from 30 days ago
-    const { count: userCountLastMonth } = await supabase
+    // Get users created in last 30 days
+    const { count: usersLast30Days } = await supabase
       .from('profiles')
       .select('*', { count: 'exact', head: true })
+      .gte('created_at', thirtyDaysAgo.toISOString());
+
+    // Get users created in previous 30 days (30-60 days ago)
+    const { count: usersPrev30Days } = await supabase
+      .from('profiles')
+      .select('*', { count: 'exact', head: true })
+      .gte('created_at', sixtyDaysAgo.toISOString())
       .lt('created_at', thirtyDaysAgo.toISOString());
 
     // Get paused user count
@@ -182,24 +190,15 @@ Deno.serve(async (req) => {
       if (stripeKey) {
         const stripe = new Stripe(stripeKey, { apiVersion: '2025-08-27.basil' });
         
-        // Get all active subscriptions
+        // Get all currently active subscriptions
         const subscriptions = await stripe.subscriptions.list({
           status: 'active',
           limit: 100,
         });
         
         activeSubscriptions = subscriptions.data.length;
-
-        // Get subscriptions from 30 days ago
-        const lastMonthTimestamp = Math.floor(thirtyDaysAgo.getTime() / 1000);
-        const subscriptionsLastMonth = await stripe.subscriptions.list({
-          status: 'active',
-          created: { lte: lastMonthTimestamp },
-          limit: 100,
-        });
-        activeSubscriptionsLastMonth = subscriptionsLastMonth.data.length;
         
-        // Calculate monthly revenue from active subscriptions (current)
+        // Calculate current monthly revenue from active subscriptions
         monthlyRevenue = subscriptions.data.reduce((total, sub) => {
           const subTotal = sub.items.data.reduce((itemTotal, item) => {
             const amount = item.price.unit_amount || 0;
@@ -209,15 +208,53 @@ Deno.serve(async (req) => {
           return total + subTotal;
         }, 0) / 100;
 
-        // Calculate monthly revenue from last month's subscriptions
-        monthlyRevenueLastMonth = subscriptionsLastMonth.data.reduce((total, sub) => {
-          const subTotal = sub.items.data.reduce((itemTotal, item) => {
-            const amount = item.price.unit_amount || 0;
-            const quantity = item.quantity || 1;
-            return itemTotal + (amount * quantity);
-          }, 0);
-          return total + subTotal;
-        }, 0) / 100;
+        // For trend calculation: Get subscriptions that were active 30 days ago
+        // We need to check subscriptions that started before 30 days ago 
+        // and either haven't ended or ended after 30 days ago
+        const thirtyDaysAgoTimestamp = Math.floor(thirtyDaysAgo.getTime() / 1000);
+        
+        // Get all subscriptions (including canceled) to see what was active 30 days ago
+        const allSubscriptions = await stripe.subscriptions.list({
+          limit: 100,
+          created: { lte: thirtyDaysAgoTimestamp },
+        });
+        
+        // Count subscriptions that were active 30 days ago
+        activeSubscriptionsLastMonth = allSubscriptions.data.filter(sub => {
+          const createdAt = sub.created;
+          const canceledAt = sub.canceled_at;
+          
+          // Was created before or at 30 days ago
+          if (createdAt > thirtyDaysAgoTimestamp) return false;
+          
+          // Either still active or was canceled after 30 days ago
+          if (canceledAt === null || canceledAt > thirtyDaysAgoTimestamp) {
+            return true;
+          }
+          
+          return false;
+        }).length;
+
+        // Calculate revenue from subscriptions that were active 30 days ago
+        monthlyRevenueLastMonth = allSubscriptions.data
+          .filter(sub => {
+            const createdAt = sub.created;
+            const canceledAt = sub.canceled_at;
+            
+            if (createdAt > thirtyDaysAgoTimestamp) return false;
+            if (canceledAt === null || canceledAt > thirtyDaysAgoTimestamp) {
+              return true;
+            }
+            return false;
+          })
+          .reduce((total, sub) => {
+            const subTotal = sub.items.data.reduce((itemTotal, item) => {
+              const amount = item.price.unit_amount || 0;
+              const quantity = item.quantity || 1;
+              return itemTotal + (amount * quantity);
+            }, 0);
+            return total + subTotal;
+          }, 0) / 100;
         
         // Fetch historical revenue data for last 6 months
         const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
@@ -270,10 +307,17 @@ Deno.serve(async (req) => {
       };
     };
 
-    const userTrend = calculateTrend(userCount || 0, userCountLastMonth || 0);
+    const userTrend = calculateTrend(usersLast30Days || 0, usersPrev30Days || 0);
     const subscriptionTrend = calculateTrend(activeSubscriptions, activeSubscriptionsLastMonth);
     const revenueTrend = calculateTrend(monthlyRevenue, monthlyRevenueLastMonth);
     const videoTrend = calculateTrend(generationsLastWeek, generationsPrevWeek);
+
+    console.log('Trend calculations:', {
+      users: { current: usersLast30Days, previous: usersPrev30Days, trend: userTrend },
+      subscriptions: { current: activeSubscriptions, previous: activeSubscriptionsLastMonth, trend: subscriptionTrend },
+      revenue: { current: monthlyRevenue, previous: monthlyRevenueLastMonth, trend: revenueTrend },
+      videos: { current: generationsLastWeek, previous: generationsPrevWeek, trend: videoTrend }
+    });
 
     return new Response(JSON.stringify({
       users: userCount || 0,
