@@ -111,14 +111,27 @@ export function VideoGenerationTracker() {
           if (payload.eventType === 'INSERT') {
             if (newRecord.status === 'waiting' || newRecord.status === 'processing') {
               console.log('📹 Adding to active generations:', newRecord.id);
+              
+              // Reset counters if starting a fresh batch (previous batch was completed)
+              setBatchTotal(prev => {
+                setBatchCompleted(current => {
+                  // If previous batch was complete, reset both counters
+                  if (prev > 0 && prev === current) {
+                    console.log('📹 Resetting batch counters for new generation');
+                    return 0;
+                  }
+                  return current;
+                });
+                // If resetting, start at 1, otherwise increment
+                return (prev > 0 && prev === batchCompleted) ? 1 : prev + 1;
+              });
+              
               setActiveGenerations(prev => {
                 // Avoid duplicates
                 if (prev.some(g => g.id === newRecord.id)) return prev;
                 return [newRecord, ...prev];
               });
               
-              // Increment batch total when new generation starts
-              setBatchTotal(prev => prev + 1);
               setIsVisible(true);
               
               toast({
@@ -148,7 +161,11 @@ export function VideoGenerationTracker() {
 
             if (newRecord.status === 'success' && newRecord.result_url) {
               // Increment completed count
-              setBatchCompleted(prev => prev + 1);
+              setBatchCompleted(prev => {
+                const newCompleted = prev + 1;
+                console.log('📹 Video completed:', newCompleted, 'of', batchTotal);
+                return newCompleted;
+              });
               
               toast({
                 title: "✨ Video Ready!",
@@ -156,7 +173,11 @@ export function VideoGenerationTracker() {
               });
             } else if (newRecord.status === 'fail') {
               // Increment completed count for failed ones too
-              setBatchCompleted(prev => prev + 1);
+              setBatchCompleted(prev => {
+                const newCompleted = prev + 1;
+                console.log('📹 Video failed:', newCompleted, 'of', batchTotal);
+                return newCompleted;
+              });
               
               toast({
                 title: "Generation Failed",
@@ -194,16 +215,18 @@ export function VideoGenerationTracker() {
 
   // Auto-hide card when all generations complete
   useEffect(() => {
-    if (activeGenerations.length === 0 && batchTotal > 0 && batchCompleted >= batchTotal) {
-      console.log('📹 All generations complete, hiding card');
-      // Wait for last animation then hide
+    if (batchTotal > 0 && batchCompleted >= batchTotal && activeGenerations.length === 0) {
+      console.log('📹 All generations complete (', batchCompleted, '/', batchTotal, '), hiding card in 1.5s');
+      // Show 100% completion for 1.5 seconds before hiding
       const hideTimer = setTimeout(() => {
+        console.log('📹 Fading out status card');
         setIsVisible(false);
-        // Reset counters after hiding
+        // Reset counters after fade-out animation completes
         const resetTimer = setTimeout(() => {
+          console.log('📹 Resetting batch counters');
           setBatchTotal(0);
           setBatchCompleted(0);
-        }, 300);
+        }, 500);
         return () => clearTimeout(resetTimer);
       }, 1500);
       return () => clearTimeout(hideTimer);
@@ -216,13 +239,21 @@ export function VideoGenerationTracker() {
   return (
     <>
       {/* Active Generation Progress */}
-      {activeGenerations.length > 0 && isVisible && (
-        <div className="fixed bottom-20 right-6 z-50 w-80 bg-card rounded-lg shadow-lg border p-4 space-y-3 animate-in slide-in-from-bottom-4 duration-300">
+      {isVisible && batchTotal > 0 && (
+        <div className="fixed bottom-20 right-6 z-50 w-80 bg-card rounded-lg shadow-lg border p-4 space-y-3 animate-in slide-in-from-bottom-4 duration-300 transition-opacity"
+             style={{ opacity: activeGenerations.length > 0 || batchCompleted < batchTotal ? 1 : 1 }}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
-              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              {batchCompleted >= batchTotal && batchTotal > 0 ? (
+                <span className="text-green-500 font-medium">✓</span>
+              ) : (
+                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              )}
               <span className="font-medium text-sm">
-                Generating {batchTotal > 1 ? `${batchTotal} videos` : 'video'}
+                {batchCompleted >= batchTotal && batchTotal > 0 
+                  ? 'Generation Complete!' 
+                  : `Generating ${batchTotal > 1 ? `${batchTotal} videos` : 'video'}`
+                }
               </span>
             </div>
             <span className="text-xs text-muted-foreground font-semibold">
