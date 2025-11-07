@@ -61,8 +61,12 @@ export default function Auth() {
       })
 
       if (error) {
+        console.error("Sign up error:", error)
+        
         if (error.message.includes("already registered")) {
           setError("This email is already registered. Please sign in instead.")
+        } else if (error.message.includes("Failed to fetch") || error.message.includes("fetch")) {
+          setError("Unable to connect to authentication service. Please check your internet connection and try again.")
         } else {
           setError(error.message)
         }
@@ -70,7 +74,14 @@ export default function Auth() {
         setMessage("Check your email for a confirmation link!")
       }
     } catch (err) {
-      setError("An unexpected error occurred")
+      console.error("Unexpected sign up error:", err)
+      const errorMessage = err instanceof Error ? err.message : "Unknown error"
+      
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("fetch")) {
+        setError("Unable to connect to authentication service. Please check your internet connection and try again.")
+      } else {
+        setError("An unexpected error occurred. Please try again.")
+      }
     } finally {
       setLoading(false)
     }
@@ -93,14 +104,25 @@ export default function Auth() {
       })
 
       if (error) {
+        console.error("Sign in error:", error)
+        
         if (error.message.includes("Invalid login credentials")) {
           setError("Invalid email or password. Please try again.")
+        } else if (error.message.includes("Failed to fetch") || error.message.includes("fetch")) {
+          setError("Unable to connect to authentication service. Please check your internet connection and try again.")
         } else {
           setError(error.message)
         }
       }
     } catch (err) {
-      setError("An unexpected error occurred")
+      console.error("Unexpected sign in error:", err)
+      const errorMessage = err instanceof Error ? err.message : "Unknown error"
+      
+      if (errorMessage.includes("Failed to fetch") || errorMessage.includes("fetch")) {
+        setError("Unable to connect to authentication service. Please check your internet connection and try again.")
+      } else {
+        setError("An unexpected error occurred. Please try again.")
+      }
     } finally {
       setLoading(false)
     }
