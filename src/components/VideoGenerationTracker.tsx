@@ -18,6 +18,9 @@ interface VideoGeneration {
 
 export function VideoGenerationTracker() {
   const [activeGenerations, setActiveGenerations] = useState<VideoGeneration[]>([]);
+  const [batchTotal, setBatchTotal] = useState(0);
+  const [batchCompleted, setBatchCompleted] = useState(0);
+  const [isVisible, setIsVisible] = useState(true);
   const { toast } = useToast();
 
   useEffect(() => {
@@ -114,6 +117,10 @@ export function VideoGenerationTracker() {
                 return [newRecord, ...prev];
               });
               
+              // Increment batch total when new generation starts
+              setBatchTotal(prev => prev + 1);
+              setIsVisible(true);
+              
               toast({
                 title: "Generation Started",
                 description: "Your video is being generated. Check the Video Library for updates.",
@@ -140,11 +147,17 @@ export function VideoGenerationTracker() {
             }
 
             if (newRecord.status === 'success' && newRecord.result_url) {
+              // Increment completed count
+              setBatchCompleted(prev => prev + 1);
+              
               toast({
                 title: "✨ Video Ready!",
                 description: "Your video has been generated successfully. Check the Video Library!",
               });
             } else if (newRecord.status === 'fail') {
+              // Increment completed count for failed ones too
+              setBatchCompleted(prev => prev + 1);
+              
               toast({
                 title: "Generation Failed",
                 description: newRecord.fail_msg || "Failed to generate video. Please try again.",
@@ -179,33 +192,65 @@ export function VideoGenerationTracker() {
     };
   }, [toast]);
 
+  // Auto-hide card when all generations complete
+  useEffect(() => {
+    if (activeGenerations.length === 0 && batchTotal > 0 && batchCompleted >= batchTotal) {
+      console.log('📹 All generations complete, hiding card');
+      // Wait for last animation then hide
+      const hideTimer = setTimeout(() => {
+        setIsVisible(false);
+        // Reset counters after hiding
+        const resetTimer = setTimeout(() => {
+          setBatchTotal(0);
+          setBatchCompleted(0);
+        }, 300);
+        return () => clearTimeout(resetTimer);
+      }, 1500);
+      return () => clearTimeout(hideTimer);
+    }
+  }, [activeGenerations.length, batchTotal, batchCompleted]);
+
+  // Calculate overall progress
+  const overallProgress = batchTotal > 0 ? Math.round((batchCompleted / batchTotal) * 100) : 0;
+
   return (
     <>
       {/* Active Generation Progress */}
-      {activeGenerations.length > 0 && (
+      {activeGenerations.length > 0 && isVisible && (
         <div className="fixed bottom-20 right-6 z-50 w-80 bg-card rounded-lg shadow-lg border p-4 space-y-3 animate-in slide-in-from-bottom-4 duration-300">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin text-primary" />
               <span className="font-medium text-sm">
-                Generating {activeGenerations.length} video{activeGenerations.length > 1 ? 's' : ''}
+                Generating {batchTotal > 1 ? `${batchTotal} videos` : 'video'}
               </span>
             </div>
-            <span className="text-xs text-muted-foreground">
-              {Math.round(activeGenerations.filter(g => g.status === 'processing').length / activeGenerations.length * 100) || 0}%
+            <span className="text-xs text-muted-foreground font-semibold">
+              {overallProgress}%
             </span>
+          </div>
+
+          {/* Overall batch progress */}
+          <div className="space-y-1">
+            <Progress value={overallProgress} className="h-2" />
+            <p className="text-xs text-muted-foreground text-center">
+              {batchCompleted} of {batchTotal} completed
+            </p>
           </div>
           
           <div className="max-h-[300px] overflow-y-auto space-y-3 pr-1">
-            {activeGenerations.map((gen) => (
-              <div key={gen.id} className="space-y-2 p-2 bg-muted/30 rounded-md">
-                <p className="text-xs text-foreground truncate font-medium">{gen.prompt}</p>
-                <Progress value={gen.status === 'processing' ? 66 : 33} className="h-1.5" />
-                <p className="text-xs text-muted-foreground">
-                  {gen.status === 'processing' ? 'Processing video...' : 'Initializing generation...'}
-                </p>
-              </div>
-            ))}
+            {activeGenerations.map((gen) => {
+              const individualProgress = gen.status === 'processing' ? 66 : 33;
+              return (
+                <div key={gen.id} className="space-y-2 p-2 bg-muted/30 rounded-md">
+                  <p className="text-xs text-foreground truncate font-medium">{gen.prompt}</p>
+                  <Progress value={individualProgress} className="h-1.5" />
+                  <p className="text-xs text-muted-foreground">
+                    {gen.status === 'processing' ? 'Processing video...' : 'Initializing generation...'}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         </div>
       )}
