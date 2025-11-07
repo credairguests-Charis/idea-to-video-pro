@@ -168,10 +168,48 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
   // Realtime updates: add new completed videos without reload
   useEffect(() => {
     let channel: ReturnType<typeof supabase.channel> | null = null;
+    let pollInterval: NodeJS.Timeout | null = null;
+    
     const setup = async () => {
       const { data: authData } = await supabase.auth.getUser();
       const currentUser = authData.user;
       if (!currentUser) return;
+
+      // Poll for new completed videos every 3 seconds as backup
+      const pollForNewVideos = async () => {
+        try {
+          let query = supabase
+            .from('video_generations')
+            .select('*')
+            .eq('user_id', currentUser.id)
+            .eq('status', 'success')
+            .not('result_url', 'is', null)
+            .order('completed_at', { ascending: false })
+            .limit(5);
+
+          if (projectId) {
+            query = query.eq('project_id', projectId);
+          }
+
+          const { data } = await query;
+          
+          if (data) {
+            setVideos(prev => {
+              const merged = [...prev];
+              data.forEach(newVideo => {
+                if (!merged.some(v => v.id === newVideo.id)) {
+                  merged.unshift(newVideo);
+                }
+              });
+              return merged;
+            });
+          }
+        } catch (error) {
+          console.error('Error polling for videos:', error);
+        }
+      };
+
+      pollInterval = setInterval(pollForNewVideos, 3000);
 
       channel = supabase
         .channel('video-generations-realtime')
@@ -184,6 +222,7 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
             if (projectId && rec.project_id !== projectId) return;
 
             if (rec.status === 'success' && rec.result_url) {
+              console.log('📹 New video received via INSERT:', rec.id);
               // Add new video to the list
               setVideos(prev => {
                 const exists = prev.some(v => v.id === rec.id);
@@ -195,6 +234,7 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
                 const thumb = await generateThumbnail(rec.result_url, rec.id);
                 if (thumb && thumb.startsWith('data:image')) {
                   await supabase.from('video_generations').update({ thumbnail_url: thumb }).eq('id', rec.id);
+                  setVideos(prev => prev.map(v => v.id === rec.id ? { ...v, thumbnail_url: thumb } : v));
                 }
               }
             }
@@ -209,6 +249,7 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
             if (projectId && rec.project_id !== projectId) return;
 
             if (rec.status === 'success' && rec.result_url) {
+              console.log('📹 Video updated via UPDATE:', rec.id);
               // Merge or insert
               setVideos(prev => {
                 const exists = prev.some(v => v.id === rec.id);
@@ -221,16 +262,20 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
                 const thumb = await generateThumbnail(rec.result_url, rec.id);
                 if (thumb && thumb.startsWith('data:image')) {
                   await supabase.from('video_generations').update({ thumbnail_url: thumb }).eq('id', rec.id);
+                  setVideos(prev => prev.map(v => v.id === rec.id ? { ...v, thumbnail_url: thumb } : v));
                 }
               }
             }
           }
         )
-        .subscribe();
+        .subscribe((status) => {
+          console.log('📹 Realtime subscription status:', status);
+        });
     };
 
     setup();
     return () => {
+      if (pollInterval) clearInterval(pollInterval);
       if (channel) supabase.removeChannel(channel);
     };
   }, [projectId]);

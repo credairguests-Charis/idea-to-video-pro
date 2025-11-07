@@ -23,6 +23,7 @@ export function VideoGenerationTracker() {
   useEffect(() => {
     let currentUserId: string | null = null;
     let isSubscribed = true;
+    let pollInterval: NodeJS.Timeout | null = null;
 
     // Initialize tracker - fetch user ID once and load pending generations
     const initializeTracker = async () => {
@@ -34,24 +35,44 @@ export function VideoGenerationTracker() {
         console.log('📹 VideoGenerationTracker initialized for user:', currentUserId);
 
         // Fetch initial pending generations
+        await loadPendingGenerations(currentUserId);
+
+        // Poll for new generations every 2 seconds to catch any that might be missed
+        pollInterval = setInterval(() => {
+          if (isSubscribed && currentUserId) {
+            loadPendingGenerations(currentUserId);
+          }
+        }, 2000);
+      } catch (error) {
+        console.error('📹 Error initializing tracker:', error);
+      }
+    };
+
+    const loadPendingGenerations = async (userId: string) => {
+      try {
         const { data, error } = await supabase
           .from('video_generations')
           .select('*')
-          .eq('user_id', currentUserId)
+          .eq('user_id', userId)
           .in('status', ['waiting', 'processing'])
           .order('created_at', { ascending: false });
 
         if (error) {
-          console.error('📹 Error fetching initial generations:', error);
+          console.error('📹 Error fetching pending generations:', error);
           return;
         }
 
         if (data && isSubscribed) {
-          console.log('📹 Initial pending generations:', data.length);
-          setActiveGenerations(data);
+          console.log('📹 Pending generations:', data.length);
+          setActiveGenerations(prev => {
+            // Merge with existing, avoiding duplicates
+            const newIds = data.map(d => d.id);
+            const existingToKeep = prev.filter(p => !newIds.includes(p.id));
+            return [...data, ...existingToKeep];
+          });
         }
       } catch (error) {
-        console.error('📹 Error initializing tracker:', error);
+        console.error('📹 Error loading pending generations:', error);
       }
     };
 
@@ -152,6 +173,7 @@ export function VideoGenerationTracker() {
 
     return () => {
       isSubscribed = false;
+      if (pollInterval) clearInterval(pollInterval);
       console.log('📹 Cleaning up VideoGenerationTracker');
       supabase.removeChannel(channel);
     };
@@ -161,23 +183,30 @@ export function VideoGenerationTracker() {
     <>
       {/* Active Generation Progress */}
       {activeGenerations.length > 0 && (
-        <div className="fixed bottom-20 right-6 z-50 w-80 bg-card rounded-lg shadow-lg border p-4 space-y-3">
-          <div className="flex items-center gap-2">
-            <Loader2 className="h-4 w-4 animate-spin text-primary" />
-            <span className="font-medium text-sm">
-              Generating {activeGenerations.length} video{activeGenerations.length > 1 ? 's' : ''}
+        <div className="fixed bottom-20 right-6 z-50 w-80 bg-card rounded-lg shadow-lg border p-4 space-y-3 animate-in slide-in-from-bottom-4 duration-300">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Loader2 className="h-4 w-4 animate-spin text-primary" />
+              <span className="font-medium text-sm">
+                Generating {activeGenerations.length} video{activeGenerations.length > 1 ? 's' : ''}
+              </span>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              {Math.round(activeGenerations.filter(g => g.status === 'processing').length / activeGenerations.length * 100) || 0}%
             </span>
           </div>
           
-          {activeGenerations.map((gen) => (
-            <div key={gen.id} className="space-y-2">
-              <p className="text-xs text-muted-foreground truncate">{gen.prompt}</p>
-              <Progress value={gen.status === 'processing' ? 66 : 33} className="h-1.5" />
-              <p className="text-xs text-muted-foreground">
-                {gen.status === 'processing' ? 'Processing video...' : 'Initializing...'}
-              </p>
-            </div>
-          ))}
+          <div className="max-h-[300px] overflow-y-auto space-y-3 pr-1">
+            {activeGenerations.map((gen) => (
+              <div key={gen.id} className="space-y-2 p-2 bg-muted/30 rounded-md">
+                <p className="text-xs text-foreground truncate font-medium">{gen.prompt}</p>
+                <Progress value={gen.status === 'processing' ? 66 : 33} className="h-1.5" />
+                <p className="text-xs text-muted-foreground">
+                  {gen.status === 'processing' ? 'Processing video...' : 'Initializing generation...'}
+                </p>
+              </div>
+            ))}
+          </div>
         </div>
       )}
     </>
