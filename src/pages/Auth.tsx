@@ -72,6 +72,19 @@ export default function Auth() {
         }
       } else {
         setMessage("Check your email for a confirmation link!");
+        
+        // Send welcome email (non-blocking)
+        try {
+          await supabase.functions.invoke("send-welcome-email", {
+            body: {
+              email,
+              fullName
+            }
+          });
+        } catch (emailError) {
+          console.error("Failed to send welcome email:", emailError);
+          // Don't show error to user, just log it
+        }
       }
     } catch (err) {
       console.error("Unexpected sign up error:", err);

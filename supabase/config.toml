@@ -18,6 +18,9 @@ external_phone_enabled = true
 external_sms_enabled = true
 external_anonymous_users_enabled = true
 
+[functions.send-welcome-email]
+verify_jwt = false
+
 [functions.generate-tts]
 verify_jwt = true
 
