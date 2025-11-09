@@ -64,11 +64,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           full_name: user.user_metadata?.full_name || '',
         })
       
-      if (error && !error.message.includes('duplicate key')) {
+      // If no error, it's a new user - send welcome email
+      if (!error) {
+        console.log('New user detected, sending welcome email')
+        sendWelcomeEmail(user)
+      } else if (!error.message.includes('duplicate key')) {
         console.error('Error creating profile:', error)
       }
     } catch (err) {
       console.error('Error creating profile:', err)
+    }
+  }
+
+  const sendWelcomeEmail = async (user: User) => {
+    if (!user?.email) return
+    
+    try {
+      const fullName =
+        (user.user_metadata?.full_name as string) ||
+        (user.email?.split('@')[0]) ||
+        'there'
+
+      await supabase.functions.invoke('send-welcome-email', {
+        body: {
+          email: user.email,
+          fullName,
+          userId: user.id
+        }
+      })
+      
+      console.log('Welcome email sent to new Google OAuth user')
+    } catch (err) {
+      console.error('Failed to send welcome email:', err)
     }
   }
 
