@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.sora-poll-cron]
 verify_jwt = false
+
+[functions.send-subscription-success-email]
+verify_jwt = false

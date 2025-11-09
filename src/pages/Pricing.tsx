@@ -35,7 +35,7 @@ export default function Pricing() {
       if (
         user &&
         subscriptionStatus?.subscribed &&
-        previousSubscriptionStatus.current === false &&
+        (previousSubscriptionStatus.current === false || previousSubscriptionStatus.current === null) &&
         !emailSentRef.current
       ) {
         emailSentRef.current = true;
