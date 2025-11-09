@@ -8,7 +8,6 @@ import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { Loader2, User, Shield, Settings as SettingsIcon } from "lucide-react"
-import { DiagnoseOmnihuman } from "@/components/DiagnoseOmnihuman"
 
 interface Profile {
   id: string
@@ -184,9 +183,6 @@ export default function Settings() {
             </div>
           </CardContent>
         </Card>
-
-        {/* API Diagnostic */}
-        <DiagnoseOmnihuman />
 
         {/* Usage Information */}
         <Card>

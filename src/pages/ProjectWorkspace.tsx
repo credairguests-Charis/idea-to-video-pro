@@ -6,8 +6,13 @@ import { NewProjectArcads } from "@/components/NewProjectArcads"
 import { VideoGenerationTracker } from "@/components/VideoGenerationTracker"
 import { useProjects } from "@/hooks/useProjects"
 import { Button } from "@/components/ui/button"
+import Settings from "./Settings"
 
-export default function ProjectWorkspace() {
+interface ProjectWorkspaceProps {
+  settingsMode?: boolean
+}
+
+export default function ProjectWorkspace({ settingsMode = false }: ProjectWorkspaceProps) {
   const navigate = useNavigate()
   const { projectId } = useParams()
   const { projects, loading, createProject } = useProjects()
@@ -72,7 +77,9 @@ export default function ProjectWorkspace() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col overflow-hidden">
-        {currentProject ? (
+        {settingsMode ? (
+          <Settings />
+        ) : currentProject ? (
           <NewProjectArcads projectId={currentProjectId} mode={viewMode} />
         ) : (
           <div className="flex-1 flex items-center justify-center">
