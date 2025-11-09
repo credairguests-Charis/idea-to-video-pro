@@ -66,7 +66,7 @@ serve(async (req) => {
         },
       ],
       mode: "subscription",
-      success_url: `${origin}/`,
+      success_url: `${origin}/app`,
       cancel_url: `${origin}/pricing`,
     });
 
