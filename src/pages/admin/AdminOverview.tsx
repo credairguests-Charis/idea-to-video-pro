@@ -175,6 +175,30 @@ export default function AdminOverview() {
           fetchData();
         }
       )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'video_generations'
+        },
+        () => {
+          console.log('Video generation data changed, refreshing dashboard...');
+          fetchData();
+        }
+      )
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'admin_audit_logs'
+        },
+        () => {
+          console.log('Admin audit log added, refreshing dashboard...');
+          fetchData();
+        }
+      )
       .subscribe();
 
     return () => {
@@ -271,7 +295,7 @@ export default function AdminOverview() {
     type: 'error' as const
   }));
 
-  // Mock logs for live viewer
+  // Live logs from admin actions and generation errors
   const liveLogs = [
     ...data.recentActions.slice(0, 10).map(action => ({
       id: action.id,

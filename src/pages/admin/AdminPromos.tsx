@@ -49,6 +49,27 @@ export default function AdminPromos() {
 
   useEffect(() => {
     fetchPromos();
+
+    // Set up real-time subscription for promo code changes
+    const promosChannel = supabase
+      .channel('promo-codes-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'promo_codes'
+        },
+        () => {
+          console.log('Promo code data changed, refreshing...');
+          fetchPromos();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(promosChannel);
+    };
   }, []);
 
   const handleCreate = async (e: React.FormEvent) => {
