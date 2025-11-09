@@ -50,6 +50,7 @@ export default function Auth() {
     const fullName = formData.get("full-name") as string;
     try {
       const {
+        data,
         error
       } = await supabase.auth.signUp({
         email,
@@ -74,16 +75,19 @@ export default function Auth() {
         setMessage("Check your email for a confirmation link!");
         
         // Send welcome email (non-blocking)
-        try {
-          await supabase.functions.invoke("send-welcome-email", {
-            body: {
-              email,
-              fullName
-            }
-          });
-        } catch (emailError) {
-          console.error("Failed to send welcome email:", emailError);
-          // Don't show error to user, just log it
+        if (data.user) {
+          try {
+            await supabase.functions.invoke("send-welcome-email", {
+              body: {
+                email,
+                fullName,
+                userId: data.user.id
+              }
+            });
+          } catch (emailError) {
+            console.error("Failed to send welcome email:", emailError);
+            // Don't show error to user, just log it
+          }
         }
       }
     } catch (err) {

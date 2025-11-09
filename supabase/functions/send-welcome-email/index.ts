@@ -1,5 +1,6 @@
 import { serve } from "https://deno.land/std@0.190.0/http/server.ts";
 import { Resend } from "npm:resend@2.0.0";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 const resend = new Resend(Deno.env.get("RESEND_API_KEY"));
 
@@ -11,6 +12,7 @@ const corsHeaders = {
 interface WelcomeEmailRequest {
   email: string;
   fullName: string;
+  userId: string;
 }
 
 const handler = async (req: Request): Promise<Response> => {
@@ -20,9 +22,26 @@ const handler = async (req: Request): Promise<Response> => {
   }
 
   try {
-    const { email, fullName }: WelcomeEmailRequest = await req.json();
+    const { email, fullName, userId }: WelcomeEmailRequest = await req.json();
 
     console.log(`Sending welcome email to ${email} (${fullName})`);
+
+    // Create Supabase client to check subscription status
+    const supabase = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+    );
+
+    // Check subscription status
+    const { data: functionData } = await supabase.functions.invoke("check-subscription", {
+      body: { userId }
+    });
+
+    const isSubscribed = functionData?.subscribed || false;
+    const baseUrl = req.headers.get("origin") || "https://fd178190-4e25-4a6b-a609-bdf282c1854b.lovableproject.com";
+    const redirectUrl = isSubscribed ? `${baseUrl}/app` : `${baseUrl}/pricing`;
+
+    console.log(`User subscription status: ${isSubscribed}, redirecting to: ${redirectUrl}`);
 
     const emailResponse = await resend.emails.send({
       from: "Charis <charis@onboard.usecharis.com>",
@@ -48,7 +67,7 @@ const handler = async (req: Request): Promise<Response> => {
           </ul>
           
           <div style="margin: 30px 0;">
-            <a href="${req.headers.get("origin") || "https://fd178190-4e25-4a6b-a609-bdf282c1854b.lovableproject.com"}" 
+            <a href="${redirectUrl}" 
                style="background-color: #4CAF50; color: white; padding: 12px 30px; text-decoration: none; border-radius: 5px; display: inline-block; font-size: 16px;">
               Get Started
             </a>
