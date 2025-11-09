@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Check, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
@@ -19,6 +19,8 @@ export default function Pricing() {
     toast
   } = useToast();
   const navigate = useNavigate();
+  const previousSubscriptionStatus = useRef<boolean | null>(null);
+  const emailSentRef = useRef(false);
 
   // Refresh subscription status on mount
   useEffect(() => {
@@ -26,6 +28,40 @@ export default function Pricing() {
       checkSubscription();
     }
   }, [user, checkSubscription]);
+
+  // Send subscription success email when user becomes subscribed
+  useEffect(() => {
+    const sendSubscriptionEmail = async () => {
+      if (
+        user &&
+        subscriptionStatus?.subscribed &&
+        previousSubscriptionStatus.current === false &&
+        !emailSentRef.current
+      ) {
+        emailSentRef.current = true;
+        try {
+          const { data: profile } = await supabase
+            .from("profiles")
+            .select("full_name")
+            .eq("user_id", user.id)
+            .single();
+
+          await supabase.functions.invoke("send-subscription-success-email", {
+            body: {
+              email: user.email,
+              fullName: profile?.full_name || "there",
+            },
+          });
+          console.log("Subscription success email sent");
+        } catch (error) {
+          console.error("Failed to send subscription success email:", error);
+        }
+      }
+      previousSubscriptionStatus.current = subscriptionStatus?.subscribed ?? null;
+    };
+
+    sendSubscriptionEmail();
+  }, [user, subscriptionStatus]);
 
   // Redirect if already subscribed
   useEffect(() => {
