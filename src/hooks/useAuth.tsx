@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useState } from "react"
+import { createContext, useContext, useEffect, useRef, useState } from "react"
 import { User, Session } from "@supabase/supabase-js"
 import { supabase } from "@/integrations/supabase/client"
 
@@ -24,6 +24,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
   const [loading, setLoading] = useState(true)
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null)
+  const prevSubscribedRef = useRef<boolean | null>(null)
+  const emailSentThisSessionRef = useRef(false)
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -70,6 +72,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }
 
+  const sendSubscriptionWelcomeEmail = async () => {
+    if (!user?.email) return
+    try {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('full_name')
+        .eq('user_id', user.id)
+        .single()
+
+      const fullName =
+        (profile?.full_name && profile.full_name.trim()) ||
+        (user.user_metadata?.full_name as string) ||
+        (user.email?.split('@')[0]) ||
+        'there'
+
+      const { data, error } = await supabase.functions.invoke('send-subscription-success-email', {
+        body: { email: user.email, fullName }
+      })
+
+      if (error) {
+        console.error('Failed to send subscription welcome email:', error)
+      } else {
+        console.log('Subscription welcome email sent:', data)
+      }
+    } catch (err) {
+      console.error('Exception sending subscription welcome email:', err)
+    }
+  }
+
   const checkSubscription = async () => {
     if (!user) {
       setSubscriptionStatus(null)
@@ -103,6 +134,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setSubscriptionStatus(null)
     }
   }, [user])
+
+  // Send welcome email the first time we detect an active subscription
+  useEffect(() => {
+    if (!user) return
+
+    const storageKey = `welcome_email_sent_v1_${user.id}`
+    const alreadySent = localStorage.getItem(storageKey) === 'true'
+
+    const justBecameSubscribed =
+      subscriptionStatus?.subscribed === true && prevSubscribedRef.current !== true
+
+    if (justBecameSubscribed && !alreadySent && !emailSentThisSessionRef.current) {
+      emailSentThisSessionRef.current = true
+      sendSubscriptionWelcomeEmail().finally(() => {
+        try { localStorage.setItem(storageKey, 'true') } catch {}
+      })
+    }
+
+    // Track latest value for next runs
+    prevSubscribedRef.current = subscriptionStatus?.subscribed ?? null
+  }, [subscriptionStatus, user])
 
   const signOut = async () => {
     const { error } = await supabase.auth.signOut()
