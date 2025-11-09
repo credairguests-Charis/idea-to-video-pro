@@ -25,7 +25,7 @@ const handler = async (req: Request): Promise<Response> => {
     console.log(`Sending welcome email to ${email} (${fullName})`);
 
     const emailResponse = await resend.emails.send({
-      from: "Charis <onboarding@resend.dev>",
+      from: "Charis <charis@onboard.usecharis.com>",
       to: [email],
       subject: "Welcome to Charis - Let's Create Amazing UGC Videos!",
       html: `
