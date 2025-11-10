@@ -2,77 +2,47 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import {
-  Accordion,
-  AccordionContent,
-  AccordionItem,
-  AccordionTrigger,
-} from "@/components/ui/accordion";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Sparkles, Zap, TrendingUp } from "lucide-react";
 import { HeroVideoCarousel } from "@/components/HeroVideoCarousel";
 import charisLogo from "@/assets/charis-logo-new.png";
-
 const Landing = () => {
   const navigate = useNavigate();
   const [showDemoModal, setShowDemoModal] = useState(false);
-
-  const features = [
-    {
-      icon: <Sparkles className="h-8 w-8 text-primary" />,
-      title: "AI-Powered Generation",
-      description:
-        "Creates authentic UGC videos with natural movement and expressions.",
-    },
-    {
-      icon: <Zap className="h-8 w-8 text-primary" />,
-      title: "Lightning Fast",
-      description:
-        "Generate professional-quality UGC videos in minutes, not days.",
-    },
-    {
-      icon: <TrendingUp className="h-8 w-8 text-primary" />,
-      title: "Higher Conversions",
-      description:
-        "Boost ROI with content that feels authentic and engaging.",
-    },
-  ];
-
-  const faqs = [
-    {
-      question: "How does the AI generate UGC videos?",
-      answer:
-        "Our AI technology analyzes your product and creates realistic videos featuring diverse actors delivering authentic testimonials and demonstrations. The AI handles facial expressions, body language, and voice synchronization to create natural, engaging content.",
-    },
-    {
-      question: "Can I use my own product images?",
-      answer:
-        "Yes! You can upload your own product images, and our AI will seamlessly integrate them into the UGC videos. The system adapts to showcase your products in the most natural and appealing way possible.",
-    },
-    {
-      question: "Do I own full rights to the generated videos?",
-      answer:
-        "Absolutely. You have full commercial rights to all videos generated through our platform. Use them anywhere—social media, websites, ads, or any marketing channel you choose.",
-    },
-    {
-      question: "How long does video generation take?",
-      answer:
-        "Most videos are generated in 2-5 minutes. The exact time depends on video length and complexity. You'll receive real-time updates during the generation process and can continue working on other projects while videos are being created.",
-    },
-    {
-      question: "Does it support brand-specific avatars?",
-      answer:
-        "Yes! You can select from our diverse library of AI actors or work with our team to create custom brand ambassadors that perfectly represent your target audience and brand identity.",
-    },
-    {
-      question: "What formats are supported for exports?",
-      answer:
-        "Videos are exported in MP4 format optimized for various platforms including Instagram, TikTok, Facebook, YouTube, and more. We provide multiple aspect ratios (9:16, 1:1, 16:9) to fit any platform requirements.",
-    },
-  ];
-
-  return (
-    <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/20">
+  const features = [{
+    icon: <Sparkles className="h-8 w-8 text-primary" />,
+    title: "AI-Powered Generation",
+    description: "Creates authentic UGC videos with natural movement and expressions."
+  }, {
+    icon: <Zap className="h-8 w-8 text-primary" />,
+    title: "Lightning Fast",
+    description: "Generate professional-quality UGC videos in minutes, not days."
+  }, {
+    icon: <TrendingUp className="h-8 w-8 text-primary" />,
+    title: "Higher Conversions",
+    description: "Boost ROI with content that feels authentic and engaging."
+  }];
+  const faqs = [{
+    question: "How does the AI generate UGC videos?",
+    answer: "Our AI technology analyzes your product and creates realistic videos featuring diverse actors delivering authentic testimonials and demonstrations. The AI handles facial expressions, body language, and voice synchronization to create natural, engaging content."
+  }, {
+    question: "Can I use my own product images?",
+    answer: "Yes! You can upload your own product images, and our AI will seamlessly integrate them into the UGC videos. The system adapts to showcase your products in the most natural and appealing way possible."
+  }, {
+    question: "Do I own full rights to the generated videos?",
+    answer: "Absolutely. You have full commercial rights to all videos generated through our platform. Use them anywhere—social media, websites, ads, or any marketing channel you choose."
+  }, {
+    question: "How long does video generation take?",
+    answer: "Most videos are generated in 2-5 minutes. The exact time depends on video length and complexity. You'll receive real-time updates during the generation process and can continue working on other projects while videos are being created."
+  }, {
+    question: "Does it support brand-specific avatars?",
+    answer: "Yes! You can select from our diverse library of AI actors or work with our team to create custom brand ambassadors that perfectly represent your target audience and brand identity."
+  }, {
+    question: "What formats are supported for exports?",
+    answer: "Videos are exported in MP4 format optimized for various platforms including Instagram, TikTok, Facebook, YouTube, and more. We provide multiple aspect ratios (9:16, 1:1, 16:9) to fit any platform requirements."
+  }];
+  return <div className="min-h-screen bg-gradient-to-b from-background via-background to-secondary/20">
       {/* Header */}
       <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
@@ -135,18 +105,13 @@ const Landing = () => {
           </p>
         </div>
         <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {features.map((feature, index) => (
-            <Card
-              key={index}
-              className="p-8 space-y-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-card/50 backdrop-blur"
-            >
+          {features.map((feature, index) => <Card key={index} className="p-8 space-y-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-card/50 backdrop-blur">
               <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
                 {feature.icon}
               </div>
               <h3 className="text-xl font-semibold">{feature.title}</h3>
               <p className="text-muted-foreground">{feature.description}</p>
-            </Card>
-          ))}
+            </Card>)}
         </div>
       </section>
 
@@ -162,20 +127,14 @@ const Landing = () => {
             </p>
           </div>
           <Accordion type="single" collapsible className="space-y-4">
-            {faqs.map((faq, index) => (
-              <AccordionItem
-                key={index}
-                value={`item-${index}`}
-                className="bg-card/50 backdrop-blur rounded-lg border px-6"
-              >
+            {faqs.map((faq, index) => <AccordionItem key={index} value={`item-${index}`} className="bg-card/50 backdrop-blur rounded-lg border px-6">
                 <AccordionTrigger className="text-left hover:no-underline">
                   <span className="font-semibold">{faq.question}</span>
                 </AccordionTrigger>
                 <AccordionContent className="text-muted-foreground">
                   {faq.answer}
                 </AccordionContent>
-              </AccordionItem>
-            ))}
+              </AccordionItem>)}
           </Accordion>
         </div>
       </section>
@@ -269,9 +228,7 @@ const Landing = () => {
               </ul>
             </div>
           </div>
-          <div className="mt-12 pt-8 border-t border-border/40 text-center text-sm text-muted-foreground">
-            © 2024 Charis. All rights reserved.
-          </div>
+          <div className="mt-12 pt-8 border-t border-border/40 text-center text-sm text-muted-foreground">© 2025 Charis. All rights reserved.</div>
         </div>
       </footer>
 
@@ -283,8 +240,6 @@ const Landing = () => {
           </div>
         </DialogContent>
       </Dialog>
-    </div>
-  );
+    </div>;
 };
-
 export default Landing;
