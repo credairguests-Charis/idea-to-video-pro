@@ -4,25 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Sparkles, Zap, TrendingUp } from "lucide-react";
+import { Sparkles, Zap, TrendingUp, MessageSquare, Clock, DollarSign, Users, Layers, Wand2 } from "lucide-react";
 import { HeroVideoCarousel } from "@/components/HeroVideoCarousel";
 import charisLogo from "@/assets/charis-logo-new.png";
 const Landing = () => {
   const navigate = useNavigate();
   const [showDemoModal, setShowDemoModal] = useState(false);
-  const features = [{
-    icon: <Sparkles className="h-8 w-8 text-primary" />,
-    title: "AI-Powered Generation",
-    description: "Creates authentic UGC videos with natural movement and expressions."
-  }, {
-    icon: <Zap className="h-8 w-8 text-primary" />,
-    title: "Lightning Fast",
-    description: "Generate professional-quality UGC videos in minutes, not days."
-  }, {
-    icon: <TrendingUp className="h-8 w-8 text-primary" />,
-    title: "Higher Conversions",
-    description: "Boost ROI with content that feels authentic and engaging."
-  }];
+  
   const faqs = [{
     question: "How does the AI generate UGC videos?",
     answer: "Our AI technology analyzes your product and creates realistic videos featuring diverse actors delivering authentic testimonials and demonstrations. The AI handles facial expressions, body language, and voice synchronization to create natural, engaging content."
@@ -98,20 +86,96 @@ const Landing = () => {
 
       {/* Features Section */}
       <section id="features" className="container mx-auto px-4 py-20">
+        {/* Primary Benefits */}
+        <div className="text-center mb-16 space-y-6">
+          <div className="inline-block px-6 py-2 bg-primary/10 rounded-full">
+            <span className="text-sm font-semibold text-primary">🔥 The best performance marketing teams are using Charis 🔥</span>
+          </div>
+          <h2 className="text-4xl lg:text-5xl font-bold">The Fastest Way To Create Video Ads</h2>
+        </div>
+
+        {/* Key Benefits Grid */}
+        <div className="grid md:grid-cols-3 gap-8 max-w-6xl mx-auto mb-24">
+          <Card className="p-8 space-y-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card via-card to-primary/5 backdrop-blur border-primary/20">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+              <MessageSquare className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-bold">No back and forth communication</h3>
+            <p className="text-muted-foreground">Skip the endless emails and revisions. Generate videos instantly with AI.</p>
+          </Card>
+
+          <Card className="p-8 space-y-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card via-card to-primary/5 backdrop-blur border-primary/20">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+              <Clock className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-bold">Get your AI video ads in seconds</h3>
+            <p className="text-muted-foreground">From script to final video in minutes, not weeks.</p>
+          </Card>
+
+          <Card className="p-8 space-y-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card via-card to-primary/5 backdrop-blur border-primary/20">
+            <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
+              <DollarSign className="h-8 w-8 text-primary" />
+            </div>
+            <h3 className="text-xl font-bold">For a fraction of the price</h3>
+            <p className="text-muted-foreground">Save thousands on production costs while scaling your content.</p>
+          </Card>
+        </div>
+
+        {/* Take Full Control Section */}
         <div className="text-center mb-16 space-y-4">
-          <h2 className="text-4xl lg:text-5xl font-bold">Why Choose Charis?</h2>
-          <p className="text-lg text-muted-foreground">
-            Everything you need to create professional UGC videos at scale
+          <h2 className="text-4xl lg:text-5xl font-bold">Take full control of the outcome</h2>
+          <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
+            Transform your ideas into emotional, realistic, and captivating video ads
           </p>
         </div>
-        <div className="grid md:grid-cols-3 gap-8 max-w-5xl mx-auto">
-          {features.map((feature, index) => <Card key={index} className="p-8 space-y-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-card/50 backdrop-blur">
-              <div className="h-14 w-14 rounded-lg bg-primary/10 flex items-center justify-center">
-                {feature.icon}
-              </div>
-              <h3 className="text-xl font-semibold">{feature.title}</h3>
-              <p className="text-muted-foreground">{feature.description}</p>
-            </Card>)}
+
+        {/* Detailed Features Grid */}
+        <div className="grid lg:grid-cols-3 gap-12 max-w-6xl mx-auto">
+          {/* Feature 1 */}
+          <div className="space-y-6 text-center lg:text-left">
+            <div className="relative h-48 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl overflow-hidden flex items-center justify-center border border-primary/20">
+              <Wand2 className="h-20 w-20 text-primary/40" />
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-2xl font-bold">Captivating scripts</h3>
+              <p className="text-muted-foreground">
+                Editable and tailored to engage, our scripts are the foundation of impactful ads.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 2 */}
+          <div className="space-y-6 text-center lg:text-left">
+            <div className="relative h-48 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl overflow-hidden flex items-center justify-center border border-primary/20">
+              <Users className="h-20 w-20 text-primary/40" />
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-2xl font-bold">Engaging AI Actors</h3>
+              <p className="text-muted-foreground">
+                Choose from a library of 100s of attention-grabbing AI Actors.
+              </p>
+            </div>
+          </div>
+
+          {/* Feature 3 */}
+          <div className="space-y-6 text-center lg:text-left">
+            <div className="relative h-48 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl overflow-hidden flex items-center justify-center border border-primary/20">
+              <Layers className="h-20 w-20 text-primary/40" />
+            </div>
+            <div className="space-y-3">
+              <h3 className="text-2xl font-bold">Bulk Creation</h3>
+              <p className="text-muted-foreground">
+                Quickly generate dozens of variations to experiment and succeed at scale.
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* CTA Button */}
+        <div className="text-center mt-16">
+          <Button size="lg" className="text-base px-8" onClick={() => navigate("/auth")}>
+            Get your first video ad generated
+          </Button>
         </div>
       </section>
 
