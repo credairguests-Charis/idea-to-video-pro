@@ -9,8 +9,9 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { Dialog, DialogContent } from "@/components/ui/dialog";
-import { Sparkles, Zap, TrendingUp, Play } from "lucide-react";
-import { UGCCarousel } from "@/components/UGCCarousel";
+import { Sparkles, Zap, TrendingUp } from "lucide-react";
+import { HeroVideoCarousel } from "@/components/HeroVideoCarousel";
+import charisLogo from "@/assets/charis-logo-new.png";
 
 const Landing = () => {
   const navigate = useNavigate();
@@ -76,10 +77,8 @@ const Landing = () => {
       <header className="border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <div className="h-10 w-10 rounded-lg bg-primary flex items-center justify-center">
-              <Play className="h-6 w-6 text-primary-foreground" />
-            </div>
-            <span className="text-xl font-bold">Charis AI</span>
+            <img src={charisLogo} alt="Charis Logo" className="h-10 w-10 rounded-lg" />
+            <span className="text-xl font-bold">Charis</span>
           </div>
           <nav className="hidden md:flex items-center gap-8">
             <a href="#features" className="text-sm font-medium hover:text-primary transition-colors">
@@ -105,43 +104,32 @@ const Landing = () => {
       </header>
 
       {/* Hero Section */}
-      <section className="container mx-auto px-4 py-20 lg:py-32">
-        <div className="max-w-4xl mx-auto text-center space-y-8 animate-fade-in">
-          <h1 className="text-5xl lg:text-7xl font-bold tracking-tight">
-            Generate Viral{" "}
-            <span className="text-primary">UGC Video Ads</span> in Minutes
-          </h1>
-          <p className="text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">
-            Transform your marketing with AI-powered user-generated content
-            videos. Create authentic, engaging video ads that convert 3x better
-            than traditional content.
-          </p>
-          <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
-            <Button size="lg" className="text-base px-8" onClick={() => navigate("/auth")}>
-              Start Creating Videos
-            </Button>
-            <Button
-              size="lg"
-              variant="outline"
-              className="text-base px-8"
-              onClick={() => setShowDemoModal(true)}
-            >
-              <Play className="h-4 w-4 mr-2" />
-              Watch Demo
-            </Button>
+      <section className="container mx-auto px-4 py-12 lg:py-20">
+        <div className="max-w-6xl mx-auto text-center space-y-12 animate-fade-in">
+          <div className="space-y-6">
+            <h1 className="text-5xl lg:text-7xl font-bold tracking-tight">
+              Create winning ads with{" "}
+              <span className="text-primary">AI Actors</span>
+            </h1>
+            <p className="text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">
+              Generate 100s of winning videos from text.
+            </p>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <Button size="lg" className="text-base px-8" onClick={() => navigate("/auth")}>
+                Get your first video ad generated
+              </Button>
+            </div>
           </div>
+          
+          {/* Hero Video Carousel */}
+          <HeroVideoCarousel />
         </div>
-      </section>
-
-      {/* UGC Video Carousel */}
-      <section className="container mx-auto px-4 pb-20">
-        <UGCCarousel />
       </section>
 
       {/* Features Section */}
       <section id="features" className="container mx-auto px-4 py-20">
         <div className="text-center mb-16 space-y-4">
-          <h2 className="text-4xl lg:text-5xl font-bold">Why Choose Charis AI?</h2>
+          <h2 className="text-4xl lg:text-5xl font-bold">Why Choose Charis?</h2>
           <p className="text-lg text-muted-foreground">
             Everything you need to create professional UGC videos at scale
           </p>
@@ -170,7 +158,7 @@ const Landing = () => {
               Frequently Asked Questions
             </h2>
             <p className="text-lg text-muted-foreground">
-              Everything you need to know about Charis AI
+              Everything you need to know about Charis
             </p>
           </div>
           <Accordion type="single" collapsible className="space-y-4">
@@ -213,10 +201,8 @@ const Landing = () => {
           <div className="grid md:grid-cols-4 gap-8">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <div className="h-8 w-8 rounded-lg bg-primary flex items-center justify-center">
-                  <Play className="h-5 w-5 text-primary-foreground" />
-                </div>
-                <span className="text-lg font-bold">Charis AI</span>
+                <img src={charisLogo} alt="Charis Logo" className="h-8 w-8 rounded-lg" />
+                <span className="text-lg font-bold">Charis</span>
               </div>
               <p className="text-sm text-muted-foreground">
                 Create authentic UGC videos with the power of AI
@@ -284,7 +270,7 @@ const Landing = () => {
             </div>
           </div>
           <div className="mt-12 pt-8 border-t border-border/40 text-center text-sm text-muted-foreground">
-            © 2024 Charis AI. All rights reserved.
+            © 2024 Charis. All rights reserved.
           </div>
         </div>
       </footer>
