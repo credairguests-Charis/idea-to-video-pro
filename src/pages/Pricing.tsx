@@ -161,7 +161,7 @@ export default function Pricing() {
             <CardHeader className="text-center">
               <CardTitle className="text-3xl">Charis Pro</CardTitle>
               <CardDescription className="text-2xl font-bold mt-2">
-                $500<span className="text-base font-normal text-muted-foreground">/month</span>
+                $500<span className="text-base font-normal text-muted-foreground"></span>
               </CardDescription>
               {subscriptionStatus?.subscribed && <div className="mt-2">
                   <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-primary/10 text-primary">
