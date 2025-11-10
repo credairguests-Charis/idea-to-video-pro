@@ -10,7 +10,6 @@ import charisLogo from "@/assets/charis-logo-new.png";
 const Landing = () => {
   const navigate = useNavigate();
   const [showDemoModal, setShowDemoModal] = useState(false);
-  
   const faqs = [{
     question: "How does the AI generate UGC videos?",
     answer: "Our AI technology analyzes your product and creates realistic videos featuring diverse actors delivering authentic testimonials and demonstrations. The AI handles facial expressions, body language, and voice synchronization to create natural, engaging content."
@@ -65,13 +64,10 @@ const Landing = () => {
       <section className="container mx-auto px-4 py-12 lg:py-20">
         <div className="max-w-6xl mx-auto text-center space-y-12 animate-fade-in">
           <div className="space-y-6">
-            <h1 className="text-5xl lg:text-7xl font-bold tracking-tight">
-              Create winning ads with{" "}
-              <span className="text-primary">AI Actors</span>
+            <h1 className="text-5xl lg:text-7xl font-bold tracking-tight">Create winning ads with AI {" "}
+              <span className="text-primary">AI </span>
             </h1>
-            <p className="text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">
-              Generate 100s of winning videos from text.
-            </p>
+            <p className="text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">Generate 100s of winning videos from text.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" className="text-base px-8" onClick={() => navigate("/auth")}>
                 Get your first video ad generated
@@ -100,24 +96,24 @@ const Landing = () => {
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
               <MessageSquare className="h-8 w-8 text-primary" />
             </div>
-            <h3 className="text-xl font-bold">No back and forth communication</h3>
-            <p className="text-muted-foreground">Skip the endless emails and revisions. Generate videos instantly with AI.</p>
+            <h3 className="text-xl font-bold">Skip endless waiting for replies</h3>
+            <p className="text-muted-foreground">Skip the endless emails, DMs, revisions and negotiations. Generate videos instantly with AI.</p>
           </Card>
 
           <Card className="p-8 space-y-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card via-card to-primary/5 backdrop-blur border-primary/20">
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
               <Clock className="h-8 w-8 text-primary" />
             </div>
-            <h3 className="text-xl font-bold">Get your AI video ads in seconds</h3>
-            <p className="text-muted-foreground">From script to final video in minutes, not weeks.</p>
+            <h3 className="text-xl font-bold">Create ready-to-post video ads in seconds</h3>
+            <p className="text-muted-foreground">From script to final video in seconds, not weeks.</p>
           </Card>
 
           <Card className="p-8 space-y-4 hover:shadow-lg transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-card via-card to-primary/5 backdrop-blur border-primary/20">
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
               <DollarSign className="h-8 w-8 text-primary" />
             </div>
-            <h3 className="text-xl font-bold">For a fraction of the price</h3>
-            <p className="text-muted-foreground">Save thousands on production costs while scaling your content.</p>
+            <h3 className="text-xl font-bold">Pay less, Save thousands</h3>
+            <p className="text-muted-foreground">Save thousands on production costs and product shipping costs to creators, while scaling your brand.</p>
           </Card>
         </div>
 
@@ -134,11 +130,7 @@ const Landing = () => {
           {/* Feature 1 */}
           <div className="space-y-6 text-center lg:text-left">
             <div className="relative h-64 bg-background rounded-2xl overflow-hidden shadow-xl border border-border/50 hover:shadow-2xl transition-shadow duration-300">
-              <img 
-                src="/features/script-interface.png" 
-                alt="Captivating scripts interface"
-                className="w-full h-full object-cover object-center"
-              />
+              <img src="/features/script-interface.png" alt="Captivating scripts interface" className="w-full h-full object-cover object-center" />
             </div>
             <div className="space-y-3">
               <h3 className="text-2xl font-bold">Captivating scripts</h3>
@@ -151,11 +143,7 @@ const Landing = () => {
           {/* Feature 2 */}
           <div className="space-y-6 text-center lg:text-left">
             <div className="relative h-64 bg-background rounded-2xl overflow-hidden shadow-xl border border-border/50 hover:shadow-2xl transition-shadow duration-300">
-              <img 
-                src="/features/actors-grid.png" 
-                alt="Dynamic AI actors selection"
-                className="w-full h-full object-cover object-center"
-              />
+              <img src="/features/actors-grid.png" alt="Dynamic AI actors selection" className="w-full h-full object-cover object-center" />
             </div>
             <div className="space-y-3">
               <h3 className="text-2xl font-bold">Dynamic Actors</h3>
@@ -168,11 +156,7 @@ const Landing = () => {
           {/* Feature 3 */}
           <div className="space-y-6 text-center lg:text-left">
             <div className="relative h-64 bg-background rounded-2xl overflow-hidden shadow-xl border border-border/50 hover:shadow-2xl transition-shadow duration-300">
-              <img 
-                src="/features/bulk-generation.png" 
-                alt="Bulk video generation options"
-                className="w-full h-full object-cover object-center"
-              />
+              <img src="/features/bulk-generation.png" alt="Bulk video generation options" className="w-full h-full object-cover object-center" />
             </div>
             <div className="space-y-3">
               <h3 className="text-2xl font-bold">Bulk Creation</h3>
@@ -239,9 +223,7 @@ const Landing = () => {
                 <img src={charisLogo} alt="Charis Logo" className="h-8 w-8 rounded-lg" />
                 <span className="text-lg font-bold">Charis</span>
               </div>
-              <p className="text-sm text-muted-foreground">
-                Create authentic UGC videos with the power of AI
-              </p>
+              <p className="text-sm text-muted-foreground">Create scroll-stopping Ads with AI</p>
             </div>
             <div>
               <h3 className="font-semibold mb-4">Product</h3>
