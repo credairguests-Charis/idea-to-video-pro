@@ -138,17 +138,18 @@ export function BottomInputPanel({
   }, [productImage, onProductImageChange]);
 
   return (
-    <div className="fixed bottom-0 left-[240px] right-0 z-50 flex justify-center pb-6 pointer-events-none">
+    <div className="fixed bottom-0 left-0 md:left-[240px] right-0 z-50 flex justify-center pb-3 md:pb-6 pointer-events-none">
       <div 
-        className="w-full max-w-[680px] mx-auto bg-white rounded-2xl border border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.08)] pointer-events-auto"
+        className="w-full max-w-[680px] mx-2 md:mx-auto bg-white rounded-2xl border border-gray-200 shadow-[0_4px_12px_rgba(0,0,0,0.08)] pointer-events-auto"
       >
         {/* Header */}
-        <div className="relative px-4 pt-4 pb-2">
+        <div className="relative px-3 md:px-4 pt-3 md:pt-4 pb-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-gray-600 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white">
-                <Users className="h-3.5 w-3.5" />
-                Talking Actors
+              <Button variant="ghost" size="sm" className="h-6 md:h-7 gap-1 text-xs text-gray-600 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white">
+                <Users className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                <span className="hidden sm:inline">Talking Actors</span>
+                <span className="sm:hidden">Actors</span>
                 <ChevronDown className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
@@ -159,13 +160,13 @@ export function BottomInputPanel({
             </DropdownMenuContent>
           </DropdownMenu>
           
-          <span className="absolute right-4 top-4 text-xs text-gray-400">
+          <span className="absolute right-3 md:right-4 top-3 md:top-4 text-[10px] md:text-xs text-gray-400">
             {charCount} / {maxChars}
           </span>
         </div>
 
         {/* Main content area */}
-        <div className="px-4">
+        <div className="px-3 md:px-4">
           <Textarea
             ref={textareaRef}
             value={script}
@@ -186,7 +187,7 @@ export function BottomInputPanel({
 
         {/* Selected actors and product image */}
         {(selectedActors.length > 0 || productImage) && (
-          <div className="px-4 pb-3">
+          <div className="px-3 md:px-4 pb-3">
             <div className="flex flex-wrap gap-2 items-center">
               {selectedActors.map((actor) => (
                 <ActorCard
@@ -221,12 +222,12 @@ export function BottomInputPanel({
         )}
 
         {/* Bottom bar */}
-        <div className="flex items-center justify-between px-4 pb-4 pt-3 border-t border-gray-100">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-3 md:px-4 pb-3 md:pb-4 pt-3 border-t border-gray-100">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-7 gap-1 text-xs text-gray-700 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white">
-                <Film className="h-3.5 w-3.5" />
-                {aspectRatio === "portrait" ? "9:16 – Portrait" : "16:9 – Landscape"}
+              <Button variant="ghost" size="sm" className="h-6 md:h-7 gap-1 text-xs text-gray-700 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white">
+                <Film className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                {aspectRatio === "portrait" ? "9:16" : "16:9"}
                 <ChevronDown className="h-3 w-3" />
               </Button>
             </DropdownMenuTrigger>
@@ -242,9 +243,9 @@ export function BottomInputPanel({
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <div className="flex items-center gap-2">
+          <div className="flex items-center gap-1.5 md:gap-2 flex-wrap w-full sm:w-auto">
             {selectedActors.length > 0 && (
-              <div className="flex items-center gap-1.5 px-2.5 py-1 bg-gray-100 rounded-full">
+              <div className="flex items-center gap-1.5 px-2 md:px-2.5 py-1 bg-gray-100 rounded-full">
                 <div className="flex -space-x-2">
                   {selectedActors.slice(0, 2).map((actor) => (
                     <img
@@ -255,7 +256,7 @@ export function BottomInputPanel({
                     />
                   ))}
                 </div>
-                <span className="text-xs font-medium text-gray-700">{selectedActors.length} Actor{selectedActors.length > 1 ? 's' : ''}</span>
+                <span className="text-[10px] md:text-xs font-medium text-gray-700">{selectedActors.length} Actor{selectedActors.length > 1 ? 's' : ''}</span>
               </div>
             )}
             
@@ -263,11 +264,11 @@ export function BottomInputPanel({
               variant="ghost"
               size="sm"
               onClick={onOpenActorSelector}
-              className="h-7 text-xs text-gray-700 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white"
+              className="h-6 md:h-7 text-[10px] md:text-xs text-gray-700 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white px-2 md:px-3"
               disabled={isLoading}
             >
-              <Users className="h-3.5 w-3.5 mr-1" />
-              Add actors
+              <Users className="h-3 w-3 md:h-3.5 md:w-3.5" />
+              <span className="hidden sm:inline ml-1">Add actors</span>
             </Button>
 
             {onBulkGenerate && (
@@ -276,12 +277,12 @@ export function BottomInputPanel({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-7 text-xs text-gray-700 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white"
+                    className="h-6 md:h-7 text-[10px] md:text-xs text-gray-700 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white px-2 md:px-3"
                     disabled={isLoading || !script.trim() || productImage?.isUploading}
                   >
-                    <Film className="h-3.5 w-3.5 mr-1" />
-                    Bulk Generate
-                    <ChevronDown className="h-3 w-3 ml-1" />
+                    <Film className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                    <span className="hidden sm:inline ml-1">Bulk</span>
+                    <ChevronDown className="h-3 w-3 ml-0.5 md:ml-1" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="z-[100] bg-white shadow-lg border border-gray-200">
@@ -317,19 +318,19 @@ export function BottomInputPanel({
               variant="ghost"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
-              className="h-7 text-xs text-gray-700 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white"
+              className="h-6 md:h-7 text-[10px] md:text-xs text-gray-700 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white px-2 md:px-3"
               disabled={isLoading}
             >
-              <ImageIcon className="h-3.5 w-3.5 mr-1" />
-              Upload product
+              <ImageIcon className="h-3 w-3 md:h-3.5 md:w-3.5" />
+              <span className="hidden sm:inline ml-1">Product</span>
             </Button>
 
             <Button
               onClick={onSubmit}
               disabled={isLoading || !script.trim() || productImage?.isUploading}
-              className="h-9 w-9 rounded-full p-0 bg-[#0f1729] hover:bg-[#0f1729]/90"
+              className="h-8 w-8 md:h-9 md:w-9 rounded-full p-0 bg-[#0f1729] hover:bg-[#0f1729]/90"
             >
-              <ArrowUp className="h-4 w-4 text-white" />
+              <ArrowUp className="h-3.5 w-3.5 md:h-4 md:w-4 text-white" />
             </Button>
           </div>
         </div>

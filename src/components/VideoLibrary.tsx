@@ -425,7 +425,7 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
 
   if (loading) {
     return (
-      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 px-3 md:px-0">
         {Array.from({ length: VIDEOS_PER_PAGE }).map((_, i) => (
           <VideoCardSkeleton key={i} />
         ))}
@@ -452,7 +452,7 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
       />
       
       <div className="space-y-6">
-        <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 px-3 md:px-0">
           {videos.map((video) => {
           const isPortrait = !video.aspect_ratio || video.aspect_ratio === 'portrait' || video.aspect_ratio === '9:16';
           

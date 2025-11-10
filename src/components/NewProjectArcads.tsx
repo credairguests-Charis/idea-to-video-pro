@@ -357,23 +357,23 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = 'generate
   return (
     <div className="flex flex-col h-screen overflow-hidden bg-[#F7F7F8]">
       {/* Main Content Area */}
-      <div className="flex-1 overflow-auto pb-[200px]">
+      <div className="flex-1 overflow-auto pb-[200px] md:pb-[200px]">
         {mode === 'generate' ? (
-          <div className="flex items-center justify-center h-full pb-12">
+          <div className="flex items-center justify-center h-full pb-12 px-4">
             <div className="text-center max-w-md">
               <div className="mb-6 flex justify-center">
-                <Users className="h-20 w-20 text-gray-300" />
+                <Users className="h-16 w-16 md:h-20 md:w-20 text-gray-300" />
               </div>
-              <h3 className="text-xl font-medium text-gray-600 mb-1">
+              <h3 className="text-lg md:text-xl font-medium text-gray-600 mb-1">
                 Generate winning assets with talking actors,
               </h3>
-              <p className="text-lg text-gray-500">
+              <p className="text-base md:text-lg text-gray-500">
                 reactions and more.
               </p>
             </div>
           </div>
         ) : (
-          <div className="px-6 pt-6 pb-6">
+          <div className="px-2 md:px-6 pt-4 md:pt-6 pb-6">
             <VideoLibrary projectId={projectId} />
           </div>
         )}

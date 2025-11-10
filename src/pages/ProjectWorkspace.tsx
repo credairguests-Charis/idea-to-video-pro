@@ -6,6 +6,8 @@ import { NewProjectArcads } from "@/components/NewProjectArcads"
 import { VideoGenerationTracker } from "@/components/VideoGenerationTracker"
 import { useProjects } from "@/hooks/useProjects"
 import { Button } from "@/components/ui/button"
+import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
+import { Menu } from "lucide-react"
 import Settings from "./Settings"
 
 interface ProjectWorkspaceProps {
@@ -18,6 +20,7 @@ export default function ProjectWorkspace({ settingsMode = false }: ProjectWorksp
   const { projects, loading, createProject } = useProjects()
   const [currentProjectId, setCurrentProjectId] = useState<string | undefined>(projectId)
   const [viewMode, setViewMode] = useState<'generate' | 'library'>('generate')
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   useEffect(() => {
     if (projectId) {
@@ -32,6 +35,7 @@ export default function ProjectWorkspace({ settingsMode = false }: ProjectWorksp
     setCurrentProjectId(id)
     setViewMode('library')
     navigate(`/app/workspace/${id}`)
+    setMobileMenuOpen(false) // Close mobile menu on selection
   }
 
   const handleNewProject = async () => {
@@ -66,8 +70,28 @@ export default function ProjectWorkspace({ settingsMode = false }: ProjectWorksp
 
   return (
     <div className="flex h-screen overflow-hidden">
-      {/* Sidebar */}
-      <div className="flex-shrink-0">
+      {/* Mobile Menu Button */}
+      <Sheet open={mobileMenuOpen} onOpenChange={setMobileMenuOpen}>
+        <SheetTrigger asChild>
+          <Button 
+            variant="ghost" 
+            size="icon"
+            className="md:hidden fixed top-4 left-4 z-50 bg-white shadow-md"
+          >
+            <Menu className="h-5 w-5" />
+          </Button>
+        </SheetTrigger>
+        <SheetContent side="left" className="p-0 w-64">
+          <ProjectSidebar
+            currentProjectId={currentProjectId}
+            onProjectSelect={handleProjectSelect}
+            onNewProject={handleNewProject}
+          />
+        </SheetContent>
+      </Sheet>
+
+      {/* Sidebar - Hidden on mobile, visible on md and up */}
+      <div className="hidden md:block flex-shrink-0">
         <ProjectSidebar
           currentProjectId={currentProjectId}
           onProjectSelect={handleProjectSelect}
@@ -76,7 +100,7 @@ export default function ProjectWorkspace({ settingsMode = false }: ProjectWorksp
       </div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden w-full">
         {settingsMode ? (
           <Settings />
         ) : currentProject ? (
