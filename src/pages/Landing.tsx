@@ -64,7 +64,7 @@ const Landing = () => {
       <section className="container mx-auto px-4 py-12 lg:py-20">
         <div className="max-w-6xl mx-auto text-center space-y-12 animate-fade-in">
           <div className="space-y-6">
-            <h1 className="text-5xl lg:text-7xl font-bold tracking-tight">{" "}
+            <h1 className="text-5xl lg:text-7xl font-bold tracking-tight">Create winning ads with AI {" "}
               <span className="text-primary">AI </span>
             </h1>
             <p className="text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">Generate 100s of winning videos from text.</p>
