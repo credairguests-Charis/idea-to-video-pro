@@ -69,7 +69,7 @@ const Landing = () => {
               <span className="relative inline-block px-4">
                 <span className="relative z-10">winning</span>
                 <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 80" preserveAspectRatio="none">
-                  <ellipse cx="100" cy="40" rx="95" ry="35" fill="none" stroke="hsl(var(--muted-foreground) / 0.3)" strokeWidth="3" strokeLinecap="round" style={{ transform: 'rotate(-2deg)', transformOrigin: 'center' }} />
+                  <ellipse cx="100" cy="40" rx="95" ry="35" fill="none" stroke="hsl(var(--muted-foreground) / 0.6)" strokeWidth="5" strokeLinecap="round" style={{ transform: 'rotate(-2deg)', transformOrigin: 'center' }} />
                 </svg>
               </span>
               {" "}ads with AI
