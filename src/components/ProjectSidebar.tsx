@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut, FolderPlus, PanelLeftClose, PanelLeft } from "lucide-react";
-import charisLogo from "@/assets/charis-logo.png";
+import charisLogo from "@/assets/charis-logo-2.png";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -174,24 +174,34 @@ export function ProjectSidebar({
   return <div className={cn("flex flex-col h-full bg-sidebar border-r transition-all duration-300", isCollapsed ? "w-16" : "w-64")}>
       {/* Header */}
       <div className="p-3 border-b">
-        <div className="flex items-center gap-3 mb-3">
-          {isCollapsed ? (
-            <TooltipProvider delayDuration={300}>
-              <Tooltip>
-                <TooltipTrigger asChild>
-                  <img src={charisLogo} alt="Charis" className="w-8 h-8 rounded-lg object-cover" />
-                </TooltipTrigger>
-                <TooltipContent side="right">
-                  <p>Charis</p>
-                </TooltipContent>
-              </Tooltip>
-            </TooltipProvider>
-          ) : (
-            <>
-              <img src={charisLogo} alt="Charis" className="w-8 h-8 rounded-lg object-cover" />
-              <span className="font-semibold text-foreground">Charis</span>
-            </>
-          )}
+        <div className="flex items-center justify-between gap-3 mb-3">
+          <div className="flex items-center gap-3">
+            {isCollapsed ? (
+              <TooltipProvider delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <img src={charisLogo} alt="Charis logo" className="w-8 h-8 rounded-lg object-cover" />
+                  </TooltipTrigger>
+                  <TooltipContent side="right">
+                    <p>Charis</p>
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <>
+                <img src={charisLogo} alt="Charis logo" className="w-8 h-8 rounded-lg object-cover" />
+                <span className="font-semibold text-foreground">Charis</span>
+              </>
+            )}
+          </div>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => setIsCollapsed(!isCollapsed)}
+            className="h-8 w-8 hover:bg-accent/50"
+          >
+            {isCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+          </Button>
         </div>
         <div className="space-y-2">
           <TooltipProvider delayDuration={300}>
@@ -214,14 +224,6 @@ export function ProjectSidebar({
             </Button>
           )}
         </div>
-        <Button
-          variant="ghost"
-          size="icon"
-          onClick={() => setIsCollapsed(!isCollapsed)}
-          className="w-full h-8 mt-2 hover:bg-accent/50"
-        >
-          {isCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
-        </Button>
       </div>
 
       <ScrollArea className="flex-1" onScrollCapture={handleScroll}>
@@ -343,7 +345,7 @@ export function ProjectSidebar({
                 </TooltipProvider>
               ) : (
                 <>
-                  <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 justify-start px-4 h-10 hover:bg-transparent text-left pr-12", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
+                  <Button variant="outline" size="sm" className={cn("w-full justify-start rounded-lg h-10 bg-background hover:bg-accent text-foreground shadow-none border text-left px-3 pr-12", currentProjectId === project.id && "border-primary")} onClick={() => onProjectSelect(project.id)}>
                     <span className="truncate text-sm" title={project.title}>{project.title}</span>
                   </Button>
 
