@@ -285,44 +285,106 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
     setShowVideoModal(true);
   };
 
-  const generateThumbnail = async (videoUrl: string, videoId: string) => {
+  const generateThumbnail = async (videoUrl: string, videoId: string): Promise<string | null> => {
     return new Promise<string | null>((resolve) => {
+      const timeout = setTimeout(() => {
+        console.warn(`Thumbnail generation timeout for video ${videoId}`);
+        resolve(null);
+      }, 10000); // 10 second timeout
+
       try {
         const video = document.createElement('video');
         video.crossOrigin = 'anonymous';
         video.src = videoUrl;
-        video.currentTime = 1.5; // Capture frame at 1.5 seconds for better content
+        video.preload = 'metadata';
+        video.muted = true;
         
-        video.onloadeddata = () => {
-          // Slight delay to ensure frame is available
-          setTimeout(() => {
-            try {
-              const canvas = document.createElement('canvas');
-              canvas.width = video.videoWidth || 0;
-              canvas.height = video.videoHeight || 0;
-              if (!canvas.width || !canvas.height) return resolve(null);
-              const ctx = canvas.getContext('2d');
-              if (ctx) {
-                ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
-                const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.85);
-                // Ensure we actually got an image
-                if (thumbnailUrl && thumbnailUrl.startsWith('data:image')) {
-                  resolve(thumbnailUrl);
-                } else {
-                  resolve(null);
-                }
-              } else {
-                resolve(null);
+        const captureFrame = () => {
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = video.videoWidth || 0;
+            canvas.height = video.videoHeight || 0;
+            
+            // Validate dimensions
+            if (!canvas.width || !canvas.height || canvas.width < 10 || canvas.height < 10) {
+              console.warn(`Invalid video dimensions for ${videoId}: ${canvas.width}x${canvas.height}`);
+              clearTimeout(timeout);
+              return resolve(null);
+            }
+            
+            const ctx = canvas.getContext('2d', { willReadFrequently: false });
+            if (!ctx) {
+              clearTimeout(timeout);
+              return resolve(null);
+            }
+            
+            ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+            
+            // Check if canvas is actually filled (not all black/white)
+            const imageData = ctx.getImageData(0, 0, Math.min(canvas.width, 100), Math.min(canvas.height, 100));
+            const data = imageData.data;
+            let hasContent = false;
+            for (let i = 0; i < data.length; i += 4) {
+              const r = data[i];
+              const g = data[i + 1];
+              const b = data[i + 2];
+              // Check if pixel is not pure black (0,0,0) or pure white (255,255,255)
+              if ((r > 10 || g > 10 || b > 10) && (r < 245 || g < 245 || b < 245)) {
+                hasContent = true;
+                break;
               }
-            } catch (e) {
-              // Tainted canvas or other error
+            }
+            
+            if (!hasContent) {
+              console.warn(`Generated thumbnail appears to be blank for ${videoId}`);
+              clearTimeout(timeout);
+              return resolve(null);
+            }
+            
+            const thumbnailUrl = canvas.toDataURL('image/jpeg', 0.85);
+            
+            if (thumbnailUrl && thumbnailUrl.startsWith('data:image') && thumbnailUrl.length > 1000) {
+              clearTimeout(timeout);
+              resolve(thumbnailUrl);
+            } else {
+              console.warn(`Invalid thumbnail generated for ${videoId}`);
+              clearTimeout(timeout);
               resolve(null);
             }
-          }, 120);
+          } catch (e) {
+            console.error('Error capturing thumbnail frame:', e);
+            clearTimeout(timeout);
+            resolve(null);
+          }
         };
         
-        video.onerror = () => resolve(null);
+        video.onloadedmetadata = () => {
+          // Try to seek to a point where content exists
+          const duration = video.duration;
+          if (duration && duration > 0) {
+            // Capture at 10% into video, or 1 second, whichever is less
+            video.currentTime = Math.min(duration * 0.1, 1.0);
+          } else {
+            video.currentTime = 0.5;
+          }
+        };
+        
+        video.onseeked = () => {
+          // Wait a bit for the frame to render
+          setTimeout(captureFrame, 200);
+        };
+        
+        video.onerror = (e) => {
+          console.error('Video loading error for thumbnail:', e);
+          clearTimeout(timeout);
+          resolve(null);
+        };
+        
+        // Start loading
+        video.load();
       } catch (e) {
+        console.error('Error in generateThumbnail:', e);
+        clearTimeout(timeout);
         resolve(null);
       }
     });
@@ -468,14 +530,20 @@ export function VideoLibrary({ projectId }: VideoLibraryProps = {}) {
                         className="w-full h-full object-cover"
                       />
                     ) : (
-                      <video
-                        ref={(el) => { if (el) videoRefs.current[video.id] = el; }}
-                        src={video.result_url}
-                        className="w-full h-full object-cover"
-                        preload="metadata"
-                        muted
-                        playsInline
-                      />
+                      <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-muted to-muted/50">
+                        <video
+                          ref={(el) => { if (el) videoRefs.current[video.id] = el; }}
+                          src={video.result_url}
+                          className="w-full h-full object-cover"
+                          preload="auto"
+                          muted
+                          playsInline
+                          onLoadedData={async (e) => {
+                            const videoEl = e.currentTarget;
+                            videoEl.currentTime = Math.min(videoEl.duration * 0.1, 1.0);
+                          }}
+                        />
+                      </div>
                     )}
                   </>
                 )}
