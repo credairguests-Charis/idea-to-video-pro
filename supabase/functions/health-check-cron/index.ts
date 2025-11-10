@@ -5,7 +5,7 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 };
 
-async function checkOmniHumanAPI(): Promise<{ status: string; latency: number; error?: string }> {
+async function checkSoraAPI(): Promise<{ status: string; latency: number; error?: string }> {
   const startTime = Date.now();
   try {
     const kieApiKey = Deno.env.get('KIE_API_KEY');
@@ -88,21 +88,21 @@ Deno.serve(async (req) => {
 
   try {
     // Run all health checks in parallel
-    const [omniHumanResult, stripeResult, storageResult] = await Promise.all([
-      checkOmniHumanAPI(),
+    const [soraResult, stripeResult, storageResult] = await Promise.all([
+      checkSoraAPI(),
       checkStripeAPI(),
       checkSupabaseStorage(supabase),
     ]);
 
-    console.log('Health check results:', { omniHumanResult, stripeResult, storageResult });
+    console.log('Health check results:', { soraResult, stripeResult, storageResult });
 
     // Insert all results into the database
     const insertPromises = [
       supabase.from('health_checks').insert({
-        service_name: 'omnihuman',
-        status: omniHumanResult.status,
-        latency: omniHumanResult.latency,
-        error_message: omniHumanResult.error || null,
+        service_name: 'sora',
+        status: soraResult.status,
+        latency: soraResult.latency,
+        error_message: soraResult.error || null,
       }),
       supabase.from('health_checks').insert({
         service_name: 'stripe',
@@ -126,7 +126,7 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         results: {
-          omnihuman: omniHumanResult,
+          sora: soraResult,
           stripe: stripeResult,
           storage: storageResult,
         },

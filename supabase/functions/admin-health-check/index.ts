@@ -51,7 +51,7 @@ Deno.serve(async (req) => {
   let errorMessage = null;
 
   try {
-    // Test OmniHuman API
+    // Test Sora API
     const kieApiKey = Deno.env.get('KIE_API_KEY');
     if (!kieApiKey) {
       throw new Error('KIE_API_KEY not configured');
@@ -73,7 +73,7 @@ Deno.serve(async (req) => {
 
     // Store health check result
     await supabase.from('api_health').insert({
-      service_name: 'omnihuman',
+      service_name: 'sora',
       status,
       latency_ms: latency,
       error_message: errorMessage
@@ -82,7 +82,7 @@ Deno.serve(async (req) => {
     console.log('Health check completed:', { status, latency, errorMessage });
 
     return new Response(JSON.stringify({
-      service: 'omnihuman',
+      service: 'sora',
       status,
       latency,
       errorMessage,
@@ -94,7 +94,7 @@ Deno.serve(async (req) => {
     const latency = Date.now() - startTime;
     
     await supabase.from('api_health').insert({
-      service_name: 'omnihuman',
+      service_name: 'sora',
       status: 'down',
       latency_ms: latency,
       error_message: error.message
@@ -103,7 +103,7 @@ Deno.serve(async (req) => {
     console.error('Health check failed:', error);
 
     return new Response(JSON.stringify({
-      service: 'omnihuman',
+      service: 'sora',
       status: 'down',
       latency,
       errorMessage: error.message,
