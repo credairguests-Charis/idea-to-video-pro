@@ -133,8 +133,12 @@ const Landing = () => {
         <div className="grid lg:grid-cols-3 gap-12 max-w-6xl mx-auto">
           {/* Feature 1 */}
           <div className="space-y-6 text-center lg:text-left">
-            <div className="relative h-48 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl overflow-hidden flex items-center justify-center border border-primary/20">
-              <Wand2 className="h-20 w-20 text-primary/40" />
+            <div className="relative h-64 bg-background rounded-2xl overflow-hidden shadow-xl border border-border/50 hover:shadow-2xl transition-shadow duration-300">
+              <img 
+                src="/features/script-interface.png" 
+                alt="Captivating scripts interface"
+                className="w-full h-full object-cover object-center"
+              />
             </div>
             <div className="space-y-3">
               <h3 className="text-2xl font-bold">Captivating scripts</h3>
@@ -146,11 +150,15 @@ const Landing = () => {
 
           {/* Feature 2 */}
           <div className="space-y-6 text-center lg:text-left">
-            <div className="relative h-48 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl overflow-hidden flex items-center justify-center border border-primary/20">
-              <Users className="h-20 w-20 text-primary/40" />
+            <div className="relative h-64 bg-background rounded-2xl overflow-hidden shadow-xl border border-border/50 hover:shadow-2xl transition-shadow duration-300">
+              <img 
+                src="/features/actors-grid.png" 
+                alt="Dynamic AI actors selection"
+                className="w-full h-full object-cover object-center"
+              />
             </div>
             <div className="space-y-3">
-              <h3 className="text-2xl font-bold">Engaging AI Actors</h3>
+              <h3 className="text-2xl font-bold">Dynamic Actors</h3>
               <p className="text-muted-foreground">
                 Choose from a library of 100s of attention-grabbing AI Actors.
               </p>
@@ -159,8 +167,12 @@ const Landing = () => {
 
           {/* Feature 3 */}
           <div className="space-y-6 text-center lg:text-left">
-            <div className="relative h-48 bg-gradient-to-br from-primary/10 to-primary/5 rounded-2xl overflow-hidden flex items-center justify-center border border-primary/20">
-              <Layers className="h-20 w-20 text-primary/40" />
+            <div className="relative h-64 bg-background rounded-2xl overflow-hidden shadow-xl border border-border/50 hover:shadow-2xl transition-shadow duration-300">
+              <img 
+                src="/features/bulk-generation.png" 
+                alt="Bulk video generation options"
+                className="w-full h-full object-cover object-center"
+              />
             </div>
             <div className="space-y-3">
               <h3 className="text-2xl font-bold">Bulk Creation</h3>
