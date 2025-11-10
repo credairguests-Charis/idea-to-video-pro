@@ -13,6 +13,7 @@ export const HeroVideoCarousel = () => {
   const [currentIndex, setCurrentIndex] = useState(0);
   const [mutedStates, setMutedStates] = useState([true, true, true]);
   const [playingStates, setPlayingStates] = useState([false, false, false]);
+  const [hoveredIndex, setHoveredIndex] = useState<number | null>(null);
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   useEffect(() => {
@@ -95,6 +96,8 @@ export const HeroVideoCarousel = () => {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: index * 0.2 }}
           onClick={() => handleVideoClick(index)}
+          onMouseEnter={() => setHoveredIndex(index)}
+          onMouseLeave={() => setHoveredIndex(null)}
           className={`relative rounded-2xl overflow-hidden border-4 transition-all duration-300 cursor-pointer ${
             currentIndex === index
               ? "border-primary shadow-2xl shadow-primary/20 scale-105"
@@ -120,7 +123,9 @@ export const HeroVideoCarousel = () => {
           )}
           
           {/* Video Controls */}
-          <div className="absolute top-3 right-3 flex gap-2 z-10">
+          <div className={`absolute top-3 right-3 flex gap-2 z-10 transition-opacity duration-300 ${
+            hoveredIndex === index ? "opacity-100" : "opacity-0"
+          }`}>
             <Button
               size="icon"
               variant="secondary"
