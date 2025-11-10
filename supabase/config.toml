@@ -24,20 +24,8 @@ verify_jwt = false
 [functions.generate-tts]
 verify_jwt = true
 
-[functions.generate-omnihuman]
-verify_jwt = true
-
-[functions.diagnose-omnihuman]
-verify_jwt = false
-
-[functions.omnihuman-webhook]
-verify_jwt = false
-
 [functions.upload-audio]
 verify_jwt = true
-
-[functions.poll-omnihuman-status]
-verify_jwt = false
 
 [functions.admin-get-dashboard-data]
 verify_jwt = true
