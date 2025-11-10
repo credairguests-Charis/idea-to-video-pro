@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut, FolderPlus } from "lucide-react";
+import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut, FolderPlus, PanelLeftClose, PanelLeft } from "lucide-react";
+import charisLogo from "@/assets/charis-logo.png";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
@@ -59,6 +60,7 @@ export function ProjectSidebar({
     name: string;
   } | null>(null);
   const [selectedProjectsToMove, setSelectedProjectsToMove] = useState<Set<string>>(new Set());
+  const [isCollapsed, setIsCollapsed] = useState(false);
 
   // Auto-expand folder containing current project
   useEffect(() => {
@@ -169,31 +171,63 @@ export function ProjectSidebar({
     }
   }, [displayedProjects, projects.length]);
   const standaloneProjects = projects.filter(p => !p.folder_id).slice(0, displayedProjects);
-  return <div className="flex flex-col h-full bg-sidebar border-r">
+  return <div className={cn("flex flex-col h-full bg-sidebar border-r transition-all duration-300", isCollapsed ? "w-16" : "w-64")}>
       {/* Header */}
       <div className="p-3 border-b">
         <div className="flex items-center gap-3 mb-3">
-          <div className="w-8 h-8 bg-primary rounded-lg flex items-center justify-center">
-            <span className="text-primary-foreground font-bold text-sm">C</span>
-          </div>
-          <span className="font-semibold text-foreground">Charis</span>
+          {isCollapsed ? (
+            <TooltipProvider delayDuration={300}>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <img src={charisLogo} alt="Charis" className="w-8 h-8 rounded-lg object-cover" />
+                </TooltipTrigger>
+                <TooltipContent side="right">
+                  <p>Charis</p>
+                </TooltipContent>
+              </Tooltip>
+            </TooltipProvider>
+          ) : (
+            <>
+              <img src={charisLogo} alt="Charis" className="w-8 h-8 rounded-lg object-cover" />
+              <span className="font-semibold text-foreground">Charis</span>
+            </>
+          )}
         </div>
         <div className="space-y-2">
-          <Button onClick={onNewProject} className="w-full justify-start rounded-lg h-10 bg-background hover:bg-accent text-foreground shadow-none border" variant="outline">
-            <Plus className="h-4 w-4 mr-2" />
-            New Project
-          </Button>
-          <Button onClick={() => setNewFolderDialog(true)} variant="ghost" className="w-full justify-start rounded-lg h-9" size="sm">
-            <FolderOpen className="h-4 w-4 mr-2" />
-            New Folder
-          </Button>
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button onClick={onNewProject} className={cn("w-full rounded-lg h-10 bg-background hover:bg-accent text-foreground shadow-none border", isCollapsed ? "justify-center px-0" : "justify-start")} variant="outline">
+                  <Plus className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
+                  {!isCollapsed && "New Project"}
+                </Button>
+              </TooltipTrigger>
+              {isCollapsed && <TooltipContent side="right">
+                <p>New Project</p>
+              </TooltipContent>}
+            </Tooltip>
+          </TooltipProvider>
+          {!isCollapsed && (
+            <Button onClick={() => setNewFolderDialog(true)} variant="ghost" className="w-full justify-start rounded-lg h-9" size="sm">
+              <FolderOpen className="h-4 w-4 mr-2" />
+              New Folder
+            </Button>
+          )}
         </div>
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={() => setIsCollapsed(!isCollapsed)}
+          className="w-full h-8 mt-2 hover:bg-accent/50"
+        >
+          {isCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
+        </Button>
       </div>
 
       <ScrollArea className="flex-1" onScrollCapture={handleScroll}>
-        <div className="p-3 space-y-0.5" ref={scrollRef}>
+        <div className={cn("space-y-0.5", isCollapsed ? "p-1" : "p-3")} ref={scrollRef}>
           {/* Folders */}
-          {folders.map(folder => {
+          {!isCollapsed && folders.map(folder => {
           const folderProjects = projects.filter(p => p.folder_id === folder.id);
           const isExpanded = expandedFolders.has(folder.id);
           return <div key={folder.id} className="space-y-0.5">
@@ -294,9 +328,24 @@ export function ProjectSidebar({
 
           {/* Standalone Projects */}
           {standaloneProjects.map(project => <div key={project.id} className="relative group flex items-center rounded-lg hover:bg-accent/50 transition-colors mx-0 my-0.5">
-              <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 justify-start px-4 h-10 hover:bg-transparent text-left pr-12", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
-                <span className="truncate text-sm" title={project.title}>{project.title}</span>
-              </Button>
+              {isCollapsed ? (
+                <TooltipProvider delayDuration={300}>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button variant="ghost" size="sm" className={cn("w-full justify-center px-0 h-10 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
+                        <div className="w-2 h-2 rounded-full bg-primary" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="right" align="start" className="max-w-xs break-words">
+                      {project.title}
+                    </TooltipContent>
+                  </Tooltip>
+                </TooltipProvider>
+              ) : (
+                <>
+                  <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 justify-start px-4 h-10 hover:bg-transparent text-left pr-12", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
+                    <span className="truncate text-sm" title={project.title}>{project.title}</span>
+                  </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -335,17 +384,28 @@ export function ProjectSidebar({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+                </>
+              )}
             </div>)}
         </div>
       </ScrollArea>
 
       {/* Footer with user info and actions */}
-      <div className="p-3 border-t mt-auto bg-sidebar space-y-2">
-        <Button variant="ghost" className="w-full justify-start gap-2 text-muted-foreground hover:text-foreground hover:bg-accent/50 h-9" onClick={() => navigate('/app/settings')} size="sm">
-          <Settings className="h-4 w-4" />
-          <span className="text-sm">Settings</span>
-        </Button>
-        {user && <div className="flex items-center gap-2 px-2">
+      <div className={cn("border-t mt-auto bg-sidebar space-y-2", isCollapsed ? "p-1" : "p-3")}>
+        <TooltipProvider delayDuration={300}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" className={cn("w-full gap-2 text-muted-foreground hover:text-foreground hover:bg-accent/50 h-9", isCollapsed ? "justify-center px-0" : "justify-start")} onClick={() => navigate('/app/settings')} size="sm">
+                <Settings className="h-4 w-4" />
+                {!isCollapsed && <span className="text-sm">Settings</span>}
+              </Button>
+            </TooltipTrigger>
+            {isCollapsed && <TooltipContent side="right">
+              <p>Settings</p>
+            </TooltipContent>}
+          </Tooltip>
+        </TooltipProvider>
+        {user && !isCollapsed && <div className="flex items-center gap-2 px-2">
             <div className="flex-1 min-w-0">
               <div className="text-xs text-muted-foreground truncate">
                 {user.email}
@@ -355,6 +415,21 @@ export function ProjectSidebar({
               <LogOut className="h-3.5 w-3.5" />
             </Button>
           </div>}
+        {user && isCollapsed && (
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button variant="ghost" size="icon" className="w-full h-9 text-muted-foreground hover:text-foreground hover:bg-accent/50" onClick={() => signOut()}>
+                  <LogOut className="h-4 w-4" />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>Sign Out</p>
+                <p className="text-xs text-muted-foreground">{user.email}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
       </div>
 
       {/* New Folder Dialog */}

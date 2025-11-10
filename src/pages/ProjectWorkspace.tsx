@@ -67,7 +67,7 @@ export default function ProjectWorkspace({ settingsMode = false }: ProjectWorksp
   return (
     <div className="flex h-screen overflow-hidden">
       {/* Sidebar */}
-      <div className="w-64 flex-shrink-0">
+      <div className="flex-shrink-0">
         <ProjectSidebar
           currentProjectId={currentProjectId}
           onProjectSelect={handleProjectSelect}
