@@ -4,9 +4,9 @@ import { Volume2, VolumeX, Play, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 const videos = [
-  "/videos/hero-video-1.mp4",
-  "/videos/hero-video-2.mp4",
-  "/videos/hero-video-3.mp4",
+  { src: "/videos/hero-video-1.mp4", poster: "/videos/thumbnail-1.jpg" },
+  { src: "/videos/hero-video-2.mp4", poster: "/videos/thumbnail-2.jpg" },
+  { src: "/videos/hero-video-3.mp4", poster: "/videos/thumbnail-3.jpg" },
 ];
 
 export const HeroVideoCarousel = () => {
@@ -111,7 +111,8 @@ export const HeroVideoCarousel = () => {
         >
           <video
             ref={(el) => (videoRefs.current[index] = el)}
-            src={video}
+            src={video.src}
+            poster={video.poster}
             muted
             playsInline
             loop={false}
