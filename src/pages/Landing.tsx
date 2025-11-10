@@ -55,7 +55,7 @@ const Landing = () => {
             <Button variant="ghost" onClick={() => navigate("/auth")}>
               Sign In
             </Button>
-            <Button onClick={() => navigate("/auth")}>Start Free Trial</Button>
+            <Button onClick={() => navigate("/auth")}>Start Now</Button>
           </div>
         </div>
       </header>
@@ -69,7 +69,10 @@ const Landing = () => {
               <span className="relative inline-block px-4">
                 <span className="relative z-10">winning</span>
                 <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 80" preserveAspectRatio="none">
-                  <ellipse cx="100" cy="40" rx="95" ry="35" fill="none" stroke="hsl(var(--muted-foreground) / 0.6)" strokeWidth="5" strokeLinecap="round" style={{ transform: 'rotate(-2deg)', transformOrigin: 'center' }} />
+                  <ellipse cx="100" cy="40" rx="95" ry="35" fill="none" stroke="hsl(var(--muted-foreground) / 0.6)" strokeWidth="5" strokeLinecap="round" style={{
+                  transform: 'rotate(-2deg)',
+                  transformOrigin: 'center'
+                }} />
                 </svg>
               </span>
               {" "}ads with AI
@@ -215,9 +218,7 @@ const Landing = () => {
           <p className="text-lg text-muted-foreground max-w-2xl mx-auto">
             Join thousands of brands creating viral UGC videos with AI
           </p>
-          <Button size="lg" className="text-base px-8" onClick={() => navigate("/auth")}>
-            Start Your Free Trial Today
-          </Button>
+          <Button size="lg" className="text-base px-8" onClick={() => navigate("/auth")}>​Create Your First Video</Button>
         </div>
       </section>
 
