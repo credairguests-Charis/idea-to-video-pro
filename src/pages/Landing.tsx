@@ -64,8 +64,15 @@ const Landing = () => {
       <section className="container mx-auto px-4 py-12 lg:py-20">
         <div className="max-w-6xl mx-auto text-center space-y-12 animate-fade-in">
           <div className="space-y-6">
-            <h1 className="text-5xl lg:text-7xl font-bold tracking-tight">Create winning ads with AI {" "}
-              <span className="text-primary">AI </span>
+            <h1 className="text-5xl lg:text-7xl font-bold tracking-tight">
+              Create{" "}
+              <span className="relative inline-block px-4">
+                <span className="relative z-10">winning</span>
+                <svg className="absolute inset-0 w-full h-full" viewBox="0 0 200 80" preserveAspectRatio="none">
+                  <ellipse cx="100" cy="40" rx="95" ry="35" fill="none" stroke="hsl(var(--muted-foreground) / 0.3)" strokeWidth="3" strokeLinecap="round" style={{ transform: 'rotate(-2deg)', transformOrigin: 'center' }} />
+                </svg>
+              </span>
+              {" "}ads with AI
             </h1>
             <p className="text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">Generate 100s of winning videos from text.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
@@ -112,7 +119,7 @@ const Landing = () => {
             <div className="h-16 w-16 rounded-2xl bg-gradient-to-br from-primary/20 to-primary/10 flex items-center justify-center">
               <DollarSign className="h-8 w-8 text-primary" />
             </div>
-            <h3 className="text-xl font-bold">Pay less, Save thousands</h3>
+            <h3 className="text-xl font-bold">Pay less, Save thousands</h3>
             <p className="text-muted-foreground">Save thousands on production costs and product shipping costs to creators, while scaling your brand.</p>
           </Card>
         </div>
