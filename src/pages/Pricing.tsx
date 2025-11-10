@@ -138,12 +138,16 @@ export default function Pricing() {
   const features = ["Unlimited AI video generations", "Full access to all AI actors", "HD and 4K video quality", "Priority processing queue", "Advanced customization options", "Commercial usage rights", "Email support", "API access (coming soon)"];
   return <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <div className="container mx-auto px-4 py-16">
-        {!user && <div className="mb-6">
-            <Button variant="ghost" onClick={() => navigate('/auth')} className="inline-flex items-center gap-2">
-              <ArrowLeft className="h-4 w-4" />
-              Back to Sign In
-            </Button>
-          </div>}
+        <div className="mb-6">
+          <Button 
+            variant="ghost" 
+            onClick={() => user ? navigate('/app') : navigate('/')} 
+            className="inline-flex items-center gap-2"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            {user ? 'Back to Dashboard' : 'Back to Home'}
+          </Button>
+        </div>
         <div className="text-center mb-12">
           <h1 className="text-4xl font-bold mb-4">Simple, Transparent Pricing</h1>
           <p className="text-muted-foreground text-lg">
