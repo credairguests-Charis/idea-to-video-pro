@@ -171,7 +171,7 @@ export function ProjectSidebar({
     }
   }, [displayedProjects, projects.length]);
   const standaloneProjects = projects.filter(p => !p.folder_id).slice(0, displayedProjects);
-  return <div className={cn("flex flex-col h-full bg-sidebar border-r transition-all duration-300 shrink-0 overflow-x-hidden", isCollapsed ? "w-16" : "w-64")}>
+  return <div className={cn("relative z-20 flex flex-col h-full bg-sidebar border-r transition-all duration-300 shrink-0 overflow-hidden", isCollapsed ? "w-16" : "w-64")}>
       {/* Header */}
       <div className="p-3 border-b">
         <div className="flex items-center justify-between gap-3 mb-3">
@@ -233,7 +233,7 @@ export function ProjectSidebar({
           const folderProjects = projects.filter(p => p.folder_id === folder.id);
           const isExpanded = expandedFolders.has(folder.id);
           return <div key={folder.id} className="space-y-0.5">
-                <div className="relative group flex items-center rounded-lg mx-0 my-0.5 hover:bg-accent/50 transition-colors">
+                <div className="relative group flex items-center w-full min-w-0 rounded-lg mx-0 my-0.5 hover:bg-accent/50 transition-colors overflow-hidden">
                   <Button variant="ghost" size="sm" className="w-full max-w-full justify-start px-4 h-10 hover:bg-transparent" onClick={() => toggleFolder(folder.id)}>
                     {isExpanded ? <ChevronDown className="h-4 w-4 mr-1.5 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 mr-1.5 shrink-0 text-muted-foreground" />}
                     {isExpanded ? <FolderOpen className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" /> : <Folder className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />}
