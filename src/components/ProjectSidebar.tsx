@@ -345,7 +345,7 @@ export function ProjectSidebar({
                 </TooltipProvider>
               ) : (
                 <>
-                  <Button variant="outline" size="sm" className={cn("w-full justify-start rounded-lg h-10 bg-background hover:bg-accent text-foreground shadow-none border text-left px-3 pr-12", currentProjectId === project.id && "border-primary")} onClick={() => onProjectSelect(project.id)}>
+                  <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 justify-start rounded-lg h-10 text-left px-3 pr-12 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
                     <span className="truncate text-sm" title={project.title}>{project.title}</span>
                   </Button>
 
