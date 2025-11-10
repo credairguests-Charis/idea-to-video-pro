@@ -9,11 +9,11 @@ const buttonVariants = cva(
   {
     variants: {
       variant: {
-        default: "bg-primary text-primary-foreground hover:bg-black hover:text-white dark:hover:bg-black dark:hover:text-white",
-        destructive: "bg-destructive text-destructive-foreground hover:bg-black hover:text-white dark:hover:bg-black dark:hover:text-white",
-        outline: "border border-input bg-background hover:bg-black hover:text-white dark:hover:bg-black dark:hover:text-white",
-        secondary: "bg-secondary text-secondary-foreground hover:bg-black hover:text-white dark:hover:bg-black dark:hover:text-white",
-        ghost: "hover:bg-black hover:text-white dark:hover:bg-black dark:hover:text-white",
+        default: "bg-primary text-primary-foreground hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white",
+        destructive: "bg-destructive text-destructive-foreground hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white",
+        outline: "border border-input bg-background hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white",
+        secondary: "bg-secondary text-secondary-foreground hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white",
+        ghost: "hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white",
         link: "text-primary underline-offset-4 hover:underline",
       },
       size: {
