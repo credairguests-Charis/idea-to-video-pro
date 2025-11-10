@@ -171,7 +171,7 @@ export function ProjectSidebar({
     }
   }, [displayedProjects, projects.length]);
   const standaloneProjects = projects.filter(p => !p.folder_id).slice(0, displayedProjects);
-  return <div className={cn("flex flex-col h-full bg-sidebar border-r transition-all duration-300 shrink-0 overflow-x-hidden", isCollapsed ? "w-16" : "w-64")}>
+  return <div className={cn("flex flex-col h-full bg-sidebar border-r transition-all duration-300", isCollapsed ? "w-16" : "w-64")}>
       {/* Header */}
       <div className="p-3 border-b">
         <div className="flex items-center justify-between gap-3 mb-3">
@@ -233,14 +233,14 @@ export function ProjectSidebar({
           const folderProjects = projects.filter(p => p.folder_id === folder.id);
           const isExpanded = expandedFolders.has(folder.id);
           return <div key={folder.id} className="space-y-0.5">
-                <div className="relative group flex items-center w-full rounded-lg mx-0 my-0.5 hover:bg-accent/50 transition-colors overflow-hidden">
-                  <Button variant="ghost" size="sm" className="flex-1 min-w-0 justify-start px-4 pr-10 h-10 hover:bg-transparent overflow-hidden" onClick={() => toggleFolder(folder.id)}>
+                <div className="relative group flex items-center rounded-lg mx-0 my-0.5 hover:bg-accent/50 transition-colors">
+                  <Button variant="ghost" size="sm" className="flex-1 justify-start px-4 h-10 hover:bg-transparent" onClick={() => toggleFolder(folder.id)}>
                     {isExpanded ? <ChevronDown className="h-4 w-4 mr-1.5 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 mr-1.5 shrink-0 text-muted-foreground" />}
                     {isExpanded ? <FolderOpen className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" /> : <Folder className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />}
                     <TooltipProvider delayDuration={300}>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="truncate text-sm font-medium block w-full min-w-0" title={folder.name}>{folder.name}</span>
+                          <span className="truncate text-sm font-medium" title={folder.name}>{folder.name}</span>
                         </TooltipTrigger>
                         <TooltipContent side="right" align="start" className="max-w-xs break-words">
                           {folder.name}
@@ -288,7 +288,7 @@ export function ProjectSidebar({
                 {isExpanded && <div className="ml-8 space-y-0.5">
                     {folderProjects.map(project => <div key={project.id} className="relative group flex items-center w-full rounded-lg hover:bg-accent/50 transition-colors mx-0 my-0.5 overflow-hidden">
                         <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 justify-start px-4 h-10 hover:bg-transparent text-left pr-12 overflow-hidden", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
-                          <span className="text-sm truncate block w-full min-w-0" title={project.title}>{project.title}</span>
+                          <span className="text-sm truncate block w-full" title={project.title}>{project.title}</span>
                         </Button>
 
                         <DropdownMenu>
@@ -346,7 +346,7 @@ export function ProjectSidebar({
               ) : (
                 <>
                   <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 justify-start rounded-lg h-10 text-left px-3 pr-12 hover:bg-transparent overflow-hidden", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
-                    <span className="truncate text-sm block w-full min-w-0" title={project.title}>{project.title}</span>
+                    <span className="truncate text-sm block w-full" title={project.title}>{project.title}</span>
                   </Button>
 
               <DropdownMenu>
