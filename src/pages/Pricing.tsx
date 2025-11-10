@@ -32,25 +32,17 @@ export default function Pricing() {
   // Send subscription success email when user becomes subscribed
   useEffect(() => {
     const sendSubscriptionEmail = async () => {
-      if (
-        user &&
-        subscriptionStatus?.subscribed &&
-        (previousSubscriptionStatus.current === false || previousSubscriptionStatus.current === null) &&
-        !emailSentRef.current
-      ) {
+      if (user && subscriptionStatus?.subscribed && (previousSubscriptionStatus.current === false || previousSubscriptionStatus.current === null) && !emailSentRef.current) {
         emailSentRef.current = true;
         try {
-          const { data: profile } = await supabase
-            .from("profiles")
-            .select("full_name")
-            .eq("user_id", user.id)
-            .single();
-
+          const {
+            data: profile
+          } = await supabase.from("profiles").select("full_name").eq("user_id", user.id).single();
           await supabase.functions.invoke("send-subscription-success-email", {
             body: {
               email: user.email,
-              fullName: profile?.full_name || "there",
-            },
+              fullName: profile?.full_name || "there"
+            }
           });
           console.log("Subscription success email sent");
         } catch (error) {
@@ -59,7 +51,6 @@ export default function Pricing() {
       }
       previousSubscriptionStatus.current = subscriptionStatus?.subscribed ?? null;
     };
-
     sendSubscriptionEmail();
   }, [user, subscriptionStatus]);
 
@@ -139,11 +130,7 @@ export default function Pricing() {
   return <div className="min-h-screen bg-gradient-to-b from-background to-secondary/20">
       <div className="container mx-auto px-4 py-16">
         <div className="mb-6">
-          <Button 
-            variant="ghost" 
-            onClick={() => user ? navigate('/app') : navigate('/')} 
-            className="inline-flex items-center gap-2"
-          >
+          <Button variant="ghost" onClick={() => user ? navigate('/app') : navigate('/')} className="inline-flex items-center gap-2">
             <ArrowLeft className="h-4 w-4" />
             {user ? 'Back to Dashboard' : 'Back to Home'}
           </Button>
@@ -200,7 +187,7 @@ export default function Pricing() {
           </Card>
 
           <div className="mt-8 text-center text-sm text-muted-foreground">
-            <p>All plans include a 7-day money-back guarantee</p>
+            <p>All plans include guarantee</p>
             <p className="mt-2">Questions? Contact us at support@usecharis.com</p>
           </div>
         </div>
