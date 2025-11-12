@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 const videos = [
   { src: "/videos/hero-video-1.mp4", label: "CROCS" },
   { src: "/videos/hero-video-2.mp4", label: "HUGO BOSS" },
-  { src: "/videos/hero-video-3.mp4", label: "HONEY GIRL" },
+  { src: "/videos/hero-video-3.mp4", label: "HONEY GIRL ORGANICS" },
 ];
 
 export const HeroVideoCarousel = () => {
@@ -78,11 +78,7 @@ export const HeroVideoCarousel = () => {
               scale: hoveredIndex === index ? 0.95 : 1,
             }}
             transition={{ duration: 0.2 }}
-            className={`relative rounded-2xl overflow-hidden border-4 transition-all duration-300 cursor-pointer ${
-              currentIndex === index
-                ? "border-primary shadow-2xl shadow-primary/20"
-                : "border-border/40 shadow-lg"
-            }`}
+            className="relative rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20 transition-all duration-300 cursor-pointer"
             style={{
               width: "100%",
               maxWidth: "280px",
@@ -92,6 +88,7 @@ export const HeroVideoCarousel = () => {
             <video
               ref={(el) => (videoRefs.current[index] = el)}
               src={video.src}
+              autoPlay
               muted
               playsInline
               loop
