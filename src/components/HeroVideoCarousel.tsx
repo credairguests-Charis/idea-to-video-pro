@@ -22,6 +22,13 @@ export const HeroVideoCarousel = () => {
       setTimeout(() => {
         const video = videoRefs.current[index];
         if (video) {
+          // Ensure iOS inline autoplay conditions before playing
+          video.muted = true;
+          video.defaultMuted = true;
+          video.playsInline = true;
+          video.setAttribute('muted', '');
+          video.setAttribute('playsinline', 'true');
+          video.setAttribute('webkit-playsinline', 'true');
           // Handle play promise to avoid errors on mobile
           const playPromise = video.play();
           if (playPromise !== undefined) {
@@ -91,7 +98,7 @@ export const HeroVideoCarousel = () => {
               scale: hoveredIndex === index ? 0.95 : 1,
             }}
             transition={{ duration: 0.2 }}
-            className="relative rounded-2xl overflow-hidden border-4 border-primary shadow-2xl shadow-primary/20 transition-all duration-300 cursor-pointer"
+            className="relative rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 transition-all duration-300 cursor-pointer"
             style={{
               width: "100%",
               maxWidth: "280px",
@@ -99,7 +106,18 @@ export const HeroVideoCarousel = () => {
             }}
           >
             <video
-              ref={(el) => (videoRefs.current[index] = el)}
+              ref={(el) => {
+                videoRefs.current[index] = el;
+                if (el) {
+                  el.muted = true;
+                  el.defaultMuted = true;
+                  el.playsInline = true;
+                  // iOS inline autoplay compatibility
+                  el.setAttribute('muted', '');
+                  el.setAttribute('playsinline', 'true');
+                  el.setAttribute('webkit-playsinline', 'true');
+                }
+              }}
               src={video.src}
               autoPlay
               muted
@@ -108,13 +126,21 @@ export const HeroVideoCarousel = () => {
               preload="auto"
               className="w-full h-full object-cover"
               onLoadedData={(e) => {
-                // Ensure video plays when loaded (helps with iOS)
                 const video = e.currentTarget;
-                setTimeout(() => {
-                  video.play().catch(() => {
-                    console.log('Autoplay prevented on load');
-                  });
-                }, index * 500);
+                // Ensure attributes before attempting autoplay (iOS)
+                video.muted = true;
+                video.defaultMuted = true;
+                video.playsInline = true;
+                video.setAttribute('muted', '');
+                video.setAttribute('playsinline', 'true');
+                video.setAttribute('webkit-playsinline', 'true');
+
+                // Try immediate play and retry with the stagger
+                const tryPlay = () => {
+                  video.play().catch(() => {});
+                };
+                tryPlay();
+                setTimeout(tryPlay, index * 500);
               }}
             />
             
