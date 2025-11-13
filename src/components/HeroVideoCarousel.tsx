@@ -17,31 +17,33 @@ export const HeroVideoCarousel = () => {
   const videoRefs = useRef<(HTMLVideoElement | null)[]>([]);
 
   useEffect(() => {
-    // Play all videos immediately (no stagger for iOS compatibility)
+    // Play all videos with staggered delays (0s, 0.5s, 1s)
     videos.forEach((_, index) => {
-      const video = videoRefs.current[index];
-      if (video) {
-        // Ensure iOS inline autoplay conditions before playing
-        video.muted = true;
-        video.defaultMuted = true;
-        video.playsInline = true;
-        video.setAttribute('muted', '');
-        video.setAttribute('playsinline', 'true');
-        video.setAttribute('webkit-playsinline', 'true');
-        // Try playing immediately
-        const playPromise = video.play();
-        if (playPromise !== undefined) {
-          playPromise.catch((error) => {
-            console.log(`Video ${index} autoplay failed:`, error);
-            // Retry after short delay
-            setTimeout(() => {
-              video.play().catch(() => {
-                console.log(`Video ${index} retry failed`);
-              });
-            }, 100);
-          });
+      setTimeout(() => {
+        const video = videoRefs.current[index];
+        if (video) {
+          // Ensure iOS inline autoplay conditions before playing
+          video.muted = true;
+          video.defaultMuted = true;
+          video.playsInline = true;
+          video.setAttribute('muted', '');
+          video.setAttribute('playsinline', 'true');
+          video.setAttribute('webkit-playsinline', 'true');
+          // Handle play promise to avoid errors on mobile
+          const playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise.catch((error) => {
+              console.log(`Video ${index} autoplay failed:`, error);
+              // Try playing again after a short delay
+              setTimeout(() => {
+                video.play().catch(() => {
+                  console.log(`Video ${index} second attempt failed`);
+                });
+              }, 100);
+            });
+          }
         }
-      }
+      }, index * 500); // 0.5 second delays
     });
   }, []);
 
@@ -132,8 +134,13 @@ export const HeroVideoCarousel = () => {
                 video.setAttribute('muted', '');
                 video.setAttribute('playsinline', 'true');
                 video.setAttribute('webkit-playsinline', 'true');
-                // Immediate play on load
-                video.play().catch(() => {});
+
+                // Try immediate play and retry with the stagger
+                const tryPlay = () => {
+                  video.play().catch(() => {});
+                };
+                tryPlay();
+                setTimeout(tryPlay, index * 500);
               }}
             />
             
