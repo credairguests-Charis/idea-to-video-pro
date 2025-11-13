@@ -20,8 +20,21 @@ export const HeroVideoCarousel = () => {
     // Play all videos with staggered delays (0s, 0.5s, 1s)
     videos.forEach((_, index) => {
       setTimeout(() => {
-        if (videoRefs.current[index]) {
-          videoRefs.current[index]?.play();
+        const video = videoRefs.current[index];
+        if (video) {
+          // Handle play promise to avoid errors on mobile
+          const playPromise = video.play();
+          if (playPromise !== undefined) {
+            playPromise.catch((error) => {
+              console.log(`Video ${index} autoplay failed:`, error);
+              // Try playing again after a short delay
+              setTimeout(() => {
+                video.play().catch(() => {
+                  console.log(`Video ${index} second attempt failed`);
+                });
+              }, 100);
+            });
+          }
         }
       }, index * 500); // 0.5 second delays
     });
@@ -92,7 +105,17 @@ export const HeroVideoCarousel = () => {
               muted
               playsInline
               loop
+              preload="auto"
               className="w-full h-full object-cover"
+              onLoadedData={(e) => {
+                // Ensure video plays when loaded (helps with iOS)
+                const video = e.currentTarget;
+                setTimeout(() => {
+                  video.play().catch(() => {
+                    console.log('Autoplay prevented on load');
+                  });
+                }, index * 500);
+              }}
             />
             
             {/* Video Controls */}
