@@ -6,9 +6,12 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Progress } from "@/components/ui/progress";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, PlayCircle, XCircle, CheckCircle2, AlertCircle } from "lucide-react";
+import { Loader2, PlayCircle, ArrowLeft } from "lucide-react";
 import { toast } from "sonner";
+import { AgentStepCard } from "@/components/agent/AgentStepCard";
+import { ScriptApprovalDialog } from "@/components/agent/ScriptApprovalDialog";
 
 interface AgentSession {
   id: string;
@@ -37,6 +40,9 @@ export default function AgentMode() {
   const [session, setSession] = useState<AgentSession | null>(null);
   const [logs, setLogs] = useState<ExecutionLog[]>([]);
   const [brandContext, setBrandContext] = useState("");
+  const [showCancelDialog, setShowCancelDialog] = useState(false);
+  const [showScriptApproval, setShowScriptApproval] = useState(false);
+  const [scripts, setScripts] = useState<any[]>([]);
 
   // Subscribe to session updates
   useEffect(() => {
@@ -54,7 +60,14 @@ export default function AgentMode() {
         },
         (payload) => {
           console.log('Session updated:', payload);
-          setSession(payload.new as AgentSession);
+          const updatedSession = payload.new as AgentSession;
+          setSession(updatedSession);
+          
+          // Check if we need to show script approval dialog
+          if (updatedSession.state === 'awaiting_approval' && updatedSession.metadata?.scripts) {
+            setScripts(updatedSession.metadata.scripts);
+            setShowScriptApproval(true);
+          }
         }
       )
       .on(
@@ -118,18 +131,65 @@ export default function AgentMode() {
     }
   };
 
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'started':
-        return <Loader2 className="h-4 w-4 animate-spin text-blue-500" />;
-      case 'completed':
-        return <CheckCircle2 className="h-4 w-4 text-green-500" />;
-      case 'failed':
-        return <XCircle className="h-4 w-4 text-red-500" />;
-      case 'skipped':
-        return <AlertCircle className="h-4 w-4 text-yellow-500" />;
-      default:
-        return null;
+  const cancelAgent = async () => {
+    if (!session) return;
+
+    try {
+      const { error } = await supabase.functions.invoke('agent-cancel', {
+        body: { sessionId: session.id }
+      });
+
+      if (error) throw error;
+
+      toast.success('Agent session cancelled');
+      setShowCancelDialog(false);
+      navigate('/app/projects');
+    } catch (error) {
+      console.error('Error canceling agent:', error);
+      toast.error('Failed to cancel agent session');
+    }
+  };
+
+  const approveScripts = async (selectedScripts: string[]) => {
+    if (!session) return;
+
+    try {
+      const { error } = await supabase.functions.invoke('agent-approve-scripts', {
+        body: { 
+          sessionId: session.id, 
+          approved: true,
+          selectedScripts 
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success('Scripts approved! Generating videos...');
+      setShowScriptApproval(false);
+    } catch (error) {
+      console.error('Error approving scripts:', error);
+      toast.error('Failed to approve scripts');
+    }
+  };
+
+  const rejectScripts = async () => {
+    if (!session) return;
+
+    try {
+      const { error } = await supabase.functions.invoke('agent-approve-scripts', {
+        body: { 
+          sessionId: session.id, 
+          approved: false 
+        }
+      });
+
+      if (error) throw error;
+
+      toast.success('Scripts rejected. Regenerating...');
+      setShowScriptApproval(false);
+    } catch (error) {
+      console.error('Error rejecting scripts:', error);
+      toast.error('Failed to reject scripts');
     }
   };
 
@@ -137,19 +197,31 @@ export default function AgentMode() {
     return state.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
   };
 
+  const canCancel = session && !['completed', 'error', 'cancelled'].includes(session.state);
+
   return (
     <Layout>
       <div className="container mx-auto py-8 px-4">
         <div className="max-w-6xl mx-auto space-y-6">
           {/* Header */}
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold">Agent Mode</h1>
-              <p className="text-muted-foreground mt-1">
-                Autonomous AI video ad creation - from research to final videos
-              </p>
+            <div className="flex items-center gap-4">
+              {session && (
+                <Button variant="ghost" size="sm" onClick={() => setShowCancelDialog(true)}>
+                  <ArrowLeft className="h-4 w-4 mr-2" />
+                  Back
+                </Button>
+              )}
+              <div>
+                <h1 className="text-3xl font-bold">Agent Mode</h1>
+                <p className="text-muted-foreground mt-1">
+                  {session 
+                    ? `Session #${session.id.slice(0, 8)}...`
+                    : 'Autonomous AI video ad creation - from research to final videos'}
+                </p>
+              </div>
             </div>
-            {!session && (
+            {!session ? (
               <Button onClick={startAgent} disabled={isRunning} size="lg">
                 {isRunning ? (
                   <>
@@ -163,7 +235,11 @@ export default function AgentMode() {
                   </>
                 )}
               </Button>
-            )}
+            ) : canCancel ? (
+              <Button variant="outline" onClick={() => setShowCancelDialog(true)}>
+                Cancel Agent
+              </Button>
+            ) : null}
           </div>
 
           {/* Brand Context Input */}
@@ -227,44 +303,25 @@ export default function AgentMode() {
                 <CardContent>
                   <ScrollArea className="h-96">
                     <div className="space-y-3">
-                      {logs.map((log) => (
-                        <div key={log.id} className="flex items-start gap-3 p-3 rounded-lg bg-muted/50">
-                          {getStatusIcon(log.status)}
-                          <div className="flex-1 min-w-0">
-                            <div className="flex items-center gap-2">
-                              <span className="font-medium text-sm">
-                                {log.step_name.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                              </span>
-                              {log.tool_name && (
-                                <Badge variant="outline" className="text-xs">
-                                  {log.tool_name}
-                                </Badge>
-                              )}
-                              {log.duration_ms && (
-                                <span className="text-xs text-muted-foreground">
-                                  {log.duration_ms}ms
-                                </span>
-                              )}
-                            </div>
-                            {log.error_message && (
-                              <p className="text-sm text-destructive mt-1">{log.error_message}</p>
-                            )}
-                            {log.output_data && (
-                              <details className="mt-2">
-                                <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
-                                  View output
-                                </summary>
-                                <pre className="text-xs mt-2 p-2 bg-background rounded overflow-x-auto">
-                                  {JSON.stringify(log.output_data, null, 2)}
-                                </pre>
-                              </details>
-                            )}
-                          </div>
-                          <span className="text-xs text-muted-foreground whitespace-nowrap">
-                            {new Date(log.created_at).toLocaleTimeString()}
-                          </span>
+                      {logs.length === 0 ? (
+                        <div className="text-center py-8 text-muted-foreground">
+                          <Loader2 className="h-8 w-8 animate-spin mx-auto mb-2" />
+                          <p>Waiting for agent to start...</p>
                         </div>
-                      ))}
+                      ) : (
+                        logs.map((log) => (
+                          <AgentStepCard
+                            key={log.id}
+                            stepName={log.step_name}
+                            status={log.status}
+                            timestamp={log.created_at}
+                            outputData={log.output_data}
+                            errorMessage={log.error_message}
+                            toolName={log.tool_name}
+                            durationMs={log.duration_ms}
+                          />
+                        ))
+                      )}
                     </div>
                   </ScrollArea>
                 </CardContent>
@@ -273,6 +330,35 @@ export default function AgentMode() {
           )}
         </div>
       </div>
+
+      {/* Cancel Confirmation Dialog */}
+      <AlertDialog open={showCancelDialog} onOpenChange={setShowCancelDialog}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Cancel Agent Session?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Are you sure you want to cancel this agent session? All progress will be lost and you'll return to the projects page.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Continue Agent</AlertDialogCancel>
+            <AlertDialogAction onClick={cancelAgent}>
+              Yes, Cancel Session
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Script Approval Dialog */}
+      {scripts.length > 0 && (
+        <ScriptApprovalDialog
+          open={showScriptApproval}
+          onOpenChange={setShowScriptApproval}
+          scripts={scripts}
+          onApprove={approveScripts}
+          onReject={rejectScripts}
+        />
+      )}
     </Layout>
   );
 }
