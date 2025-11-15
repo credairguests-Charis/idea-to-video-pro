@@ -62,40 +62,21 @@ serve(async (req) => {
       input_data: { brandContext }
     });
 
-    // Start the agent workflow asynchronously
-    // In a real implementation, this would trigger the agent orchestration
-    setTimeout(async () => {
-      try {
-        // Update to analyzing_brand state
-        await supabase
-          .from('agent_sessions')
-          .update({
-            state: 'analyzing_brand',
-            current_step: 'Analyzing brand memory and preferences',
-            progress: 10
-          })
-          .eq('id', session.id);
-
-        await supabase.from('agent_execution_logs').insert({
-          session_id: session.id,
-          step_name: 'analyze_brand',
-          status: 'started',
-          tool_name: 'memory_search'
-        });
-
-        // This is a placeholder - real implementation would call MCP tools
-        console.log('Agent workflow started for session:', session.id);
-      } catch (error) {
-        console.error('Error in agent workflow:', error);
-        await supabase
-          .from('agent_sessions')
-          .update({
-            state: 'error',
-            metadata: { error: error.message }
-          })
-          .eq('id', session.id);
-      }
-    }, 0);
+    // Trigger orchestration workflow via HTTP (non-blocking)
+    fetch(`${supabaseUrl}/functions/v1/agent-orchestrate`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseKey}`
+      },
+      body: JSON.stringify({
+        sessionId: session.id,
+        userId: user.id,
+        brandContext: brandContext || ''
+      })
+    }).catch(error => {
+      console.error('Failed to trigger orchestration:', error);
+    });
 
     return new Response(
       JSON.stringify({ 

@@ -1,6 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
-import { orchestrateAgentWorkflow } from "../agent-orchestrate/index.ts";
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
@@ -74,8 +73,22 @@ serve(async (req) => {
 
       // Resume orchestration workflow (continue to video generation)
       const brandContext = session.metadata?.brandContext || '';
-      orchestrateAgentWorkflow(supabase, sessionId, user.id, brandContext).catch(error => {
-        console.error('Orchestration error:', error);
+      const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+      const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
+      
+      fetch(`${supabaseUrl}/functions/v1/agent-orchestrate`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${supabaseKey}`
+        },
+        body: JSON.stringify({
+          sessionId,
+          userId: user.id,
+          brandContext
+        })
+      }).catch(error => {
+        console.error('Failed to trigger orchestration:', error);
       });
 
       return new Response(
