@@ -1,7 +1,7 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Square, CheckCircle2, XCircle, AlertCircle } from "lucide-react";
+import { Loader2, Square, CheckCircle2, XCircle, AlertCircle, Image, Search, Code, Telescope, Lightbulb, Sparkles } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 
 interface AgentLog {
@@ -32,6 +32,23 @@ interface AgentConsoleProps {
 }
 
 export function AgentConsole({ logs, session, isRunning, onStop }: AgentConsoleProps) {
+  const getToolIcon = (toolName?: string) => {
+    switch (toolName) {
+      case "generateImage":
+        return <Image className="h-4 w-4 text-purple-500" />;
+      case "searchWeb":
+        return <Search className="h-4 w-4 text-blue-500" />;
+      case "writeCode":
+        return <Code className="h-4 w-4 text-green-500" />;
+      case "deepResearch":
+        return <Telescope className="h-4 w-4 text-orange-500" />;
+      case "thinkLonger":
+        return <Lightbulb className="h-4 w-4 text-yellow-500" />;
+      default:
+        return <Sparkles className="h-4 w-4 text-primary" />;
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case "running":
@@ -105,23 +122,22 @@ export function AgentConsole({ logs, session, isRunning, onStop }: AgentConsoleP
                 {/* Log Entry */}
                 <div className="flex gap-2">
                   <div className="flex-shrink-0 mt-1">
-                    {getStatusIcon(log.status)}
+                    {log.tool_name ? getToolIcon(log.tool_name) : getStatusIcon(log.status)}
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-baseline gap-2 mb-1">
                       <span className="text-sm font-medium text-foreground">
                         {log.step_name}
                       </span>
+                      {log.tool_name && (
+                        <Badge variant="outline" className="text-xs">
+                          {log.tool_name}
+                        </Badge>
+                      )}
                       <span className="text-xs text-muted-foreground">
                         {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
                       </span>
                     </div>
-                    
-                    {log.tool_name && (
-                      <div className="text-xs text-muted-foreground mb-1">
-                        Tool: <span className="font-mono">{log.tool_name}</span>
-                      </div>
-                    )}
                     
                     {log.error_message && (
                       <div className="mt-1.5 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive">
@@ -149,9 +165,18 @@ export function AgentConsole({ logs, session, isRunning, onStop }: AgentConsoleP
                               <p className="mb-2 whitespace-pre-wrap text-foreground">{log.output_data.message}</p>
                             )}
                             
-                            {/* Show response if present */}
+                            {/* Show response if present (streaming content) */}
                             {log.output_data.response && (
-                              <p className="mb-2 whitespace-pre-wrap text-foreground">{log.output_data.response}</p>
+                              <div className="mb-2">
+                                <p className="whitespace-pre-wrap text-foreground">{log.output_data.response}</p>
+                                {log.status === "in_progress" && (
+                                  <div className="inline-flex items-center gap-1 mt-1">
+                                    <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
+                                    <div className="w-1 h-1 bg-primary rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
+                                    <div className="w-1 h-1 bg-primary rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
+                                  </div>
+                                )}
+                              </div>
                             )}
                             
                             {/* Show results if it's search results */}

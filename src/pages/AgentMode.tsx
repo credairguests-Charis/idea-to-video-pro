@@ -103,14 +103,100 @@ export default function AgentMode() {
       setLogs([]);
       setPreviewData(null);
 
-      // Start agent execution via edge function
-      const { error: execError } = await supabase.functions.invoke("agent-start", {
-        body: { session_id: newSession.id, prompt, tool },
-      });
+      // Start streaming agent execution
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-stream`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+          },
+          body: JSON.stringify({ session_id: newSession.id, prompt, tool }),
+        }
+      );
 
-      if (execError) throw execError;
+      if (!response.ok) {
+        throw new Error("Failed to start streaming");
+      }
 
-      toast.success("Agent started successfully");
+      // Handle streaming response
+      const reader = response.body?.getReader();
+      const decoder = new TextDecoder();
+
+      if (reader) {
+        let buffer = "";
+        let streamingLogId: string | null = null;
+        let accumulatedContent = "";
+
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) break;
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.trim() || line.startsWith(":")) continue;
+            if (!line.startsWith("data: ")) continue;
+
+            const data = line.slice(6);
+            if (data === "[DONE]") {
+              // Finalize streaming log
+              if (streamingLogId && accumulatedContent) {
+                setLogs((prev) =>
+                  prev.map((log) =>
+                    log.id === streamingLogId
+                      ? { ...log, output_data: { response: accumulatedContent }, status: "success" }
+                      : log
+                  )
+                );
+              }
+              continue;
+            }
+
+            try {
+              const parsed = JSON.parse(data);
+              const delta = parsed.choices?.[0]?.delta;
+
+              if (delta?.content) {
+                accumulatedContent += delta.content;
+
+                // Create or update streaming log
+                if (!streamingLogId) {
+                  streamingLogId = `streaming-${Date.now()}`;
+                  setLogs((prev) => [
+                    ...prev,
+                    {
+                      id: streamingLogId!,
+                      session_id: newSession.id,
+                      step_name: "AI Response",
+                      status: "in_progress",
+                      tool_name: tool || "general",
+                      output_data: { response: accumulatedContent },
+                      created_at: new Date().toISOString(),
+                    },
+                  ]);
+                } else {
+                  setLogs((prev) =>
+                    prev.map((log) =>
+                      log.id === streamingLogId
+                        ? { ...log, output_data: { response: accumulatedContent } }
+                        : log
+                    )
+                  );
+                }
+              }
+            } catch (e) {
+              console.error("Error parsing stream data:", e);
+            }
+          }
+        }
+      }
+
+      toast.success("Agent completed successfully");
+      setIsRunning(false);
     } catch (error) {
       console.error("Error starting agent:", error);
       toast.error("Failed to start agent");
