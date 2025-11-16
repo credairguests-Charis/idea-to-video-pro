@@ -34,6 +34,7 @@ const PaintBrushIcon = (props: React.SVGProps<SVGSVGElement>) => ( <svg viewBox=
 const TelescopeIcon = (props: React.SVGProps<SVGSVGElement>) => ( <svg viewBox="0 0 512 512" fill="currentColor" {...props}> <g> <path d="M452.425,202.575l-38.269-23.11c-1.266-10.321-5.924-18.596-13.711-21.947l-86.843-52.444l-0.275,0.598c-3.571-7.653-9.014-13.553-16.212-16.668L166.929,10.412l-0.236,0.543v-0.016c-3.453-2.856-7.347-5.239-11.594-7.08C82.569-10.435,40.76,14.5,21.516,59.203C2.275,103.827,12.82,151.417,45.142,165.36c4.256,1.826,8.669,3.005,13.106,3.556l-0.19,0.464l146.548,40.669c7.19,3.107,15.206,3.004,23.229,0.37l-0.236,0.566L365.55,238.5c7.819,3.366,17.094,1.125,25.502-5.082l42.957,11.909c7.67,3.312,18.014-3.548,23.104-15.362C462.202,218.158,460.11,205.894,452.425,202.575z M154.516,99.56c-11.792,27.374-31.402,43.783-47.19,49.132c-6.962,2.281-13.176,2.556-17.605,0.637c-14.536-6.254-25.235-41.856-8.252-81.243c16.976-39.378,50.186-56.055,64.723-49.785c4.429,1.904,8.519,6.592,11.626,13.246C164.774,46.699,166.3,72.216,154.516,99.56z"/> <path d="M297.068,325.878c-1.959-2.706-2.25-6.269-0.724-9.25c1.518-2.981,4.562-4.846,7.913-4.846h4.468c4.909,0,8.889-3.972,8.889-8.897v-7.74c0-4.909-3.98-8.897-8.889-8.897h-85.789c-4.908,0-8.897,3.988-8.897,8.897v7.74c0,4.925,3.989,8.897,8.897,8.897h4.492c3.344,0,6.388,1.865,7.914,4.846c1.518,2.981,1.235,6.544-0.732,9.25L128.715,459.116c-3.225,4.287-2.352,10.36,1.927,13.569c4.295,3.225,10.368,2.344,13.578-1.943l107.884-122.17l4.036,153.738c0,5.333,4.342,9.691,9.691,9.691c5.358,0,9.692-4.358,9.692-9.691l4.043-153.738l107.885,122.17c3.209,4.287,9.282,5.168,13.568,1.943c4.288-3.209,5.145-9.282,1.951-13.569L297.068,325.878z"/> <path d="M287.227,250.81c0-11.807-9.573-21.388-21.396-21.388c-11.807,0-21.38,9.582-21.38,21.388c0,11.831,9.574,21.428,21.38,21.428C277.654,272.238,287.227,262.642,287.227,250.81z"/> </g> </svg> );
 const LightbulbIcon = (props: React.SVGProps<SVGSVGElement>) => ( <svg viewBox="0 0 24 24" fill="none" {...props}> <path d="M12 7C9.23858 7 7 9.23858 7 12C7 13.3613 7.54402 14.5955 8.42651 15.4972C8.77025 15.8484 9.05281 16.2663 9.14923 16.7482L9.67833 19.3924C9.86537 20.3272 10.6862 21 11.6395 21H12.3605C13.3138 21 14.1346 20.3272 14.3217 19.3924L14.8508 16.7482C14.9472 16.2663 15.2297 15.8484 15.5735 15.4972C16.456 14.5955 17 13.3613 17 12C17 9.23858 14.7614 7 12 7Z" stroke="currentColor" strokeWidth="2"/> <path d="M12 4V3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/> <path d="M18 6L19 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/> <path d="M20 12H21" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/> <path d="M4 12H3" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/> <path d="M5 5L6 6" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/> <path d="M10 17H14" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/> </svg> );
 const MicIcon = (props: React.SVGProps<SVGSVGElement>) => ( <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}> <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3z"></path> <path d="M19 10v2a7 7 0 0 1-14 0v-2"></path> <line x1="12" y1="19" x2="12" y2="23"></line> </svg> );
+const MicOffIcon = (props: React.SVGProps<SVGSVGElement>) => ( <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" {...props}> <line x1="1" y1="1" x2="23" y2="23"></line> <path d="M9 9v3a3 3 0 0 0 5.12 2.12M15 9.34V4a3 3 0 0 0-5.94-.6"></path> <path d="M17 16.95A7 7 0 0 1 5 12v-2m14 0v2a7 7 0 0 1-.11 1.23"></path> <line x1="12" y1="19" x2="12" y2="23"></line> </svg> );
 
 
 const toolsList = [ { id: 'createImage', name: 'Create an image', shortName: 'Image', icon: PaintBrushIcon }, { id: 'searchWeb', name: 'Search the web', shortName: 'Search', icon: GlobeIcon }, { id: 'writeCode', name: 'Write or code', shortName: 'Write', icon: PencilIcon }, { id: 'deepResearch', name: 'Run deep research', shortName: 'Deep Search', icon: TelescopeIcon, extra: '5 left' }, { id: 'thinkLonger', name: 'Think for longer', shortName: 'Think', icon: LightbulbIcon }, ];
@@ -51,8 +52,50 @@ export const PromptBox = React.forwardRef<HTMLTextAreaElement, PromptBoxProps>(
     const [selectedTool, setSelectedTool] = React.useState<string | null>(null);
     const [isPopoverOpen, setIsPopoverOpen] = React.useState(false);
     const [isImageDialogOpen, setIsImageDialogOpen] = React.useState(false);
+    const [isRecording, setIsRecording] = React.useState(false);
+    const recognitionRef = React.useRef<any>(null);
     
     React.useImperativeHandle(ref, () => internalTextareaRef.current!, []);
+
+    // Initialize Web Speech API
+    React.useEffect(() => {
+      if ('webkitSpeechRecognition' in window || 'SpeechRecognition' in window) {
+        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        recognitionRef.current = new SpeechRecognition();
+        recognitionRef.current.continuous = true;
+        recognitionRef.current.interimResults = true;
+        
+        recognitionRef.current.onresult = (event: any) => {
+          let finalTranscript = '';
+          
+          for (let i = event.resultIndex; i < event.results.length; i++) {
+            const transcript = event.results[i][0].transcript;
+            if (event.results[i].isFinal) {
+              finalTranscript += transcript + ' ';
+            }
+          }
+          
+          if (finalTranscript) {
+            setValue((prev) => prev + finalTranscript);
+          }
+        };
+
+        recognitionRef.current.onerror = (event: any) => {
+          console.error('Speech recognition error:', event.error);
+          setIsRecording(false);
+        };
+
+        recognitionRef.current.onend = () => {
+          setIsRecording(false);
+        };
+      }
+
+      return () => {
+        if (recognitionRef.current) {
+          recognitionRef.current.stop();
+        }
+      };
+    }, []);
     
     React.useLayoutEffect(() => { 
       const textarea = internalTextareaRef.current; 
@@ -90,6 +133,21 @@ export const PromptBox = React.forwardRef<HTMLTextAreaElement, PromptBoxProps>(
       if(fileInputRef.current) { 
         fileInputRef.current.value = ""; 
       } 
+    };
+    
+    const handleVoiceRecording = () => {
+      if (!recognitionRef.current) {
+        alert('Speech recognition is not supported in your browser. Please use Chrome, Edge, or Safari.');
+        return;
+      }
+
+      if (isRecording) {
+        recognitionRef.current.stop();
+        setIsRecording(false);
+      } else {
+        recognitionRef.current.start();
+        setIsRecording(true);
+      }
     };
     
     const handleSubmit = (e: React.FormEvent) => {
@@ -154,12 +212,20 @@ export const PromptBox = React.forwardRef<HTMLTextAreaElement, PromptBoxProps>(
                 <div className="ml-auto flex items-center gap-2">
                   <Tooltip>
                     <TooltipTrigger asChild>
-                      <button type="button" className="flex h-8 w-8 items-center justify-center rounded-full text-foreground transition-colors hover:bg-accent focus-visible:outline-none">
-                        <MicIcon className="h-5 w-5" />
-                        <span className="sr-only">Record voice</span>
+                      <button 
+                        type="button" 
+                        onClick={handleVoiceRecording}
+                        className={`flex h-8 w-8 items-center justify-center rounded-full transition-colors focus-visible:outline-none ${
+                          isRecording 
+                            ? 'bg-red-500 text-white hover:bg-red-600 animate-pulse' 
+                            : 'text-foreground hover:bg-accent'
+                        }`}
+                      >
+                        {isRecording ? <MicOffIcon className="h-5 w-5" /> : <MicIcon className="h-5 w-5" />}
+                        <span className="sr-only">{isRecording ? 'Stop recording' : 'Record voice'}</span>
                       </button>
                     </TooltipTrigger>
-                    <TooltipContent side="top" showArrow={true}><p>Record voice</p></TooltipContent>
+                    <TooltipContent side="top" showArrow={true}><p>{isRecording ? 'Stop recording' : 'Record voice'}</p></TooltipContent>
                   </Tooltip>
 
                   <Tooltip>

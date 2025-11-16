@@ -4,8 +4,10 @@ import { Navigate } from "react-router-dom";
 import { AgentConsole } from "@/components/agent/AgentConsole";
 import { AgentPreview } from "@/components/agent/AgentPreview";
 import { AgentInput } from "@/components/agent/AgentInput";
+import { AgentTimeline } from "@/components/agent/AgentTimeline";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface AgentLog {
   id: string;
@@ -244,18 +246,36 @@ export default function AgentMode() {
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel - Console & Input */}
-        <div className="w-[400px] border-r border-border/50 flex flex-col bg-card">
-          <AgentConsole 
-            logs={logs} 
-            session={session}
-            isRunning={isRunning}
-            onStop={handleStopAgent}
-          />
-          <AgentInput 
-            onSubmit={handleStartAgent} 
-            isRunning={isRunning}
-          />
+        {/* Left Panel - Console & Timeline */}
+        <div className="w-1/2 flex flex-col">
+          <Tabs defaultValue="console" className="flex-1 flex flex-col">
+            <TabsList className="w-full justify-start border-b rounded-none bg-transparent px-4">
+              <TabsTrigger value="console" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                Console
+              </TabsTrigger>
+              <TabsTrigger value="timeline" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
+                Timeline
+              </TabsTrigger>
+            </TabsList>
+            <TabsContent value="console" className="flex-1 mt-0 flex flex-col">
+              <AgentConsole 
+                logs={logs}
+                session={session}
+                isRunning={isRunning}
+                onStop={handleStopAgent}
+              />
+              <AgentInput 
+                onSubmit={handleStartAgent} 
+                isRunning={isRunning}
+              />
+            </TabsContent>
+            <TabsContent value="timeline" className="flex-1 mt-0">
+              <AgentTimeline 
+                logs={logs}
+                session={session}
+              />
+            </TabsContent>
+          </Tabs>
         </div>
 
         {/* Right Panel - Preview */}
