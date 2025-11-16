@@ -1,8 +1,9 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Square, CheckCircle2, XCircle, AlertCircle, Image, Search, Code, Telescope, Lightbulb, Sparkles } from "lucide-react";
+import { Loader2, Square, CheckCircle2, XCircle, AlertCircle, Image, Search, Code, Telescope, Lightbulb, Sparkles, ArrowDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
+import { useEffect, useRef, useState } from "react";
 
 interface AgentLog {
   id: string;
@@ -32,6 +33,45 @@ interface AgentConsoleProps {
 }
 
 export function AgentConsole({ logs, session, isRunning, onStop }: AgentConsoleProps) {
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isAutoScroll, setIsAutoScroll] = useState(true);
+
+  // Auto-scroll to bottom when new logs arrive
+  useEffect(() => {
+    if (isAutoScroll && scrollAreaRef.current) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
+      if (viewport) {
+        viewport.scrollTop = viewport.scrollHeight;
+      }
+    }
+  }, [logs, isAutoScroll]);
+
+  // Detect when user scrolls up
+  useEffect(() => {
+    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (!viewport) return;
+
+    const handleScroll = () => {
+      const { scrollTop, scrollHeight, clientHeight } = viewport;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 100;
+      
+      setShowScrollButton(!isNearBottom);
+      setIsAutoScroll(isNearBottom);
+    };
+
+    viewport.addEventListener('scroll', handleScroll);
+    return () => viewport.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToBottom = () => {
+    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+      viewport.scrollTop = viewport.scrollHeight;
+      setIsAutoScroll(true);
+    }
+  };
+
   const getToolIcon = (toolName?: string) => {
     switch (toolName) {
       case "generateImage":
@@ -66,7 +106,7 @@ export function AgentConsole({ logs, session, isRunning, onStop }: AgentConsoleP
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-card">
+    <div className="flex-1 flex flex-col h-full bg-card relative">
       {/* Header */}
       <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between bg-card">
         <div className="flex items-center gap-2">
@@ -98,7 +138,7 @@ export function AgentConsole({ logs, session, isRunning, onStop }: AgentConsoleP
       </div>
 
       {/* Logs Content - Chat Style */}
-      <ScrollArea className="flex-1 px-3 py-4">
+      <ScrollArea ref={scrollAreaRef} className="flex-1 px-3 py-4">
         {!session ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
             <div className="text-muted-foreground text-sm">
@@ -231,6 +271,17 @@ export function AgentConsole({ logs, session, isRunning, onStop }: AgentConsoleP
           </div>
         )}
       </ScrollArea>
+
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <button
+          onClick={scrollToBottom}
+          className="absolute bottom-4 right-4 z-10 flex items-center justify-center w-10 h-10 rounded-full bg-primary text-primary-foreground shadow-lg hover:bg-primary/90 transition-all"
+          aria-label="Scroll to bottom"
+        >
+          <ArrowDown className="h-5 w-5" />
+        </button>
+      )}
     </div>
   );
 }
