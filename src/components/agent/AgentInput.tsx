@@ -1,7 +1,7 @@
 import { PromptBox } from "@/components/ui/chatgpt-prompt-input";
 
 interface AgentInputProps {
-  onSubmit: (prompt: string) => void;
+  onSubmit: (prompt: string, tool?: string) => void;
   isRunning: boolean;
 }
 

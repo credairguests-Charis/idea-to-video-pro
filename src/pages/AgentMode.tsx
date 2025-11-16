@@ -80,7 +80,7 @@ export default function AgentMode() {
     };
   }, [user, session]);
 
-  const handleStartAgent = async (prompt: string) => {
+  const handleStartAgent = async (prompt: string, tool?: string) => {
     if (!user) return;
 
     try {
@@ -92,7 +92,7 @@ export default function AgentMode() {
         .insert({
           user_id: user.id,
           state: "running",
-          metadata: { prompt },
+          metadata: { prompt, tool },
         })
         .select()
         .single();
@@ -105,7 +105,7 @@ export default function AgentMode() {
 
       // Start agent execution via edge function
       const { error: execError } = await supabase.functions.invoke("agent-start", {
-        body: { session_id: newSession.id, prompt },
+        body: { session_id: newSession.id, prompt, tool },
       });
 
       if (execError) throw execError;
