@@ -142,7 +142,7 @@ export default function AgentMode() {
   return (
     <div className="flex h-screen bg-background">
       {/* Left Panel - Console & Input */}
-      <div className="w-[420px] border-r border-border flex flex-col">
+      <div className="w-[400px] border-r border-border/50 flex flex-col bg-card">
         <AgentConsole 
           logs={logs} 
           session={session}
@@ -156,7 +156,7 @@ export default function AgentMode() {
       </div>
 
       {/* Right Panel - Preview */}
-      <div className="flex-1 overflow-auto">
+      <div className="flex-1 overflow-auto bg-background">
         <AgentPreview 
           data={previewData}
           session={session}
