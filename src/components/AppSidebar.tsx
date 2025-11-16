@@ -1,4 +1,4 @@
-import { Home, FolderOpen, Video, Settings, User, LogOut, Wand2 } from "lucide-react"
+import { Home, FolderOpen, Video, Settings, User, LogOut, Wand2, Brain } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
@@ -21,6 +21,7 @@ const items = [
   { title: "Workspace", url: "/app/workspace", icon: FolderOpen },
   { title: "Projects", url: "/app/projects", icon: Video },
   { title: "Video Generator", url: "/app/video-generator", icon: Wand2 },
+  { title: "Agent Mode", url: "/app/agent-mode", icon: Brain },
   { title: "Settings", url: "/app/settings", icon: Settings },
 ]
 
