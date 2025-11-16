@@ -30,6 +30,9 @@ verify_jwt = true
 [functions.agent-start]
 verify_jwt = true
 
+[functions.agent-stream]
+verify_jwt = true
+
 [functions.admin-get-dashboard-data]
 verify_jwt = true
 
