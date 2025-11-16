@@ -12,7 +12,6 @@ import Auth from "./pages/Auth";
 import Pricing from "./pages/Pricing";
 import NotFound from "./pages/NotFound";
 import VideoGenerator from "./pages/VideoGenerator";
-import AgentMode from "./pages/AgentMode";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
 import { ArcadsLayout } from "./components/ArcadsLayout";
 import { AuthProvider } from "./hooks/useAuth";
@@ -103,7 +102,6 @@ const App = () => (
                   <Route path="/" element={<ProjectWorkspace />} />
                   <Route path="/workspace" element={<ProjectWorkspace />} />
                   <Route path="/workspace/:projectId" element={<ProjectWorkspace />} />
-                  <Route path="/agent-mode" element={<AgentMode />} />
                   <Route path="/settings" element={<ProjectWorkspace settingsMode={true} />} />
                   {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
                   <Route path="*" element={<NotFound />} />

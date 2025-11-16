@@ -1,26 +1,5 @@
 project_id = "kopclhksdjbheypwsvxz"
 
-[functions.agent-start]
-verify_jwt = true
-
-[functions.agent-status]
-verify_jwt = true
-
-[functions.agent-cancel]
-verify_jwt = true
-
-[functions.agent-approve-scripts]
-verify_jwt = true
-
-[functions.agent-orchestrate]
-verify_jwt = false
-
-[functions.agent-memory-read]
-verify_jwt = true
-
-[functions.agent-memory-write]
-verify_jwt = true
-
 [api]
 enabled = true
 port = 54321
