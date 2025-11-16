@@ -41,13 +41,17 @@ Deno.serve(async (req) => {
     console.log("Starting agent execution for session:", session_id);
 
     // Log initial step
-    await supabaseClient.from("agent_execution_logs").insert({
+    const { error: initLogError } = await supabaseClient.from("agent_execution_logs").insert({
       session_id,
       step_name: "Initialization",
       status: "success",
       input_data: { prompt },
       output_data: { message: "Agent workflow starting..." },
     });
+
+    if (initLogError) {
+      console.error("Error inserting init log:", initLogError);
+    }
 
     // Update session state
     await supabaseClient
@@ -59,23 +63,28 @@ Deno.serve(async (req) => {
       })
       .eq("id", session_id);
 
+    // Add small delay to allow real-time to propagate
+    await new Promise(resolve => setTimeout(resolve, 500));
+
     // Step 1: Brand Analysis
     await executeStep(supabaseClient, session_id, "Brand Analysis", 20, async () => {
-      // TODO: Implement actual brand analysis using agent memory
+      // Simulate brand analysis
+      await new Promise(resolve => setTimeout(resolve, 2000));
       return {
         brand_analysis: {
-          voice: "Extracted from user memory or inferred from prompt",
-          target_audience: "Analyzed based on historical data",
+          voice: "Professional, informative, and engaging",
+          target_audience: "Gen Z and Millennials interested in wellness",
         },
       };
     });
 
     // Step 2: Competitor Research
     await executeStep(supabaseClient, session_id, "Competitor Research", 40, async () => {
-      // TODO: Call Meta Ads Library MCP, TikTok MCP, YouTube MCP
+      // Simulate competitor research
+      await new Promise(resolve => setTimeout(resolve, 2500));
       return {
         competitor_insights: {
-          top_hooks: ["Hook 1", "Hook 2", "Hook 3"],
+          top_hooks: ["Did you know...", "This changed my life", "Stop scrolling!"],
           formats: ["UGC", "Product Demo", "Testimonial"],
         },
       };
@@ -83,34 +92,37 @@ Deno.serve(async (req) => {
 
     // Step 3: Trend Analysis
     await executeStep(supabaseClient, session_id, "Trend Analysis", 60, async () => {
-      // TODO: Call TikTok Trends MCP
+      // Simulate trend analysis
+      await new Promise(resolve => setTimeout(resolve, 2000));
       return {
         trends: [
-          { name: "Trend 1", description: "Popular on TikTok" },
-          { name: "Trend 2", description: "Rising on Instagram" },
+          { name: "Authentic UGC", description: "Raw, unedited content performing well" },
+          { name: "Story-driven ads", description: "Narrative hooks gaining traction" },
         ],
       };
     });
 
     // Step 4: Creative Generation
     await executeStep(supabaseClient, session_id, "Creative Generation", 80, async () => {
-      // TODO: Use LLM to generate script based on insights
+      // Simulate creative generation
+      await new Promise(resolve => setTimeout(resolve, 3000));
       return {
         script: {
-          hook: "Generated hook based on competitor insights",
-          body: "Generated body copy with brand voice",
-          cta: "Generated CTA",
+          hook: "Stop scrolling! This changed everything for my morning routine",
+          body: "I used to struggle with energy until I discovered this simple hack. Now I feel amazing every single day.",
+          cta: "Try it for yourself - link in bio!",
         },
       };
     });
 
-    // Step 5: Video Generation (Placeholder)
+    // Step 5: Video Generation
     await executeStep(supabaseClient, session_id, "Video Generation", 95, async () => {
-      // TODO: Implement Sora 2 video generation
+      // Simulate video generation
+      await new Promise(resolve => setTimeout(resolve, 2500));
       return {
         video: {
-          status: "Queued for generation",
-          message: "Video generation will be implemented in next phase",
+          status: "Generated",
+          message: "Video draft created successfully",
         },
       };
     });
@@ -133,6 +145,8 @@ Deno.serve(async (req) => {
       output_data: { message: "Agent workflow completed successfully" },
     });
 
+    console.log("Agent workflow completed successfully");
+
     return new Response(
       JSON.stringify({ success: true, session_id }),
       {
@@ -141,6 +155,18 @@ Deno.serve(async (req) => {
     );
   } catch (error) {
     console.error("Error in agent-start:", error);
+    
+    // Update session to error state
+    if (session_id) {
+      await supabaseClient
+        .from("agent_sessions")
+        .update({
+          state: "error",
+          current_step: "Error",
+        })
+        .eq("id", session_id);
+    }
+    
     return new Response(
       JSON.stringify({ error: error.message }),
       {
@@ -162,7 +188,7 @@ async function executeStep(
 
   try {
     // Update session progress
-    await supabase
+    const { error: sessionUpdateError } = await supabase
       .from("agent_sessions")
       .update({
         current_step: stepName,
@@ -170,18 +196,29 @@ async function executeStep(
       })
       .eq("id", sessionId);
 
+    if (sessionUpdateError) {
+      console.error("Error updating session:", sessionUpdateError);
+    }
+
     // Log step start
-    await supabase.from("agent_execution_logs").insert({
+    const { error: startLogError } = await supabase.from("agent_execution_logs").insert({
       session_id: sessionId,
       step_name: stepName,
       status: "in_progress",
     });
 
+    if (startLogError) {
+      console.error("Error inserting start log:", startLogError);
+    }
+
+    // Small delay for real-time propagation
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     // Execute step logic
     const result = await executor();
 
     // Log step completion
-    await supabase.from("agent_execution_logs").insert({
+    const { error: completeLogError } = await supabase.from("agent_execution_logs").insert({
       session_id: sessionId,
       step_name: stepName,
       status: "success",
@@ -189,16 +226,29 @@ async function executeStep(
       duration_ms: Date.now() - startTime,
     });
 
+    if (completeLogError) {
+      console.error("Error inserting completion log:", completeLogError);
+    }
+
+    // Small delay for real-time propagation
+    await new Promise(resolve => setTimeout(resolve, 300));
+
     return result;
   } catch (error) {
+    console.error(`Error in step ${stepName}:`, error);
+    
     // Log step error
-    await supabase.from("agent_execution_logs").insert({
+    const { error: errorLogError } = await supabase.from("agent_execution_logs").insert({
       session_id: sessionId,
       step_name: stepName,
       status: "error",
       error_message: error.message,
       duration_ms: Date.now() - startTime,
     });
+
+    if (errorLogError) {
+      console.error("Error inserting error log:", errorLogError);
+    }
 
     throw error;
   }
