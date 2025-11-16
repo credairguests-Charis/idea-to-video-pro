@@ -1,7 +1,6 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
-import { Layout } from "@/components/Layout";
 import { AgentConsole } from "@/components/agent/AgentConsole";
 import { AgentPreview } from "@/components/agent/AgentPreview";
 import { AgentInput } from "@/components/agent/AgentInput";
@@ -141,30 +140,28 @@ export default function AgentMode() {
   }
 
   return (
-    <Layout>
-      <div className="flex h-[calc(100vh-4rem)] bg-background">
-        {/* Left Panel - Console & Input */}
-        <div className="w-[420px] border-r border-border flex flex-col">
-          <AgentConsole 
-            logs={logs} 
-            session={session}
-            isRunning={isRunning}
-            onStop={handleStopAgent}
-          />
-          <AgentInput 
-            onSubmit={handleStartAgent} 
-            isRunning={isRunning}
-          />
-        </div>
-
-        {/* Right Panel - Preview */}
-        <div className="flex-1 overflow-auto">
-          <AgentPreview 
-            data={previewData}
-            session={session}
-          />
-        </div>
+    <div className="flex h-screen bg-background">
+      {/* Left Panel - Console & Input */}
+      <div className="w-[420px] border-r border-border flex flex-col">
+        <AgentConsole 
+          logs={logs} 
+          session={session}
+          isRunning={isRunning}
+          onStop={handleStopAgent}
+        />
+        <AgentInput 
+          onSubmit={handleStartAgent} 
+          isRunning={isRunning}
+        />
       </div>
-    </Layout>
+
+      {/* Right Panel - Preview */}
+      <div className="flex-1 overflow-auto">
+        <AgentPreview 
+          data={previewData}
+          session={session}
+        />
+      </div>
+    </div>
   );
 }
