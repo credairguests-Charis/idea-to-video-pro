@@ -140,27 +140,45 @@ export default function AgentMode() {
   }
 
   return (
-    <div className="flex h-screen bg-background">
-      {/* Left Panel - Console & Input */}
-      <div className="w-[400px] border-r border-border/50 flex flex-col bg-card">
-        <AgentConsole 
-          logs={logs} 
-          session={session}
-          isRunning={isRunning}
-          onStop={handleStopAgent}
-        />
-        <AgentInput 
-          onSubmit={handleStartAgent} 
-          isRunning={isRunning}
-        />
+    <div className="flex flex-col h-screen bg-background">
+      {/* Top Sticky Menu Bar */}
+      <div className="sticky top-0 z-50 h-12 flex items-center justify-between px-4 border-b border-border bg-card">
+        <div className="flex items-center gap-3">
+          <h1 className="text-sm font-semibold">Agent Mode</h1>
+          <span className="text-xs text-muted-foreground">/app/agent-mode</span>
+        </div>
+        <div className="flex items-center gap-2">
+          {session && (
+            <span className="text-xs text-muted-foreground">
+              Session: {session.id.slice(0, 8)}...
+            </span>
+          )}
+        </div>
       </div>
 
-      {/* Right Panel - Preview */}
-      <div className="flex-1 overflow-auto bg-background">
-        <AgentPreview 
-          data={previewData}
-          session={session}
-        />
+      {/* Main Content */}
+      <div className="flex flex-1 overflow-hidden">
+        {/* Left Panel - Console & Input */}
+        <div className="w-[400px] border-r border-border/50 flex flex-col bg-card">
+          <AgentConsole 
+            logs={logs} 
+            session={session}
+            isRunning={isRunning}
+            onStop={handleStopAgent}
+          />
+          <AgentInput 
+            onSubmit={handleStartAgent} 
+            isRunning={isRunning}
+          />
+        </div>
+
+        {/* Right Panel - Preview */}
+        <div className="flex-1 overflow-auto bg-background">
+          <AgentPreview 
+            data={previewData}
+            session={session}
+          />
+        </div>
       </div>
     </div>
   );
