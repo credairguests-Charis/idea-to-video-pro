@@ -131,13 +131,66 @@ export function AgentConsole({ logs, session, isRunning, onStop }: AgentConsoleP
                     
                     {log.output_data && (
                       <div className="mt-1.5 p-2 bg-muted/50 rounded text-xs">
-                        <pre className="text-muted-foreground font-mono whitespace-pre-wrap break-words">
-                          {typeof log.output_data === 'string' 
-                            ? log.output_data 
-                            : JSON.stringify(log.output_data, null, 2).slice(0, 200) + 
-                              (JSON.stringify(log.output_data).length > 200 ? '...' : '')
-                          }
-                        </pre>
+                        {typeof log.output_data === "object" ? (
+                          <>
+                            {/* Show image if present */}
+                            {log.output_data.imageUrl && (
+                              <div className="mb-2">
+                                <img 
+                                  src={log.output_data.imageUrl} 
+                                  alt="Generated" 
+                                  className="max-w-full rounded-lg border border-border"
+                                />
+                              </div>
+                            )}
+                            
+                            {/* Show formatted message if it's a simple object */}
+                            {log.output_data.message && (
+                              <p className="mb-2 whitespace-pre-wrap text-foreground">{log.output_data.message}</p>
+                            )}
+                            
+                            {/* Show response if present */}
+                            {log.output_data.response && (
+                              <p className="mb-2 whitespace-pre-wrap text-foreground">{log.output_data.response}</p>
+                            )}
+                            
+                            {/* Show results if it's search results */}
+                            {log.output_data.results && Array.isArray(log.output_data.results) && (
+                              <div className="space-y-2">
+                                {log.output_data.results.map((result: any, idx: number) => (
+                                  <div key={idx} className="bg-background/50 p-2 rounded border border-border/30">
+                                    <div className="font-medium mb-1 text-foreground">{result.title}</div>
+                                    <div className="text-muted-foreground mb-1">{result.snippet}</div>
+                                    <a 
+                                      href={result.url} 
+                                      target="_blank" 
+                                      rel="noopener noreferrer" 
+                                      className="text-primary hover:underline"
+                                    >
+                                      {result.url}
+                                    </a>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                            
+                            {/* Fallback to JSON for complex objects */}
+                            {!log.output_data.imageUrl && 
+                             !log.output_data.message && 
+                             !log.output_data.response && 
+                             !log.output_data.results && (
+                              <pre className="text-muted-foreground font-mono whitespace-pre-wrap break-words">
+                                {JSON.stringify(log.output_data, null, 2).slice(0, 200) + 
+                                  (JSON.stringify(log.output_data).length > 200 ? '...' : '')
+                                }
+                              </pre>
+                            )}
+                          </>
+                        ) : (
+                          <pre className="text-muted-foreground font-mono whitespace-pre-wrap break-words">
+                            {String(log.output_data)}
+                          </pre>
+                        )}
                       </div>
                     )}
                     
