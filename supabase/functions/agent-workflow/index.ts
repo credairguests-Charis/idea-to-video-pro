@@ -47,11 +47,26 @@ serve(async (req) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { input, sessionId: providedSessionId } = await req.json();
+    const requestBody = await req.json();
+    const { input, sessionId: providedSessionId } = requestBody;
+
+    // Validate required input fields
+    if (!input || typeof input !== 'object') {
+      throw new Error("Invalid input: input object is required");
+    }
+
+    if (!input.brandName || typeof input.brandName !== 'string') {
+      throw new Error("Invalid input: brandName is required and must be a string");
+    }
+
+    if (!input.competitorQuery || typeof input.competitorQuery !== 'string') {
+      throw new Error("Invalid input: competitorQuery is required and must be a string");
+    }
 
     console.log("[agent-workflow] Received workflow request:", {
       brandName: input.brandName,
       query: input.competitorQuery,
+      maxCompetitors: input.maxCompetitors || 5,
     });
 
     // Generate or use provided session ID
@@ -151,11 +166,32 @@ serve(async (req) => {
       const deepResearchDuration = Date.now() - deepResearchStart;
 
       if (deepResearchError || !deepResearchData?.success) {
-        throw new Error(
-          deepResearchError?.message ||
-            deepResearchData?.error ||
-            "Deep research failed"
+        const errorMsg = deepResearchError?.message || deepResearchData?.error || "Deep research failed";
+        await logExecution(
+          WorkflowStep.DEEP_RESEARCH,
+          "firecrawl_mcp",
+          "failed",
+          { query: input.competitorQuery },
+          null,
+          errorMsg,
+          deepResearchDuration
         );
+        throw new Error(errorMsg);
+      }
+
+      // Handle empty results
+      if (!deepResearchData.competitors || deepResearchData.competitors.length === 0) {
+        const errorMsg = "No competitors found for the given query";
+        await logExecution(
+          WorkflowStep.DEEP_RESEARCH,
+          "firecrawl_mcp",
+          "completed",
+          { query: input.competitorQuery },
+          { competitors: [] },
+          errorMsg,
+          deepResearchDuration
+        );
+        console.warn("[agent-workflow] " + errorMsg);
       }
 
       await logExecution(
@@ -220,6 +256,20 @@ serve(async (req) => {
       const metaAdsDuration = Date.now() - metaAdsStart;
       console.log(`[agent-workflow] Extracted ${metaAdsResults.length} Meta ads`);
 
+      // Handle case where no ads were extracted
+      if (metaAdsResults.length === 0) {
+        console.warn("[agent-workflow] No Meta ads found for any competitor");
+        await logExecution(
+          WorkflowStep.META_ADS_EXTRACTION,
+          "meta_ads_extractor",
+          "completed",
+          { competitorCount: deepResearchData.competitors?.length || 0 },
+          { adsCount: 0 },
+          "No Meta ads found",
+          metaAdsDuration
+        );
+      }
+
       // ======================================================================
       // Step 3: Video Analysis (Azure Video Indexer)
       // ======================================================================
@@ -282,6 +332,20 @@ serve(async (req) => {
       const videoAnalysisDuration = Date.now() - videoAnalysisStart;
       console.log(`[agent-workflow] Analyzed ${videoInsights.length} videos`);
 
+      // Handle case where no videos were analyzed
+      if (videoInsights.length === 0) {
+        console.warn("[agent-workflow] No videos analyzed - continuing with available data");
+        await logExecution(
+          WorkflowStep.VIDEO_ANALYSIS,
+          "azure_video_indexer",
+          "completed",
+          { adsCount: metaAdsResults.length },
+          { videosCount: 0 },
+          "No videos available for analysis",
+          videoAnalysisDuration
+        );
+      }
+
       // ======================================================================
       // Step 4: LLM Synthesis
       // ======================================================================
@@ -322,11 +386,21 @@ serve(async (req) => {
       const synthesisDuration = Date.now() - synthesisStart;
 
       if (synthesisError || !synthesisData?.success) {
-        throw new Error(
-          synthesisError?.message ||
-            synthesisData?.error ||
-            "Synthesis failed"
+        const errorMsg = synthesisError?.message || synthesisData?.error || "Synthesis failed";
+        await logExecution(
+          WorkflowStep.LLM_SYNTHESIS,
+          "llm_synthesizer",
+          "failed",
+          {
+            competitorsCount: deepResearchData.competitors?.length || 0,
+            adsCount: metaAdsResults.length,
+            videosCount: videoInsights.length,
+          },
+          null,
+          errorMsg,
+          synthesisDuration
         );
+        throw new Error(errorMsg);
       }
 
       await logExecution(

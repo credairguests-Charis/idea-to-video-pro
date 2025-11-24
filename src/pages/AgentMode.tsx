@@ -110,7 +110,10 @@ export default function AgentMode() {
 
       if (error) {
         console.error("Workflow error:", error);
-        throw error;
+        const errorMessage = error.message || "Failed to start workflow";
+        toast.error(errorMessage);
+        setIsRunning(false);
+        return;
       }
 
       if (data?.success) {
@@ -121,15 +124,25 @@ export default function AgentMode() {
           metadata: data.metadata,
         });
         setPreviewData(data.synthesis);
-        toast.success("Workflow completed successfully!");
+        
+        // Show detailed success message
+        const { metadata } = data;
+        toast.success(
+          `Workflow completed! Found ${metadata?.competitorsFound || 0} competitors, ${metadata?.adsExtracted || 0} ads, analyzed ${metadata?.videosAnalyzed || 0} videos.`,
+          { duration: 5000 }
+        );
       } else {
-        throw new Error(data?.error || "Workflow failed");
+        const errorMessage = data?.error || "Workflow failed";
+        toast.error(errorMessage);
+        setIsRunning(false);
+        return;
       }
 
       setIsRunning(false);
     } catch (error) {
       console.error("Error starting workflow:", error);
-      toast.error("Failed to start workflow");
+      const errorMessage = error instanceof Error ? error.message : "Failed to start workflow";
+      toast.error(errorMessage);
       setIsRunning(false);
     }
   };
