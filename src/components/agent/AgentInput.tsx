@@ -25,13 +25,27 @@ export function AgentInput({ onSubmit, isRunning }: AgentInputProps) {
       return;
     }
 
+    // Validate inputs
+    if (brandName.trim().length < 2) {
+      return;
+    }
+
+    if (competitorQuery.trim().length < 3) {
+      return;
+    }
+
+    const parsedKeyMessages = keyMessages
+      .split(",")
+      .map((m) => m.trim())
+      .filter(Boolean);
+
     onSubmit({
-      brandName,
-      productCategory,
-      targetAudience,
-      brandVoice,
-      keyMessages: keyMessages.split(",").map((m) => m.trim()).filter(Boolean),
-      competitorQuery,
+      brandName: brandName.trim(),
+      productCategory: productCategory.trim() || "General",
+      targetAudience: targetAudience.trim() || "General Audience",
+      brandVoice: brandVoice.trim() || "Professional",
+      keyMessages: parsedKeyMessages.length > 0 ? parsedKeyMessages : ["Quality", "Innovation"],
+      competitorQuery: competitorQuery.trim(),
       maxCompetitors: 3,
     });
   };
