@@ -67,6 +67,14 @@ export function VideoGenerationTracker() {
 
         if (data && isSubscribed) {
           console.log('📹 Pending generations:', data.length);
+          
+          // Set batch total if we found pending generations
+          if (data.length > 0) {
+            setBatchTotal(data.length);
+            setBatchCompleted(0);
+            setIsVisible(true);
+          }
+          
           setActiveGenerations(prev => {
             // Merge with existing, avoiding duplicates
             const newIds = data.map(d => d.id);
