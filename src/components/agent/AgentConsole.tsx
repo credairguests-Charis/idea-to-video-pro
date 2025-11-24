@@ -4,6 +4,8 @@ import { Button } from "@/components/ui/button";
 import { Loader2, Square, CheckCircle2, XCircle, AlertCircle, Image, Search, Code, Telescope, Lightbulb, Sparkles, ArrowDown } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { useEffect, useRef, useState } from "react";
+import { WorkflowStepCard } from "./WorkflowStepCard";
+import { Progress } from "@/components/ui/progress";
 
 interface AgentLog {
   id: string;
@@ -105,169 +107,134 @@ export function AgentConsole({ logs, session, isRunning, onStop }: AgentConsoleP
     }
   };
 
+  // Group logs by step for workflow view
+  const workflowSteps = logs.reduce((acc, log) => {
+    const existingStep = acc.find(s => s.step_name === log.step_name);
+    if (existingStep) {
+      // Update step with latest data
+      if (log.status === 'completed' || log.status === 'success') {
+        existingStep.status = log.status;
+        existingStep.output_data = log.output_data;
+        existingStep.endTime = log.created_at;
+        existingStep.duration = log.duration_ms;
+      } else if (log.status === 'failed' || log.status === 'error') {
+        existingStep.status = log.status;
+        existingStep.error_message = log.error_message;
+        existingStep.endTime = log.created_at;
+      }
+    } else {
+      acc.push({
+        step_name: log.step_name,
+        status: log.status,
+        tool_name: log.tool_name,
+        startTime: log.created_at,
+        endTime: log.status === 'completed' || log.status === 'failed' ? log.created_at : undefined,
+        duration: log.duration_ms,
+        input_data: log.input_data,
+        output_data: log.output_data,
+        error_message: log.error_message,
+      });
+    }
+    return acc;
+  }, [] as any[]);
+
   return (
     <div className="flex-1 flex flex-col h-full bg-card relative">
       {/* Header */}
-      <div className="px-4 py-3 border-b border-border/50 flex items-center justify-between bg-card">
-        <div className="flex items-center gap-2">
-          {session && (
-            <Badge 
-              variant={isRunning ? "default" : "secondary"}
-              className="text-xs font-medium"
+      <div className="px-4 py-3 border-b border-border/50 flex flex-col gap-2 bg-card">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-2">
+            {session && (
+              <Badge 
+                variant={isRunning ? "default" : "secondary"}
+                className="text-xs font-medium"
+              >
+                {session.state}
+              </Badge>
+            )}
+            {session && session.current_step && (
+              <span className="text-xs text-muted-foreground">
+                {session.current_step.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
+              </span>
+            )}
+          </div>
+          {isRunning && (
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={onStop}
+              className="h-7 text-xs"
             >
-              {session.state}
-            </Badge>
-          )}
-          {session && session.progress !== undefined && (
-            <span className="text-xs text-muted-foreground">
-              {session.progress}%
-            </span>
+              <Square className="h-3 w-3 mr-1.5" />
+              Stop
+            </Button>
           )}
         </div>
-        {isRunning && (
-          <Button 
-            variant="ghost" 
-            size="sm"
-            onClick={onStop}
-            className="h-7 text-xs"
-          >
-            <Square className="h-3 w-3 mr-1.5" />
-            Stop
-          </Button>
+        
+        {/* Overall Progress Bar */}
+        {session && session.progress !== undefined && isRunning && (
+          <div className="space-y-1">
+            <Progress value={session.progress} className="h-2" />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Progress</span>
+              <span>{session.progress}%</span>
+            </div>
+          </div>
         )}
       </div>
 
-      {/* Logs Content - Chat Style */}
-      <ScrollArea ref={scrollAreaRef} className="flex-1 px-3 py-4">
+      {/* Workflow Steps View */}
+      <ScrollArea ref={scrollAreaRef} className="flex-1 px-4 py-4">
         {!session ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
+            <Sparkles className="h-10 w-10 text-muted-foreground mb-3" />
+            <div className="text-foreground font-medium mb-1">Ready to Start</div>
             <div className="text-muted-foreground text-sm">
-              Start the agent to see execution logs
+              Enter your brand details below to begin competitor research
             </div>
           </div>
         ) : logs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <Loader2 className="h-6 w-6 animate-spin text-muted-foreground mb-2" />
+            <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+            <div className="text-foreground font-medium mb-1">Initializing Workflow</div>
             <div className="text-muted-foreground text-sm">
-              Initializing agent...
+              Setting up agent execution pipeline...
             </div>
           </div>
         ) : (
           <div className="space-y-3">
-            {logs.map((log) => (
-              <div 
-                key={log.id}
-                className="group animate-fade-in"
-              >
-                {/* Log Entry */}
-                <div className="flex gap-2">
-                  <div className="flex-shrink-0 mt-1">
-                    {log.tool_name ? getToolIcon(log.tool_name) : getStatusIcon(log.status)}
+            {workflowSteps.map((step, index) => (
+              <WorkflowStepCard
+                key={`${step.step_name}-${index}`}
+                stepName={step.step_name}
+                status={step.status}
+                toolName={step.tool_name}
+                startTime={step.startTime}
+                endTime={step.endTime}
+                duration={step.duration}
+                inputData={step.input_data}
+                outputData={step.output_data}
+                errorMessage={step.error_message}
+                progress={
+                  step.status === "running" && session?.progress
+                    ? session.progress
+                    : undefined
+                }
+              />
+            ))}
+
+            {/* Active Step Indicator */}
+            {isRunning && session?.current_step && (
+              <div className="flex items-center gap-3 p-3 bg-primary/10 border border-primary/20 rounded-lg animate-pulse">
+                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <div>
+                  <div className="text-sm font-medium text-foreground">
+                    {session.current_step.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}
                   </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="flex items-baseline gap-2 mb-1">
-                      <span className="text-sm font-medium text-foreground">
-                        {log.step_name}
-                      </span>
-                      {log.tool_name && (
-                        <Badge variant="outline" className="text-xs">
-                          {log.tool_name}
-                        </Badge>
-                      )}
-                      <span className="text-xs text-muted-foreground">
-                        {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
-                      </span>
-                    </div>
-                    
-                    {log.error_message && (
-                      <div className="mt-1.5 p-2 bg-destructive/10 border border-destructive/20 rounded text-xs text-destructive">
-                        {log.error_message}
-                      </div>
-                    )}
-                    
-                    {log.output_data && (
-                      <div className="mt-1.5 p-2 bg-muted/50 rounded text-xs">
-                        {typeof log.output_data === "object" ? (
-                          <>
-                            {/* Show image if present */}
-                            {log.output_data.imageUrl && (
-                              <div className="mb-2">
-                                <img 
-                                  src={log.output_data.imageUrl} 
-                                  alt="Generated" 
-                                  className="max-w-full rounded-lg border border-border"
-                                />
-                              </div>
-                            )}
-                            
-                            {/* Show formatted message if it's a simple object */}
-                            {log.output_data.message && (
-                              <p className="mb-2 whitespace-pre-wrap text-foreground">{log.output_data.message}</p>
-                            )}
-                            
-                            {/* Show response if present (streaming content) */}
-                            {log.output_data.response && (
-                              <div className="mb-2">
-                                <p className="whitespace-pre-wrap text-foreground">{log.output_data.response}</p>
-                                {log.status === "in_progress" && (
-                                  <div className="inline-flex items-center gap-1 mt-1">
-                                    <div className="w-1 h-1 bg-primary rounded-full animate-pulse" />
-                                    <div className="w-1 h-1 bg-primary rounded-full animate-pulse" style={{ animationDelay: "0.2s" }} />
-                                    <div className="w-1 h-1 bg-primary rounded-full animate-pulse" style={{ animationDelay: "0.4s" }} />
-                                  </div>
-                                )}
-                              </div>
-                            )}
-                            
-                            {/* Show results if it's search results */}
-                            {log.output_data.results && Array.isArray(log.output_data.results) && (
-                              <div className="space-y-2">
-                                {log.output_data.results.map((result: any, idx: number) => (
-                                  <div key={idx} className="bg-background/50 p-2 rounded border border-border/30">
-                                    <div className="font-medium mb-1 text-foreground">{result.title}</div>
-                                    <div className="text-muted-foreground mb-1">{result.snippet}</div>
-                                    <a 
-                                      href={result.url} 
-                                      target="_blank" 
-                                      rel="noopener noreferrer" 
-                                      className="text-primary hover:underline"
-                                    >
-                                      {result.url}
-                                    </a>
-                                  </div>
-                                ))}
-                              </div>
-                            )}
-                            
-                            {/* Fallback to JSON for complex objects */}
-                            {!log.output_data.imageUrl && 
-                             !log.output_data.message && 
-                             !log.output_data.response && 
-                             !log.output_data.results && (
-                              <pre className="text-muted-foreground font-mono whitespace-pre-wrap break-words">
-                                {JSON.stringify(log.output_data, null, 2).slice(0, 200) + 
-                                  (JSON.stringify(log.output_data).length > 200 ? '...' : '')
-                                }
-                              </pre>
-                            )}
-                          </>
-                        ) : (
-                          <pre className="text-muted-foreground font-mono whitespace-pre-wrap break-words">
-                            {String(log.output_data)}
-                          </pre>
-                        )}
-                      </div>
-                    )}
-                    
-                    {log.duration_ms && (
-                      <div className="text-xs text-muted-foreground mt-1">
-                        {log.duration_ms}ms
-                      </div>
-                    )}
-                  </div>
+                  <div className="text-xs text-muted-foreground">In progress...</div>
                 </div>
               </div>
-            ))}
+            )}
           </div>
         )}
       </ScrollArea>

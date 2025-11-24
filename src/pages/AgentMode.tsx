@@ -82,126 +82,54 @@ export default function AgentMode() {
     };
   }, [user, session]);
 
-  const handleStartAgent = async (prompt: string, tool?: string) => {
+  const handleStartAgent = async (brandData: any) => {
     if (!user) return;
 
     try {
       setIsRunning(true);
-      
-      // Create new agent session
-      const { data: newSession, error: sessionError } = await supabase
-        .from("agent_sessions")
-        .insert({
-          user_id: user.id,
-          state: "running",
-          metadata: { prompt, tool },
-        })
-        .select()
-        .single();
-
-      if (sessionError) throw sessionError;
-
-      setSession(newSession);
       setLogs([]);
       setPreviewData(null);
+      
+      toast.info("Starting workflow...");
 
-      // Start streaming agent execution
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/agent-stream`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+      // Call the agent-workflow edge function
+      const { data, error } = await supabase.functions.invoke("agent-workflow", {
+        body: {
+          input: {
+            brandName: brandData.brandName || "Unknown Brand",
+            productCategory: brandData.productCategory || "SaaS",
+            targetAudience: brandData.targetAudience || "General",
+            brandVoice: brandData.brandVoice || "Professional",
+            keyMessages: brandData.keyMessages || ["Quality", "Innovation"],
+            competitorQuery: brandData.competitorQuery || brandData.prompt || "competitors",
+            maxCompetitors: brandData.maxCompetitors || 3,
+            userId: user.id,
           },
-          body: JSON.stringify({ session_id: newSession.id, prompt, tool }),
-        }
-      );
+        },
+      });
 
-      if (!response.ok) {
-        throw new Error("Failed to start streaming");
+      if (error) {
+        console.error("Workflow error:", error);
+        throw error;
       }
 
-      // Handle streaming response
-      const reader = response.body?.getReader();
-      const decoder = new TextDecoder();
-
-      if (reader) {
-        let buffer = "";
-        let streamingLogId: string | null = null;
-        let accumulatedContent = "";
-
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (!line.trim() || line.startsWith(":")) continue;
-            if (!line.startsWith("data: ")) continue;
-
-            const data = line.slice(6);
-            if (data === "[DONE]") {
-              // Finalize streaming log
-              if (streamingLogId && accumulatedContent) {
-                setLogs((prev) =>
-                  prev.map((log) =>
-                    log.id === streamingLogId
-                      ? { ...log, output_data: { response: accumulatedContent }, status: "success" }
-                      : log
-                  )
-                );
-              }
-              continue;
-            }
-
-            try {
-              const parsed = JSON.parse(data);
-              const delta = parsed.choices?.[0]?.delta;
-
-              if (delta?.content) {
-                accumulatedContent += delta.content;
-
-                // Create or update streaming log
-                if (!streamingLogId) {
-                  streamingLogId = `streaming-${Date.now()}`;
-                  setLogs((prev) => [
-                    ...prev,
-                    {
-                      id: streamingLogId!,
-                      session_id: newSession.id,
-                      step_name: "AI Response",
-                      status: "in_progress",
-                      tool_name: tool || "general",
-                      output_data: { response: accumulatedContent },
-                      created_at: new Date().toISOString(),
-                    },
-                  ]);
-                } else {
-                  setLogs((prev) =>
-                    prev.map((log) =>
-                      log.id === streamingLogId
-                        ? { ...log, output_data: { response: accumulatedContent } }
-                        : log
-                    )
-                  );
-                }
-              }
-            } catch (e) {
-              console.error("Error parsing stream data:", e);
-            }
-          }
-        }
+      if (data?.success) {
+        setSession({
+          id: data.sessionId,
+          state: "completed",
+          progress: 100,
+          metadata: data.metadata,
+        });
+        setPreviewData(data.synthesis);
+        toast.success("Workflow completed successfully!");
+      } else {
+        throw new Error(data?.error || "Workflow failed");
       }
 
-      toast.success("Agent completed successfully");
       setIsRunning(false);
     } catch (error) {
-      console.error("Error starting agent:", error);
-      toast.error("Failed to start agent");
+      console.error("Error starting workflow:", error);
+      toast.error("Failed to start workflow");
       setIsRunning(false);
     }
   };
@@ -246,8 +174,8 @@ export default function AgentMode() {
 
       {/* Main Content */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel - Console & Timeline */}
-        <div className="w-1/2 flex flex-col">
+        {/* Left Panel - Console (Fixed Width: 420-480px) */}
+        <div className="w-[460px] flex flex-col border-r border-border">
           <Tabs defaultValue="console" className="flex-1 flex flex-col">
             <TabsList className="w-full justify-start border-b rounded-none bg-transparent px-4">
               <TabsTrigger value="console" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
@@ -278,8 +206,8 @@ export default function AgentMode() {
           </Tabs>
         </div>
 
-        {/* Right Panel - Preview */}
-        <div className="flex-1 overflow-auto bg-background">
+        {/* Right Panel - Preview (Flexible Width) */}
+        <div className="flex-1 overflow-auto bg-muted/30">
           <AgentPreview 
             data={previewData}
             session={session}
