@@ -74,3 +74,6 @@ verify_jwt = true
 
 [functions.azure-video-analyzer]
 verify_jwt = true
+
+[functions.llm-synthesis-engine]
+verify_jwt = true
