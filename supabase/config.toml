@@ -68,3 +68,6 @@ verify_jwt = false
 
 [functions.mcp-firecrawl-tool]
 verify_jwt = true
+
+[functions.meta-ads-extractor]
+verify_jwt = true
