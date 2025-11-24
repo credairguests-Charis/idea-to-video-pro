@@ -65,3 +65,6 @@ verify_jwt = false
 
 [functions.send-subscription-success-email]
 verify_jwt = false
+
+[functions.mcp-firecrawl-tool]
+verify_jwt = true
