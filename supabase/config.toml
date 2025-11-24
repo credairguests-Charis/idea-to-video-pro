@@ -71,3 +71,6 @@ verify_jwt = true
 
 [functions.meta-ads-extractor]
 verify_jwt = true
+
+[functions.azure-video-analyzer]
+verify_jwt = true
