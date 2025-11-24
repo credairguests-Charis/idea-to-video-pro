@@ -77,7 +77,7 @@ const Landing = () => {
               </span>
               {" "}ads with AI
             </h1>
-            <p className="text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">Generate 100s of winning videos from text.</p>
+            <p className="text-lg lg:text-xl text-muted-foreground max-w-2xl mx-auto">Generate 100's of winning videos from text.</p>
             <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
               <Button size="lg" className="text-base px-8" onClick={() => navigate("/auth")}>
                 Get your first video ad generated
@@ -232,11 +232,7 @@ const Landing = () => {
                 <span className="text-lg font-bold">Charis</span>
               </div>
               <p className="text-sm text-muted-foreground">Create scroll-stopping Ads with AI</p>
-              <img 
-                src="/badges/ms-startups-badge.png" 
-                alt="Microsoft for Startups" 
-                className="w-48 mt-4"
-              />
+              <img src="/badges/ms-startups-badge.png" alt="Microsoft for Startups" className="w-48 mt-4" />
             </div>
             <div>
               <h3 className="font-semibold mb-4">Product</h3>
