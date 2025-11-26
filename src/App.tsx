@@ -14,6 +14,7 @@ import NotFound from "./pages/NotFound";
 import VideoGenerator from "./pages/VideoGenerator";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
 import AgentMode from "./pages/AgentMode";
+import InviteSignup from "./pages/InviteSignup";
 import { ArcadsLayout } from "./components/ArcadsLayout";
 import { AuthProvider } from "./hooks/useAuth";
 import { AuthGuard } from "./components/AuthGuard";
@@ -40,6 +41,9 @@ const App = () => (
           {/* Landing Page */}
           <Route path="/" element={<Landing />} />
           <Route path="/auth" element={<Auth />} />
+          
+          {/* Invite Signup - Public Route */}
+          <Route path="/invite/:slug" element={<InviteSignup />} />
           
           {/* Admin Routes */}
           <Route path="/admin" element={
