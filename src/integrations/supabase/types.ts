@@ -475,6 +475,68 @@ export type Database = {
         }
         Relationships: []
       }
+      invite_link_usages: {
+        Row: {
+          id: string
+          invite_id: string
+          used_at: string
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          invite_id: string
+          used_at?: string
+          user_id: string
+        }
+        Update: {
+          id?: string
+          invite_id?: string
+          used_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invite_link_usages_invite_id_fkey"
+            columns: ["invite_id"]
+            isOneToOne: false
+            referencedRelation: "invite_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      invite_links: {
+        Row: {
+          created_at: string
+          created_by: string
+          current_uses: number
+          expires_at: string
+          id: string
+          max_uses: number | null
+          revoked: boolean
+          slug: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          current_uses?: number
+          expires_at: string
+          id?: string
+          max_uses?: number | null
+          revoked?: boolean
+          slug: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          current_uses?: number
+          expires_at?: string
+          id?: string
+          max_uses?: number | null
+          revoked?: boolean
+          slug?: string
+        }
+        Relationships: []
+      }
       omnihuman_generations: {
         Row: {
           actor_id: string | null

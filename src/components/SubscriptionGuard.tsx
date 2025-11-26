@@ -28,7 +28,10 @@ export function SubscriptionGuard({ children }: SubscriptionGuardProps) {
     return <Navigate to="/auth" replace />
   }
 
-  if (!subscriptionStatus.subscribed) {
+  // Check if user has invite bypass
+  const bypassPaywall = user.user_metadata?.bypass_paywall === true;
+  
+  if (!subscriptionStatus.subscribed && !bypassPaywall) {
     return <Navigate to="/pricing" replace />
   }
 

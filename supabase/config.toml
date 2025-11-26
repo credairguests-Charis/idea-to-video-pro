@@ -82,3 +82,15 @@ verify_jwt = true
 
 [functions.llm-synthesis-engine]
 verify_jwt = true
+
+[functions.admin-create-invite]
+verify_jwt = true
+
+[functions.admin-revoke-invite]
+verify_jwt = true
+
+[functions.validate-invite]
+verify_jwt = false
+
+[functions.record-invite-usage]
+verify_jwt = false
