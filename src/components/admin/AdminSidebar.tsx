@@ -25,7 +25,7 @@ const menuItems = [
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
   { title: "Health", url: "/admin/health", icon: Activity },
   { title: "Promotions", url: "/admin/promos", icon: Tag },
-  { title: "Admin Links", url: "/admin/links", icon: Link2 },
+  { title: "Invite Links", url: "/admin/links", icon: Link2 },
   { title: "Audit Logs", url: "/admin/logs", icon: FileText },
   { title: "Users", url: "/admin/users", icon: Users },
 ];
