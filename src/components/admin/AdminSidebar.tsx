@@ -26,6 +26,7 @@ const menuItems = [
   { title: "Health", url: "/admin/health", icon: Activity },
   { title: "Promotions", url: "/admin/promos", icon: Tag },
   { title: "Invite Links", url: "/admin/links", icon: Link2 },
+  { title: "Marketing Links", url: "/admin/marketing-links", icon: Link2 },
   { title: "Audit Logs", url: "/admin/logs", icon: FileText },
   { title: "Users", url: "/admin/users", icon: Users },
 ];
