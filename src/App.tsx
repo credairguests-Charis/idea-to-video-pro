@@ -15,6 +15,7 @@ import VideoGenerator from "./pages/VideoGenerator";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
 import AgentMode from "./pages/AgentMode";
 import InviteSignup from "./pages/InviteSignup";
+import MarketingSignup from "./pages/MarketingSignup";
 import { ArcadsLayout } from "./components/ArcadsLayout";
 import { AuthProvider } from "./hooks/useAuth";
 import { AuthGuard } from "./components/AuthGuard";
@@ -26,6 +27,7 @@ import AdminAnalytics from "./pages/admin/AdminAnalytics";
 import AdminHealth from "./pages/admin/AdminHealth";
 import AdminPromos from "./pages/admin/AdminPromos";
 import AdminLinks from "./pages/admin/AdminLinks";
+import AdminMarketingLinks from "./pages/admin/AdminMarketingLinks";
 import AdminLogs from "./pages/admin/AdminLogs";
 import AdminUsers from "./pages/admin/AdminUsers";
 
@@ -44,6 +46,9 @@ const App = () => (
           
           {/* Invite Signup - Public Route */}
           <Route path="/invite/:slug" element={<InviteSignup />} />
+          
+          {/* Marketing Signup - Public Route */}
+          <Route path="/marketing/:slug" element={<MarketingSignup />} />
           
           {/* Admin Routes */}
           <Route path="/admin" element={
@@ -78,6 +83,13 @@ const App = () => (
             <AdminGuard>
               <AdminLayout>
                 <AdminLinks />
+              </AdminLayout>
+            </AdminGuard>
+          } />
+          <Route path="/admin/marketing-links" element={
+            <AdminGuard>
+              <AdminLayout>
+                <AdminMarketingLinks />
               </AdminLayout>
             </AdminGuard>
           } />

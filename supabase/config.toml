@@ -94,3 +94,27 @@ verify_jwt = false
 
 [functions.record-invite-usage]
 verify_jwt = false
+
+[functions.admin-create-marketing-link]
+verify_jwt = true
+
+[functions.admin-revoke-marketing-link]
+verify_jwt = true
+
+[functions.admin-toggle-marketing-link]
+verify_jwt = true
+
+[functions.validate-marketing-link]
+verify_jwt = false
+
+[functions.record-marketing-click]
+verify_jwt = false
+
+[functions.record-marketing-signup]
+verify_jwt = false
+
+[functions.check-user-credits]
+verify_jwt = true
+
+[functions.deduct-credits]
+verify_jwt = true

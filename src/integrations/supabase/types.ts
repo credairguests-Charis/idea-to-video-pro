@@ -537,6 +537,156 @@ export type Database = {
         }
         Relationships: []
       }
+      marketing_link_clicks: {
+        Row: {
+          clicked_at: string
+          hashed_ip: string | null
+          id: string
+          marketing_link_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          clicked_at?: string
+          hashed_ip?: string | null
+          id?: string
+          marketing_link_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          clicked_at?: string
+          hashed_ip?: string | null
+          id?: string
+          marketing_link_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_link_clicks_marketing_link_id_fkey"
+            columns: ["marketing_link_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_link_logos: {
+        Row: {
+          created_at: string
+          display_order: number
+          id: string
+          logo_url: string
+          marketing_link_id: string
+        }
+        Insert: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          logo_url: string
+          marketing_link_id: string
+        }
+        Update: {
+          created_at?: string
+          display_order?: number
+          id?: string
+          logo_url?: string
+          marketing_link_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_link_logos_marketing_link_id_fkey"
+            columns: ["marketing_link_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_link_usages: {
+        Row: {
+          credited_amount: number
+          credits_spent: number
+          device_info: string | null
+          id: string
+          marketing_link_id: string
+          referrer: string | null
+          signup_timestamp: string
+          user_id: string
+          utm_parameters: Json | null
+        }
+        Insert: {
+          credited_amount?: number
+          credits_spent?: number
+          device_info?: string | null
+          id?: string
+          marketing_link_id: string
+          referrer?: string | null
+          signup_timestamp?: string
+          user_id: string
+          utm_parameters?: Json | null
+        }
+        Update: {
+          credited_amount?: number
+          credits_spent?: number
+          device_info?: string | null
+          id?: string
+          marketing_link_id?: string
+          referrer?: string | null
+          signup_timestamp?: string
+          user_id?: string
+          utm_parameters?: Json | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "marketing_link_usages_marketing_link_id_fkey"
+            columns: ["marketing_link_id"]
+            isOneToOne: false
+            referencedRelation: "marketing_links"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      marketing_links: {
+        Row: {
+          created_at: string
+          created_by: string
+          current_uses: number
+          expires_at: string
+          id: string
+          initial_credits: number
+          is_active: boolean
+          max_uses: number | null
+          revoked: boolean
+          slug: string
+          title: string
+        }
+        Insert: {
+          created_at?: string
+          created_by: string
+          current_uses?: number
+          expires_at: string
+          id?: string
+          initial_credits?: number
+          is_active?: boolean
+          max_uses?: number | null
+          revoked?: boolean
+          slug: string
+          title: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string
+          current_uses?: number
+          expires_at?: string
+          id?: string
+          initial_credits?: number
+          is_active?: boolean
+          max_uses?: number | null
+          revoked?: boolean
+          slug?: string
+          title?: string
+        }
+        Relationships: []
+      }
       omnihuman_generations: {
         Row: {
           actor_id: string | null
@@ -595,6 +745,7 @@ export type Database = {
         Row: {
           avatar_url: string | null
           created_at: string
+          credits: number | null
           email: string | null
           full_name: string | null
           id: string
@@ -605,6 +756,7 @@ export type Database = {
         Insert: {
           avatar_url?: string | null
           created_at?: string
+          credits?: number | null
           email?: string | null
           full_name?: string | null
           id?: string
@@ -615,6 +767,7 @@ export type Database = {
         Update: {
           avatar_url?: string | null
           created_at?: string
+          credits?: number | null
           email?: string | null
           full_name?: string | null
           id?: string
@@ -775,6 +928,33 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      transaction_logs: {
+        Row: {
+          created_at: string
+          credits_change: number
+          id: string
+          metadata: Json | null
+          reason: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          credits_change: number
+          id?: string
+          metadata?: Json | null
+          reason: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          credits_change?: number
+          id?: string
+          metadata?: Json | null
+          reason?: string
+          user_id?: string
+        }
+        Relationships: []
       }
       user_roles: {
         Row: {
