@@ -26,6 +26,44 @@ export function UserDetailSheet({ user, open, onOpenChange, onUserUpdated }: Use
   useEffect(() => {
     if (user && open) {
       fetchUserProjects();
+      
+      // Set up real-time subscriptions for generation updates
+      const omnihumanChannel = supabase
+        .channel(`user-omnihuman-${user.user_id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'omnihuman_generations'
+          },
+          (payload) => {
+            console.log('OmniHuman generation change:', payload);
+            fetchUserProjects(); // Refresh projects when generations change
+          }
+        )
+        .subscribe();
+
+      const videoGenChannel = supabase
+        .channel(`user-videos-${user.user_id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'video_generations'
+          },
+          (payload) => {
+            console.log('Video generation change:', payload);
+            fetchUserProjects(); // Refresh projects when generations change
+          }
+        )
+        .subscribe();
+
+      return () => {
+        supabase.removeChannel(omnihumanChannel);
+        supabase.removeChannel(videoGenChannel);
+      };
     }
   }, [user, open]);
 
@@ -34,15 +72,44 @@ export function UserDetailSheet({ user, open, onOpenChange, onUserUpdated }: Use
     
     setLoadingProjects(true);
     try {
-      const { data, error } = await supabase
+      // Fetch projects
+      const { data: projectsData, error: projectsError } = await supabase
         .from('projects')
         .select('*')
         .eq('user_id', user.user_id)
         .order('created_at', { ascending: false })
-        .limit(10);
+        .limit(20);
 
-      if (error) throw error;
-      setProjects(data || []);
+      if (projectsError) throw projectsError;
+
+      // For each project, fetch both types of generations
+      const projectsWithGenerations = await Promise.all(
+        (projectsData || []).map(async (project) => {
+          // Fetch omnihuman generations
+          const { data: omnihumanGens } = await supabase
+            .from('omnihuman_generations')
+            .select('*')
+            .eq('project_id', project.id);
+
+          // Fetch video generations (Sora)
+          const { data: videoGens } = await supabase
+            .from('video_generations')
+            .select('*')
+            .eq('project_id', project.id);
+
+          return {
+            ...project,
+            omnihuman_count: omnihumanGens?.length || 0,
+            video_gen_count: videoGens?.length || 0,
+            total_generations: (omnihumanGens?.length || 0) + (videoGens?.length || 0),
+            omnihuman_generations: omnihumanGens || [],
+            video_generations: videoGens || [],
+          };
+        })
+      );
+
+      console.log('User projects with generation counts:', projectsWithGenerations);
+      setProjects(projectsWithGenerations);
     } catch (error) {
       console.error('Error fetching projects:', error);
     } finally {
@@ -303,28 +370,76 @@ export function UserDetailSheet({ user, open, onOpenChange, onUserUpdated }: Use
                   <CardContent>
                     {loadingProjects ? (
                       <p className="text-sm text-muted-foreground text-center py-4">Loading projects...</p>
-                    ) : projects.length > 0 ? (
+                     ) : projects.length > 0 ? (
                       <div className="space-y-3">
                         {projects.map((project) => (
-                          <div key={project.id} className="flex items-center justify-between p-3 border rounded-lg">
-                            <div className="flex-1">
-                              <p className="text-sm font-medium">{project.title}</p>
-                              <div className="flex items-center gap-3 mt-1">
-                                <p className="text-xs text-muted-foreground">
-                                  {new Date(project.created_at).toLocaleDateString()}
-                                </p>
-                                <Badge variant="outline" className="text-xs">
-                                  {project.generation_status}
-                                </Badge>
+                          <div key={project.id} className="border rounded-lg overflow-hidden">
+                            <div className="flex items-center justify-between p-3 bg-muted/30">
+                              <div className="flex-1">
+                                <p className="text-sm font-medium">{project.title}</p>
+                                <div className="flex items-center gap-3 mt-1">
+                                  <p className="text-xs text-muted-foreground">
+                                    {new Date(project.created_at).toLocaleDateString()}
+                                  </p>
+                                  <Badge variant="outline" className="text-xs">
+                                    {project.generation_status}
+                                  </Badge>
+                                  <Badge variant="secondary" className="text-xs">
+                                    {project.total_generations} videos
+                                  </Badge>
+                                </div>
                               </div>
+                              {project.thumbnail_url && (
+                                <div className="w-16 h-16 rounded bg-muted overflow-hidden ml-3">
+                                  <img 
+                                    src={project.thumbnail_url} 
+                                    alt={project.title}
+                                    className="w-full h-full object-cover"
+                                  />
+                                </div>
+                              )}
                             </div>
-                            {project.thumbnail_url && (
-                              <div className="w-16 h-16 rounded bg-muted overflow-hidden ml-3">
-                                <img 
-                                  src={project.thumbnail_url} 
-                                  alt={project.title}
-                                  className="w-full h-full object-cover"
-                                />
+                            
+                            {/* Show generation details */}
+                            {project.total_generations > 0 && (
+                              <div className="p-3 space-y-2 text-xs">
+                                {project.omnihuman_count > 0 && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">OmniHuman Videos:</span>
+                                    <Badge variant="outline">{project.omnihuman_count}</Badge>
+                                  </div>
+                                )}
+                                {project.video_gen_count > 0 && (
+                                  <div className="flex items-center justify-between">
+                                    <span className="text-muted-foreground">Sora Videos:</span>
+                                    <Badge variant="outline">{project.video_gen_count}</Badge>
+                                  </div>
+                                )}
+                                
+                                {/* Show individual video statuses */}
+                                {project.video_generations?.map((video: any) => (
+                                  <div key={video.id} className="flex items-center justify-between text-xs bg-muted/20 p-2 rounded">
+                                    <span className="truncate flex-1">Sora: {video.title || 'Untitled'}</span>
+                                    <Badge 
+                                      variant={video.status === 'completed' ? 'default' : video.status === 'failed' ? 'destructive' : 'secondary'}
+                                      className="text-xs ml-2"
+                                    >
+                                      {video.status}
+                                    </Badge>
+                                  </div>
+                                ))}
+                                
+                                {project.omnihuman_generations?.map((video: any) => (
+                                  <div key={video.id} className="flex items-center justify-between text-xs bg-muted/20 p-2 rounded">
+                                    <span className="truncate flex-1">OmniHuman: {video.task_id.slice(0, 8)}...</span>
+                                    <Badge 
+                                      variant={video.status === 'completed' ? 'default' : video.status === 'failed' ? 'destructive' : 'secondary'}
+                                      className="text-xs ml-2"
+                                    >
+                                      {video.status}
+                                    </Badge>
+                                  </div>
+                                ))}
                               </div>
                             )}
                           </div>

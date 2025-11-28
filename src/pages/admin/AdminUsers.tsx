@@ -59,17 +59,43 @@ export default function AdminUsers() {
 
       if (profilesError) throw profilesError;
 
-      // Fetch project counts for each user
+      // Fetch project counts and video generation counts for each user
       const usersWithCounts = await Promise.all(
         (profilesData || []).map(async (profile) => {
-          const { count } = await supabase
+          // Count projects
+          const { count: projectCount } = await supabase
             .from('projects')
             .select('*', { count: 'exact', head: true })
             .eq('user_id', profile.user_id);
 
+          // Count OmniHuman generations
+          const { count: omnihumanCount } = await supabase
+            .from('omnihuman_generations')
+            .select('*', { count: 'exact', head: true })
+            .in('project_id', 
+              await supabase
+                .from('projects')
+                .select('id')
+                .eq('user_id', profile.user_id)
+                .then(({ data }) => data?.map(p => p.id) || [])
+            );
+
+          // Count Sora video generations  
+          const { count: videoGenCount } = await supabase
+            .from('video_generations')
+            .select('*', { count: 'exact', head: true })
+            .eq('user_id', profile.user_id);
+
+          const totalVideos = (omnihumanCount || 0) + (videoGenCount || 0);
+
+          console.log(`User ${profile.email}: ${omnihumanCount} OmniHuman + ${videoGenCount} Sora = ${totalVideos} total videos`);
+
           return {
             ...profile,
-            video_count: count || 0,
+            project_count: projectCount || 0,
+            video_count: totalVideos,
+            omnihuman_count: omnihumanCount || 0,
+            sora_count: videoGenCount || 0,
           };
         })
       );
@@ -91,7 +117,7 @@ export default function AdminUsers() {
   useEffect(() => {
     fetchUsers();
     
-    // Set up real-time subscriptions for profile changes
+    // Set up real-time subscriptions for profile, project, and generation changes
     const profilesChannel = supabase
       .channel('profiles-changes')
       .on(
@@ -125,9 +151,45 @@ export default function AdminUsers() {
       )
       .subscribe();
 
+    // Real-time subscription for omnihuman generations
+    const omnihumanChannel = supabase
+      .channel('omnihuman-gen-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'omnihuman_generations'
+        },
+        () => {
+          console.log('OmniHuman generation change detected, refreshing...');
+          fetchUsers();
+        }
+      )
+      .subscribe();
+
+    // Real-time subscription for video generations
+    const videoGenChannel = supabase
+      .channel('video-gen-changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'video_generations'
+        },
+        () => {
+          console.log('Video generation change detected, refreshing...');
+          fetchUsers();
+        }
+      )
+      .subscribe();
+
     return () => {
       supabase.removeChannel(profilesChannel);
       supabase.removeChannel(projectsChannel);
+      supabase.removeChannel(omnihumanChannel);
+      supabase.removeChannel(videoGenChannel);
     };
   }, []);
 
@@ -325,9 +387,14 @@ export default function AdminUsers() {
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-2">
                           <Video className="h-3 w-3 text-muted-foreground" />
                           <span className="font-medium">{user.video_count || 0}</span>
+                          {(user.omnihuman_count > 0 || user.sora_count > 0) && (
+                            <span className="text-xs text-muted-foreground">
+                              ({user.omnihuman_count || 0}OH + {user.sora_count || 0}S)
+                            </span>
+                          )}
                         </div>
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">

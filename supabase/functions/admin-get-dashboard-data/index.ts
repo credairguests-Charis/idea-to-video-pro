@@ -92,6 +92,12 @@ Deno.serve(async (req) => {
       .select('*', { count: 'exact', head: true });
     
     const generationCount = (omnihumanCount || 0) + (videoGenCount || 0);
+    
+    console.log('Video Generation Counts:', {
+      omnihuman: omnihumanCount || 0,
+      sora: videoGenCount || 0,
+      total: generationCount
+    });
 
     // Get completed generations in last 7 days for trend
     const { count: omnihumanLastWeek } = await supabase
@@ -123,6 +129,11 @@ Deno.serve(async (req) => {
 
     const generationsLastWeek = (omnihumanLastWeek || 0) + (videoLastWeek || 0);
     const generationsPrevWeek = (omnihumanPrevWeek || 0) + (videoPrevWeek || 0);
+    
+    console.log('Weekly Video Trend:', {
+      lastWeek: { omnihuman: omnihumanLastWeek || 0, sora: videoLastWeek || 0, total: generationsLastWeek },
+      prevWeek: { omnihuman: omnihumanPrevWeek || 0, sora: videoPrevWeek || 0, total: generationsPrevWeek }
+    });
 
     // Get pending generations from both tables
     const { count: omnihumanPending } = await supabase

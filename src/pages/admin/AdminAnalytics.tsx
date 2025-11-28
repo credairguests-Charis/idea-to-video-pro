@@ -24,7 +24,7 @@ interface AnalyticsData {
 export default function AdminAnalytics() {
   const [data, setData] = useState<AnalyticsData | null>(null);
   const [loading, setLoading] = useState(true);
-  const [dateRange, setDateRange] = useState("30d");
+  const [dateRange, setDateRange] = useState("30");
   const { toast } = useToast();
 
   const fetchAnalytics = async () => {
@@ -36,26 +36,31 @@ export default function AdminAnalytics() {
       );
       if (dashboardError) throw dashboardError;
 
-      // Fetch historical user data
+      const daysNum = parseInt(dateRange);
+      const now = new Date();
+      const startDate = new Date(now.getTime() - daysNum * 24 * 60 * 60 * 1000);
+
+      // Fetch historical user data within date range
       const { data: profiles, error: profilesError } = await supabase
         .from('profiles')
         .select('created_at')
+        .gte('created_at', startDate.toISOString())
         .order('created_at', { ascending: true });
       
       if (profilesError) throw profilesError;
 
-      // Fetch historical generation data from both tables
+      // Fetch historical generation data from both tables within date range
       const { data: omnihumanGens, error: omnihumanError } = await supabase
         .from('omnihuman_generations')
-        .select('created_at, status')
-        .order('created_at', { ascending: false })
-        .limit(1000);
+        .select('created_at, status, project_id')
+        .gte('created_at', startDate.toISOString())
+        .order('created_at', { ascending: false });
       
       const { data: videoGens, error: videoError } = await supabase
         .from('video_generations')
-        .select('created_at, status')
-        .order('created_at', { ascending: false })
-        .limit(1000);
+        .select('created_at, status, project_id')
+        .gte('created_at', startDate.toISOString())
+        .order('created_at', { ascending: false });
       
       if (omnihumanError) console.error('Error fetching omnihuman generations:', omnihumanError);
       if (videoError) console.error('Error fetching video generations:', videoError);
@@ -63,46 +68,130 @@ export default function AdminAnalytics() {
       // Combine both generation types
       const generations = [...(omnihumanGens || []), ...(videoGens || [])];
 
-      // Process user growth data (last 6 months)
-      const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
-      const now = new Date();
+      console.log('Total generations in date range:', generations.length);
+      console.log('OmniHuman:', omnihumanGens?.length || 0, 'Video:', videoGens?.length || 0);
+
+      // Process user growth data based on date range
       const userGrowthData = [];
+      let dataPoints = daysNum <= 7 ? daysNum : daysNum <= 30 ? 7 : daysNum <= 90 ? 12 : 6;
+      const interval = Math.ceil(daysNum / dataPoints);
       
-      for (let i = 5; i >= 0; i--) {
-        const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
-        const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
-        const usersInMonth = profiles?.filter(p => {
-          const createdDate = new Date(p.created_at);
-          return createdDate >= monthDate && createdDate <= monthEnd;
-        }).length || 0;
+      if (daysNum <= 7) {
+        // Show daily data for 7 days or less
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        for (let i = daysNum - 1; i >= 0; i--) {
+          const dayDate = new Date();
+          dayDate.setDate(dayDate.getDate() - i);
+          dayDate.setHours(0, 0, 0, 0);
+          
+          const nextDay = new Date(dayDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+          
+          const usersInDay = profiles?.filter(p => {
+            const createdDate = new Date(p.created_at);
+            return createdDate >= dayDate && createdDate < nextDay;
+          }).length || 0;
+          
+          userGrowthData.push({
+            name: dayNames[dayDate.getDay()],
+            users: usersInDay
+          });
+        }
+      } else if (daysNum <= 30) {
+        // Show weekly data for 30 days
+        for (let i = 0; i < 4; i++) {
+          const weekStart = new Date(now.getTime() - (4 - i) * 7 * 24 * 60 * 60 * 1000);
+          const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+          
+          const usersInWeek = profiles?.filter(p => {
+            const createdDate = new Date(p.created_at);
+            return createdDate >= weekStart && createdDate < weekEnd;
+          }).length || 0;
+          
+          userGrowthData.push({
+            name: `Week ${i + 1}`,
+            users: usersInWeek
+          });
+        }
+      } else {
+        // Show monthly data for 90+ days
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthsToShow = Math.min(Math.ceil(daysNum / 30), 12);
         
-        userGrowthData.push({
-          name: monthNames[monthDate.getMonth()],
-          users: usersInMonth
-        });
+        for (let i = monthsToShow - 1; i >= 0; i--) {
+          const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+          const usersInMonth = profiles?.filter(p => {
+            const createdDate = new Date(p.created_at);
+            return createdDate >= monthDate && createdDate <= monthEnd;
+          }).length || 0;
+          
+          userGrowthData.push({
+            name: monthNames[monthDate.getMonth()],
+            users: usersInMonth
+          });
+        }
       }
 
-      // Process video generation data (last 7 days)
-      const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+      // Process video generation data based on date range
       const videoGenerationData = [];
       
-      for (let i = 6; i >= 0; i--) {
-        const dayDate = new Date();
-        dayDate.setDate(dayDate.getDate() - i);
-        dayDate.setHours(0, 0, 0, 0);
+      if (daysNum <= 7) {
+        // Show daily data for 7 days or less
+        const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+        for (let i = daysNum - 1; i >= 0; i--) {
+          const dayDate = new Date();
+          dayDate.setDate(dayDate.getDate() - i);
+          dayDate.setHours(0, 0, 0, 0);
+          
+          const nextDay = new Date(dayDate);
+          nextDay.setDate(nextDay.getDate() + 1);
+          
+          const videosInDay = generations.filter(g => {
+            const createdDate = new Date(g.created_at);
+            return createdDate >= dayDate && createdDate < nextDay;
+          }).length;
+          
+          videoGenerationData.push({
+            name: dayNames[dayDate.getDay()],
+            videos: videosInDay
+          });
+        }
+      } else if (daysNum <= 30) {
+        // Show weekly data for 30 days
+        for (let i = 0; i < 4; i++) {
+          const weekStart = new Date(now.getTime() - (4 - i) * 7 * 24 * 60 * 60 * 1000);
+          const weekEnd = new Date(weekStart.getTime() + 7 * 24 * 60 * 60 * 1000);
+          
+          const videosInWeek = generations.filter(g => {
+            const createdDate = new Date(g.created_at);
+            return createdDate >= weekStart && createdDate < weekEnd;
+          }).length;
+          
+          videoGenerationData.push({
+            name: `Week ${i + 1}`,
+            videos: videosInWeek
+          });
+        }
+      } else {
+        // Show monthly data for 90+ days
+        const monthNames = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+        const monthsToShow = Math.min(Math.ceil(daysNum / 30), 12);
         
-        const nextDay = new Date(dayDate);
-        nextDay.setDate(nextDay.getDate() + 1);
-        
-        const videosInDay = generations.filter(g => {
-          const createdDate = new Date(g.created_at);
-          return createdDate >= dayDate && createdDate < nextDay;
-        }).length;
-        
-        videoGenerationData.push({
-          name: dayNames[dayDate.getDay()],
-          videos: videosInDay
-        });
+        for (let i = monthsToShow - 1; i >= 0; i--) {
+          const monthDate = new Date(now.getFullYear(), now.getMonth() - i, 1);
+          const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+          
+          const videosInMonth = generations.filter(g => {
+            const createdDate = new Date(g.created_at);
+            return createdDate >= monthDate && createdDate <= monthEnd;
+          }).length;
+          
+          videoGenerationData.push({
+            name: monthNames[monthDate.getMonth()],
+            videos: videosInMonth
+          });
+        }
       }
 
       // Use real revenue data from Stripe
@@ -285,10 +374,13 @@ export default function AdminAnalytics() {
               <SelectValue placeholder="Date range" />
             </SelectTrigger>
             <SelectContent>
-              <SelectItem value="7d">Last 7 days</SelectItem>
-              <SelectItem value="30d">Last 30 days</SelectItem>
-              <SelectItem value="90d">Last 90 days</SelectItem>
-              <SelectItem value="custom">Custom range</SelectItem>
+              <SelectItem value="7">Last 7 days</SelectItem>
+              <SelectItem value="14">Last 14 days</SelectItem>
+              <SelectItem value="30">Last 30 days</SelectItem>
+              <SelectItem value="60">Last 60 days</SelectItem>
+              <SelectItem value="90">Last 90 days</SelectItem>
+              <SelectItem value="180">Last 6 months</SelectItem>
+              <SelectItem value="365">Last 12 months</SelectItem>
             </SelectContent>
           </Select>
           <Button onClick={fetchAnalytics} disabled={loading} variant="outline" size="sm">
@@ -324,15 +416,15 @@ export default function AdminAnalytics() {
       <div className="grid gap-6 grid-cols-1 lg:grid-cols-2">
         <AnalyticsChart
           title="User Growth Trend"
-          description="New user registrations over the last 6 months"
+          description={`New user registrations over ${dateRange === "7" ? "the last 7 days" : dateRange === "30" ? "the last 30 days" : dateRange === "90" ? "the last 90 days" : dateRange === "180" ? "the last 6 months" : "the selected period"}`}
           data={data.userGrowthData}
           type="line"
           dataKeys={[{ key: 'users', color: 'hsl(var(--chart-1))', name: 'New Users' }]}
           xAxisKey="name"
         />
         <AnalyticsChart
-          title="Weekly Video Generation"
-          description="Videos created per day over the last 7 days"
+          title="Video Generation Trend"
+          description={`Videos created over ${dateRange === "7" ? "the last 7 days" : dateRange === "30" ? "the last 30 days" : dateRange === "90" ? "the last 90 days" : dateRange === "180" ? "the last 6 months" : "the selected period"}`}
           data={data.videoGenerationData}
           type="bar"
           dataKeys={[{ key: 'videos', color: 'hsl(var(--chart-2))', name: 'Videos Generated' }]}
