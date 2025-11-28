@@ -177,12 +177,8 @@ export default function MarketingSignup() {
         <div className="max-w-md mx-auto px-4 py-8">
           {/* Headline */}
           <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold text-foreground mb-3 flex items-center justify-center gap-2">
-              <CheckCircle className="h-7 w-7 text-primary" />
-              Get free video generation credits
-            </h1>
             <p className="text-muted-foreground text-base">
-              No card required — You get {linkData.initial_credits} free credits, enough for 3 full video generations and agent usage.
+              Sign Up and get up to {linkData.initial_credits} credit, No card required
             </p>
           </div>
 
