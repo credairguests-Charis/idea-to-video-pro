@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { Loader2, AlertCircle, CheckCircle } from "lucide-react";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "sonner";
 
 interface MarketingLink {
@@ -19,8 +18,11 @@ interface MarketingLink {
 }
 
 const STATIC_SOCIAL_LOGOS = [
-  "/badges/ms-startups-badge.png",
-  // Add more static social proof logos here as needed
+  { name: "Nike", url: "https://upload.wikimedia.org/wikipedia/commons/a/a6/Logo_NIKE.svg" },
+  { name: "Adidas", url: "https://upload.wikimedia.org/wikipedia/commons/2/20/Adidas_Logo.svg" },
+  { name: "Coca-Cola", url: "https://upload.wikimedia.org/wikipedia/commons/c/ce/Coca-Cola_logo.svg" },
+  { name: "Apple", url: "https://upload.wikimedia.org/wikipedia/commons/f/fa/Apple_logo_black.svg" },
+  { name: "Samsung", url: "https://upload.wikimedia.org/wikipedia/commons/b/b4/Samsung_wordmark.svg" },
 ];
 
 export default function MarketingSignup() {
@@ -141,64 +143,69 @@ export default function MarketingSignup() {
   if (!linkData?.valid || linkData.error) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4 bg-background">
-        <Card className="w-full max-w-md">
-          <CardHeader>
-            <CardTitle className="flex items-center gap-2 text-foreground">
-              <AlertCircle className="h-5 w-5 text-destructive" />
-              Invalid Link
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
-            <Alert variant="destructive">
-              <AlertDescription>{linkData.error}</AlertDescription>
-            </Alert>
-            <Button className="w-full mt-4" onClick={() => navigate('/auth')}>
-              Go to Login
-            </Button>
-          </CardContent>
-        </Card>
+        <div className="w-full max-w-md p-8 rounded-lg border border-border bg-card">
+          <div className="flex items-center gap-2 mb-4">
+            <AlertCircle className="h-5 w-5 text-destructive" />
+            <h2 className="text-xl font-semibold text-foreground">Invalid Link</h2>
+          </div>
+          <Alert variant="destructive" className="mb-4">
+            <AlertDescription>{linkData.error}</AlertDescription>
+          </Alert>
+          <Button className="w-full" onClick={() => navigate('/auth')}>
+            Go to Login
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background py-12 px-4">
-      <div className="max-w-2xl mx-auto space-y-8">
-        {/* Logo */}
+    <div className="min-h-screen bg-background flex flex-col overflow-hidden">
+      {/* Logo Section - Fixed at top */}
+      <div className="flex-shrink-0 py-6 px-4 border-b border-border">
         <div className="flex justify-center">
           <img 
-            src="/src/assets/charis-logo-new.png" 
+            src="/charis-logo-marketing.png" 
             alt="Charis" 
-            className="h-12 w-auto"
+            className="h-16 w-auto"
           />
         </div>
+      </div>
 
-        {/* Main Signup Card */}
-        <Card className="border-border">
-          <CardHeader className="text-center">
-            <CardTitle className="text-2xl font-bold text-foreground flex items-center justify-center gap-2">
-              <CheckCircle2 className="h-6 w-6 text-primary" />
-              Get Free Video Generation Credits
-            </CardTitle>
-            <CardDescription className="text-base text-muted-foreground">
+      {/* Main Content - Scrollable */}
+      <div className="flex-1 overflow-y-auto">
+        <div className="max-w-md mx-auto px-4 py-8">
+          {/* Headline */}
+          <div className="text-center mb-8">
+            <h1 className="text-3xl font-bold text-foreground mb-3 flex items-center justify-center gap-2">
+              <CheckCircle className="h-7 w-7 text-primary" />
+              Get free video generation credits
+            </h1>
+            <p className="text-muted-foreground text-base">
               No card required — You get {linkData.initial_credits} free credits, enough for 3 full video generations and agent usage.
-            </CardDescription>
-          </CardHeader>
-          <CardContent>
+            </p>
+          </div>
+
+          {/* Signup Form - Centered and Modular */}
+          <div className="bg-card border border-border rounded-lg p-6 shadow-sm mb-8">
             <form onSubmit={handleSignup} className="space-y-4">
               <div className="space-y-2">
-                <Label htmlFor="fullName" className="text-foreground">Full Name</Label>
+                <Label htmlFor="fullName" className="text-foreground text-sm font-medium">
+                  Full Name
+                </Label>
                 <Input
                   id="fullName"
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="John Doe"
                   required
-                  className="border-border bg-background text-foreground"
+                  className="border-input bg-background text-foreground h-11"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="email" className="text-foreground">Email</Label>
+                <Label htmlFor="email" className="text-foreground text-sm font-medium">
+                  Work Email
+                </Label>
                 <Input
                   id="email"
                   type="email"
@@ -206,11 +213,13 @@ export default function MarketingSignup() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="you@example.com"
                   required
-                  className="border-border bg-background text-foreground"
+                  className="border-input bg-background text-foreground h-11"
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password" className="text-foreground">Password</Label>
+                <Label htmlFor="password" className="text-foreground text-sm font-medium">
+                  Password
+                </Label>
                 <Input
                   id="password"
                   type="password"
@@ -218,58 +227,62 @@ export default function MarketingSignup() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   required
-                  className="border-border bg-background text-foreground"
+                  className="border-input bg-background text-foreground h-11"
                 />
               </div>
-              <Button type="submit" className="w-full" disabled={signingUp}>
+              <Button 
+                type="submit" 
+                className="w-full h-11 text-base font-medium" 
+                disabled={signingUp}
+              >
                 {signingUp ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                     Creating Account...
                   </>
                 ) : (
-                  'Create Free Account'
+                  'Get started free'
                 )}
               </Button>
             </form>
-          </CardContent>
-        </Card>
-
-        {/* Dynamic Customer Logos */}
-        {linkData.logos && linkData.logos.length > 0 && (
-          <div className="space-y-4">
-            <h3 className="text-center text-sm font-medium text-muted-foreground uppercase tracking-wide">
-              Trusted By
-            </h3>
-            <div className="flex flex-wrap justify-center items-center gap-6">
-              {linkData.logos
-                .sort((a, b) => a.display_order - b.display_order)
-                .map((logo, index) => (
-                  <img
-                    key={index}
-                    src={logo.logo_url}
-                    alt={`Customer logo ${index + 1}`}
-                    className="h-12 w-auto object-contain grayscale opacity-60 hover:opacity-100 transition-opacity"
-                  />
-                ))}
-            </div>
           </div>
-        )}
 
-        {/* Static Social Proof Logos */}
-        <div className="space-y-4 pt-4 border-t border-border">
-          <h3 className="text-center text-sm font-medium text-muted-foreground uppercase tracking-wide">
-            Featured In
-          </h3>
-          <div className="flex flex-wrap justify-center items-center gap-8">
-            {STATIC_SOCIAL_LOGOS.map((logo, index) => (
-              <img
-                key={index}
-                src={logo}
-                alt={`Social proof logo ${index + 1}`}
-                className="h-10 w-auto object-contain grayscale opacity-70"
-              />
-            ))}
+          {/* Dynamic Customer Logos */}
+          {linkData.logos && linkData.logos.length > 0 && (
+            <div className="mb-8">
+              <h3 className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
+                Trusted By
+              </h3>
+              <div className="flex flex-wrap justify-center items-center gap-8">
+                {linkData.logos
+                  .sort((a, b) => a.display_order - b.display_order)
+                  .map((logo, index) => (
+                    <img
+                      key={index}
+                      src={logo.logo_url}
+                      alt={`Customer logo ${index + 1}`}
+                      className="h-8 w-auto object-contain grayscale opacity-50"
+                    />
+                  ))}
+              </div>
+            </div>
+          )}
+
+          {/* Static Social Proof Logos */}
+          <div className="pt-8 border-t border-border">
+            <h3 className="text-center text-xs font-medium text-muted-foreground uppercase tracking-wider mb-4">
+              Trusted at companies large and small
+            </h3>
+            <div className="flex flex-wrap justify-center items-center gap-8">
+              {STATIC_SOCIAL_LOGOS.map((logo, index) => (
+                <img
+                  key={index}
+                  src={logo.url}
+                  alt={logo.name}
+                  className="h-6 w-auto object-contain grayscale opacity-40"
+                />
+              ))}
+            </div>
           </div>
         </div>
       </div>
