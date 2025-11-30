@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
+import Waitlist from "./pages/Waitlist";
 import Index from "./pages/Index";
 import Projects from "./pages/Projects";
 import Folders from "./pages/Folders";
@@ -42,6 +43,10 @@ const App = () => (
         <Routes>
           {/* Landing Page */}
           <Route path="/" element={<Landing />} />
+          
+          {/* Waitlist Page - Public Route */}
+          <Route path="/waitlist" element={<Waitlist />} />
+          
           <Route path="/auth" element={<Auth />} />
           
           {/* Invite Signup - Public Route */}
