@@ -34,18 +34,30 @@ import AdminUsers from "./pages/admin/AdminUsers";
 
 const queryClient = new QueryClient();
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <AuthProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
-        <Routes>
-          {/* Landing Page */}
-          <Route path="/" element={<Landing />} />
-          
-          {/* Waitlist Page - Public Route */}
-          <Route path="/waitlist" element={<Waitlist />} />
+const App = () => {
+  // Detect if we're on the waitlist subdomain
+  const isWaitlistSubdomain = window.location.hostname.startsWith('waitlist.');
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <AuthProvider>
+        <Toaster />
+        <Sonner />
+        <BrowserRouter>
+          <Routes>
+            {/* If on waitlist subdomain, show waitlist at root */}
+            {isWaitlistSubdomain ? (
+              <>
+                <Route path="/" element={<Waitlist />} />
+                <Route path="*" element={<Waitlist />} />
+              </>
+            ) : (
+              <>
+                {/* Landing Page */}
+                <Route path="/" element={<Landing />} />
+                
+                {/* Waitlist Page - Public Route */}
+                <Route path="/waitlist" element={<Waitlist />} />
           
           <Route path="/auth" element={<Auth />} />
           
@@ -132,10 +144,13 @@ const App = () => (
               </SubscriptionGuard>
             </AuthGuard>
           } />
-        </Routes>
-      </BrowserRouter>
-    </AuthProvider>
-  </QueryClientProvider>
-);
+              </>
+            )}
+          </Routes>
+        </BrowserRouter>
+      </AuthProvider>
+    </QueryClientProvider>
+  );
+};
 
 export default App;
