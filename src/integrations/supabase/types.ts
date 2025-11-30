@@ -1054,6 +1054,36 @@ export type Database = {
           },
         ]
       }
+      waitlist_signups: {
+        Row: {
+          brand_name: string | null
+          created_at: string | null
+          email: string
+          first_name: string | null
+          id: string
+          source: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          brand_name?: string | null
+          created_at?: string | null
+          email: string
+          first_name?: string | null
+          id?: string
+          source?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          brand_name?: string | null
+          created_at?: string | null
+          email?: string
+          first_name?: string | null
+          id?: string
+          source?: string | null
+          user_agent?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
