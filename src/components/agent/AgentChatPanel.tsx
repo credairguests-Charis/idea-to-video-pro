@@ -247,7 +247,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
             setAttachedUrls([]);
           }}
           isLoading={isRunning}
-          placeholder="Ask Charis"
+          placeholder="Ask Charis..."
           disabled={isRunning}
         />
       </div>
