@@ -13,33 +13,23 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useFolders } from "@/hooks/useFolders";
 import { useProjects } from "@/hooks/useProjects";
 import { cn } from "@/lib/utils";
+
 interface ProjectSidebarProps {
   currentProjectId?: string;
   onProjectSelect: (projectId: string) => void;
   onNewProject: () => void;
 }
+
 export function ProjectSidebar({
   currentProjectId,
   onProjectSelect,
   onNewProject
 }: ProjectSidebarProps) {
   const navigate = useNavigate();
-  const {
-    user,
-    signOut
-  } = useAuth();
-  const {
-    folders,
-    createFolder,
-    renameFolder,
-    deleteFolder
-  } = useFolders();
-  const {
-    projects,
-    updateProject,
-    duplicateProject,
-    deleteProject
-  } = useProjects();
+  const { user, signOut } = useAuth();
+  const { folders, createFolder, renameFolder, deleteFolder } = useFolders();
+  const { projects, updateProject, duplicateProject, deleteProject } = useProjects();
+
   const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
   const [newFolderDialog, setNewFolderDialog] = useState(false);
   const [newFolderName, setNewFolderName] = useState("");
@@ -71,6 +61,7 @@ export function ProjectSidebar({
       }
     }
   }, [currentProjectId, projects]);
+
   const toggleFolder = (folderId: string) => {
     setExpandedFolders(prev => {
       const newSet = new Set(prev);
@@ -82,6 +73,7 @@ export function ProjectSidebar({
       return newSet;
     });
   };
+
   const handleCreateFolder = async () => {
     if (newFolderName.trim()) {
       await createFolder(newFolderName.trim());
@@ -89,59 +81,51 @@ export function ProjectSidebar({
       setNewFolderDialog(false);
     }
   };
+
   const handleRename = async () => {
     if (!renamingItem || !renameValue.trim()) return;
     if (renamingItem.type === 'folder') {
       await renameFolder(renamingItem.id, renameValue.trim());
     } else {
-      await updateProject(renamingItem.id, {
-        title: renameValue.trim()
-      });
+      await updateProject(renamingItem.id, { title: renameValue.trim() });
     }
     setRenamingItem(null);
     setRenameValue("");
   };
+
   const handleDuplicate = async (projectId: string) => {
     const newProject = await duplicateProject(projectId);
     if (newProject) {
       onProjectSelect(newProject.id);
     }
   };
+
   const handleMoveToFolder = async (projectId: string, folderId: string | null) => {
-    await updateProject(projectId, {
-      folder_id: folderId
-    });
+    await updateProject(projectId, { folder_id: folderId });
   };
+
   const handleDeleteFolder = async (folderId: string) => {
     const folderProjects = projects.filter(p => p.folder_id === folderId);
     if (folderProjects.length > 0) {
-      // Show confirmation dialog if folder has projects
       const folder = folders.find(f => f.id === folderId);
       if (folder) {
-        setDeletingFolder({
-          id: folderId,
-          name: folder.name
-        });
+        setDeletingFolder({ id: folderId, name: folder.name });
         return;
       }
     }
-
-    // No projects, delete directly
     await deleteFolder(folderId);
   };
+
   const confirmDeleteFolder = async () => {
     if (!deletingFolder) return;
-
-    // Delete all projects in the folder first
     const folderProjects = projects.filter(p => p.folder_id === deletingFolder.id);
     for (const project of folderProjects) {
       await deleteProject(project.id);
     }
-
-    // Then delete the folder
     await deleteFolder(deletingFolder.id);
     setDeletingFolder(null);
   };
+
   const handleMoveProjectsToFolder = () => {
     if (!movingToFolder) return;
     selectedProjectsToMove.forEach(projectId => {
@@ -150,6 +134,7 @@ export function ProjectSidebar({
     setMovingToFolder(null);
     setSelectedProjectsToMove(new Set());
   };
+
   const toggleProjectSelection = (projectId: string) => {
     setSelectedProjectsToMove(prev => {
       const newSet = new Set(prev);
@@ -162,7 +147,6 @@ export function ProjectSidebar({
     });
   };
 
-  // Infinite scroll handler
   const handleScroll = useCallback((e: React.UIEvent<HTMLDivElement>) => {
     const target = e.target as HTMLDivElement;
     const bottom = target.scrollHeight - target.scrollTop <= target.clientHeight + 100;
@@ -170,10 +154,174 @@ export function ProjectSidebar({
       setDisplayedProjects(prev => Math.min(prev + 20, projects.length));
     }
   }, [displayedProjects, projects.length]);
+
   const standaloneProjects = projects.filter(p => !p.folder_id).slice(0, displayedProjects);
-  return <div className={cn("flex flex-col h-full bg-sidebar border-r transition-all duration-300", isCollapsed ? "w-16" : "w-64 md:w-64")}>
+
+  // Project Item Component - Using div for guaranteed truncation
+  const ProjectItem = ({ 
+    project, 
+    isSelected, 
+    isInFolder = false 
+  }: { 
+    project: typeof projects[0]; 
+    isSelected: boolean;
+    isInFolder?: boolean;
+  }) => (
+    <div
+      className={cn(
+        "group flex items-center h-10 rounded-lg cursor-pointer transition-colors",
+        isInFolder ? "px-3" : "px-3",
+        isSelected ? "bg-primary/10 text-primary" : "hover:bg-accent/50"
+      )}
+      onClick={() => onProjectSelect(project.id)}
+    >
+      <span 
+        className="flex-1 min-w-0 truncate text-sm"
+        title={project.title}
+      >
+        {project.title}
+      </span>
+      
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            onClick={(e) => e.stopPropagation()}
+            className="shrink-0 h-8 w-8 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 hover:bg-accent transition-opacity"
+            aria-label="Project options"
+          >
+            <MoreVertical className="h-4 w-4" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="z-50 w-48 bg-popover text-popover-foreground border border-border shadow-md">
+          <DropdownMenuItem onClick={() => {
+            setRenamingItem({ id: project.id, type: 'project', name: project.title });
+            setRenameValue(project.title);
+          }}>
+            <Edit2 className="h-4 w-4 mr-2" />
+            Rename
+          </DropdownMenuItem>
+          <DropdownMenuItem onClick={() => handleDuplicate(project.id)}>
+            <Copy className="h-4 w-4 mr-2" />
+            Duplicate
+          </DropdownMenuItem>
+          {isInFolder ? (
+            <DropdownMenuItem onClick={() => handleMoveToFolder(project.id, null)}>
+              <FolderOpen className="h-4 w-4 mr-2" />
+              Remove from folder
+            </DropdownMenuItem>
+          ) : (
+            folders.length > 0 && (
+              <>
+                <DropdownMenuItem disabled className="text-xs text-muted-foreground pointer-events-none">
+                  Move to folder:
+                </DropdownMenuItem>
+                {folders.map(folder => (
+                  <DropdownMenuItem 
+                    key={folder.id} 
+                    onClick={() => handleMoveToFolder(project.id, folder.id)} 
+                    className="pl-6"
+                  >
+                    <Folder className="h-4 w-4 mr-2" />
+                    {folder.name}
+                  </DropdownMenuItem>
+                ))}
+              </>
+            )
+          )}
+          <DropdownMenuItem onClick={() => deleteProject(project.id)} className="text-destructive">
+            <Trash2 className="h-4 w-4 mr-2" />
+            Delete
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  );
+
+  // Folder Item Component - Using div for guaranteed truncation
+  const FolderItem = ({ folder }: { folder: typeof folders[0] }) => {
+    const folderProjects = projects.filter(p => p.folder_id === folder.id);
+    const isExpanded = expandedFolders.has(folder.id);
+
+    return (
+      <div className="space-y-0.5">
+        <div
+          className="group flex items-center h-10 px-3 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
+          onClick={() => toggleFolder(folder.id)}
+        >
+          {isExpanded ? (
+            <ChevronDown className="h-4 w-4 mr-1.5 shrink-0 text-muted-foreground" />
+          ) : (
+            <ChevronRight className="h-4 w-4 mr-1.5 shrink-0 text-muted-foreground" />
+          )}
+          {isExpanded ? (
+            <FolderOpen className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />
+          ) : (
+            <Folder className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />
+          )}
+          
+          <span 
+            className="flex-1 min-w-0 truncate text-sm font-medium"
+            title={folder.name}
+          >
+            {folder.name}
+          </span>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <button
+                onClick={(e) => e.stopPropagation()}
+                className="shrink-0 h-8 w-8 flex items-center justify-center rounded opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 hover:bg-accent transition-opacity"
+                aria-label="Folder options"
+              >
+                <MoreVertical className="h-4 w-4" />
+              </button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end" className="z-50 w-48 bg-popover text-popover-foreground border border-border shadow-md">
+              <DropdownMenuItem onClick={() => {
+                setMovingToFolder({ id: folder.id, name: folder.name });
+                setSelectedProjectsToMove(new Set());
+              }}>
+                <FolderPlus className="h-4 w-4 mr-2" />
+                Move Projects Here
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => {
+                setRenamingItem({ id: folder.id, type: 'folder', name: folder.name });
+                setRenameValue(folder.name);
+              }}>
+                <Edit2 className="h-4 w-4 mr-2" />
+                Rename
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => handleDeleteFolder(folder.id)} className="text-destructive">
+                <Trash2 className="h-4 w-4 mr-2" />
+                Delete
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+        </div>
+
+        {isExpanded && (
+          <div className="ml-8 space-y-0.5">
+            {folderProjects.map(project => (
+              <ProjectItem 
+                key={project.id} 
+                project={project} 
+                isSelected={currentProjectId === project.id}
+                isInFolder
+              />
+            ))}
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  return (
+    <div className={cn(
+      "flex flex-col h-full bg-sidebar border-r transition-all duration-300",
+      isCollapsed ? "w-16" : "w-64"
+    )}>
       {/* Header */}
-      <div className="p-2 md:p-3 border-b">
+      <div className={cn("border-b", isCollapsed ? "p-2" : "p-3")}>
         <div className="flex items-center justify-between gap-3 mb-3">
           <div className="flex items-center gap-3">
             {isCollapsed ? (
@@ -203,22 +351,38 @@ export function ProjectSidebar({
             {isCollapsed ? <PanelLeft className="h-4 w-4" /> : <PanelLeftClose className="h-4 w-4" />}
           </Button>
         </div>
+
         <div className="space-y-2">
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button onClick={onNewProject} className={cn("w-full rounded-lg h-10 bg-background hover:bg-accent text-foreground shadow-none border", isCollapsed ? "justify-center px-0" : "justify-start")} variant="outline">
+                <Button 
+                  onClick={onNewProject} 
+                  className={cn(
+                    "w-full rounded-lg h-10 bg-background hover:bg-accent text-foreground shadow-none border",
+                    isCollapsed ? "justify-center px-0" : "justify-start"
+                  )} 
+                  variant="outline"
+                >
                   <Plus className={cn("h-4 w-4", !isCollapsed && "mr-2")} />
                   {!isCollapsed && "New Project"}
                 </Button>
               </TooltipTrigger>
-              {isCollapsed && <TooltipContent side="right">
-                <p>New Project</p>
-              </TooltipContent>}
+              {isCollapsed && (
+                <TooltipContent side="right">
+                  <p>New Project</p>
+                </TooltipContent>
+              )}
             </Tooltip>
           </TooltipProvider>
+
           {!isCollapsed && (
-            <Button onClick={() => setNewFolderDialog(true)} variant="ghost" className="w-full justify-start rounded-lg h-9" size="sm">
+            <Button 
+              onClick={() => setNewFolderDialog(true)} 
+              variant="ghost" 
+              className="w-full justify-start rounded-lg h-9" 
+              size="sm"
+            >
               <FolderOpen className="h-4 w-4 mr-2" />
               New Folder
             </Button>
@@ -226,202 +390,100 @@ export function ProjectSidebar({
         </div>
       </div>
 
+      {/* Scrollable Content */}
       <ScrollArea className="flex-1" onScrollCapture={handleScroll}>
         <div className={cn("space-y-0.5", isCollapsed ? "p-1" : "p-3")} ref={scrollRef}>
           {/* Folders */}
-          {!isCollapsed && folders.map(folder => {
-          const folderProjects = projects.filter(p => p.folder_id === folder.id);
-          const isExpanded = expandedFolders.has(folder.id);
-          return <div key={folder.id} className="space-y-0.5">
-                <div className="relative group flex items-center rounded-lg mx-0 my-0.5 hover:bg-accent/50 transition-colors">
-                  <Button variant="ghost" size="sm" className="flex-1 justify-start px-4 h-10 hover:bg-transparent" onClick={() => toggleFolder(folder.id)}>
-                    {isExpanded ? <ChevronDown className="h-4 w-4 mr-1.5 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 mr-1.5 shrink-0 text-muted-foreground" />}
-                    {isExpanded ? <FolderOpen className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" /> : <Folder className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />}
-                    <TooltipProvider delayDuration={300}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="truncate text-sm font-medium flex-1 min-w-0" title={folder.name}>{folder.name}</span>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" align="start" className="max-w-xs break-words">
-                          {folder.name}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
-                  </Button>
-
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button aria-label="Folder options" variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-20 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
-                        <MoreVertical className="h-4 w-4" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end" className="z-50 w-48 bg-popover text-popover-foreground border border-border shadow-md">
-                      <DropdownMenuItem onClick={() => {
-                    setMovingToFolder({
-                      id: folder.id,
-                      name: folder.name
-                    });
-                    setSelectedProjectsToMove(new Set());
-                  }}>
-                        <FolderPlus className="h-4 w-4 mr-2" />
-                        Move Projects Here
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => {
-                    setRenamingItem({
-                      id: folder.id,
-                      type: 'folder',
-                      name: folder.name
-                    });
-                    setRenameValue(folder.name);
-                  }}>
-                        <Edit2 className="h-4 w-4 mr-2" />
-                        Rename
-                      </DropdownMenuItem>
-                      <DropdownMenuItem onClick={() => handleDeleteFolder(folder.id)} className="text-destructive">
-                        <Trash2 className="h-4 w-4 mr-2" />
-                        Delete
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
-
-                {isExpanded && <div className="ml-8 space-y-0.5">
-                    {folderProjects.map(project => <div key={project.id} className="group flex items-center w-full overflow-hidden rounded-lg hover:bg-accent/50 transition-colors my-0.5">
-                        <Button variant="ghost" size="sm" className={cn("flex flex-1 min-w-0 overflow-hidden justify-start px-4 h-10 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
-                          <span className="truncate text-sm flex-1 min-w-0" title={project.title}>{project.title}</span>
-                        </Button>
-
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                             <Button aria-label="Project options" variant="ghost" size="icon" className="shrink-0 h-8 w-8 mr-1 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity duration-150 hover:bg-accent hover:text-accent-foreground">
-                              <MoreVertical className="h-4 w-4" />
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="z-50 w-48 bg-popover text-popover-foreground border border-border shadow-md">
-                            <DropdownMenuItem onClick={() => {
-                      setRenamingItem({
-                        id: project.id,
-                        type: 'project',
-                        name: project.title
-                      });
-                      setRenameValue(project.title);
-                    }}>
-                              <Edit2 className="h-4 w-4 mr-2" />
-                              Rename
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleDuplicate(project.id)}>
-                              <Copy className="h-4 w-4 mr-2" />
-                              Duplicate
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => handleMoveToFolder(project.id, null)}>
-                              <FolderOpen className="h-4 w-4 mr-2" />
-                              Remove from folder
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => deleteProject(project.id)} className="text-destructive">
-                              <Trash2 className="h-4 w-4 mr-2" />
-                              Delete
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </div>)}
-                  </div>}
-              </div>;
-        })}
+          {!isCollapsed && folders.map(folder => (
+            <FolderItem key={folder.id} folder={folder} />
+          ))}
 
           {/* Standalone Projects */}
-          {standaloneProjects.map(project => <div key={project.id} className="group flex items-center w-full overflow-hidden rounded-lg hover:bg-accent/50 transition-colors my-0.5">
-              {isCollapsed ? (
-                <TooltipProvider delayDuration={300}>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button variant="ghost" size="sm" className={cn("w-full justify-center px-0 h-10 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
-                        <div className="w-2 h-2 rounded-full bg-primary" />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent side="right" align="start" className="max-w-xs break-words">
-                      {project.title}
-                    </TooltipContent>
-                  </Tooltip>
-                </TooltipProvider>
-              ) : (
-                <>
-                  <Button variant="ghost" size="sm" className={cn("flex flex-1 min-w-0 overflow-hidden justify-start h-10 px-3 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
-                    <span className="truncate text-sm flex-1 min-w-0" title={project.title}>{project.title}</span>
-                  </Button>
-
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button aria-label="Project options" variant="ghost" size="icon" className="shrink-0 h-8 w-8 mr-1 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity duration-150 hover:bg-accent hover:text-accent-foreground">
-                    <MoreVertical className="h-4 w-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="z-50 w-48 bg-popover text-popover-foreground border border-border shadow-md">
-                  <DropdownMenuItem onClick={() => {
-                setRenamingItem({
-                  id: project.id,
-                  type: 'project',
-                  name: project.title
-                });
-                setRenameValue(project.title);
-              }}>
-                    <Edit2 className="h-4 w-4 mr-2" />
-                    Rename
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => handleDuplicate(project.id)}>
-                    <Copy className="h-4 w-4 mr-2" />
-                    Duplicate
-                  </DropdownMenuItem>
-                  {folders.length > 0 && <>
-                      <DropdownMenuItem disabled className="text-xs text-muted-foreground pointer-events-none">
-                        Move to folder:
-                      </DropdownMenuItem>
-                      {folders.map(folder => <DropdownMenuItem key={folder.id} onClick={() => handleMoveToFolder(project.id, folder.id)} className="pl-6">
-                          <Folder className="h-4 w-4 mr-2" />
-                          {folder.name}
-                        </DropdownMenuItem>)}
-                    </>}
-                  <DropdownMenuItem onClick={() => deleteProject(project.id)} className="text-destructive">
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Delete
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
-                </>
-              )}
-            </div>)}
+          {standaloneProjects.map(project => (
+            isCollapsed ? (
+              <TooltipProvider key={project.id} delayDuration={300}>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <div
+                      className={cn(
+                        "flex items-center justify-center h-10 rounded-lg cursor-pointer transition-colors",
+                        currentProjectId === project.id ? "bg-primary/10" : "hover:bg-accent/50"
+                      )}
+                      onClick={() => onProjectSelect(project.id)}
+                    >
+                      <div className="w-2 h-2 rounded-full bg-primary" />
+                    </div>
+                  </TooltipTrigger>
+                  <TooltipContent side="right" align="start" className="max-w-xs break-words">
+                    {project.title}
+                  </TooltipContent>
+                </Tooltip>
+              </TooltipProvider>
+            ) : (
+              <ProjectItem 
+                key={project.id} 
+                project={project} 
+                isSelected={currentProjectId === project.id}
+              />
+            )
+          ))}
         </div>
       </ScrollArea>
 
-      {/* Footer with user info and actions */}
+      {/* Footer */}
       <div className={cn("border-t mt-auto bg-sidebar space-y-2", isCollapsed ? "p-1" : "p-3")}>
         <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="ghost" className={cn("w-full gap-2 text-muted-foreground hover:text-foreground hover:bg-accent/50 h-9", isCollapsed ? "justify-center px-0" : "justify-start")} onClick={() => navigate('/app/settings')} size="sm">
+              <Button 
+                variant="ghost" 
+                className={cn(
+                  "w-full gap-2 text-muted-foreground hover:text-foreground hover:bg-accent/50 h-9",
+                  isCollapsed ? "justify-center px-0" : "justify-start"
+                )} 
+                onClick={() => navigate('/app/settings')} 
+                size="sm"
+              >
                 <Settings className="h-4 w-4" />
                 {!isCollapsed && <span className="text-sm">Settings</span>}
               </Button>
             </TooltipTrigger>
-            {isCollapsed && <TooltipContent side="right">
-              <p>Settings</p>
-            </TooltipContent>}
+            {isCollapsed && (
+              <TooltipContent side="right">
+                <p>Settings</p>
+              </TooltipContent>
+            )}
           </Tooltip>
         </TooltipProvider>
-        {user && !isCollapsed && <div className="flex items-center gap-2 px-2">
+
+        {user && !isCollapsed && (
+          <div className="flex items-center gap-2 px-2">
             <div className="flex-1 min-w-0">
               <div className="text-xs text-muted-foreground truncate">
                 {user.email}
               </div>
             </div>
-            <Button variant="ghost" size="icon" className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0" onClick={() => signOut()}>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="h-7 w-7 text-muted-foreground hover:text-foreground shrink-0" 
+              onClick={() => signOut()}
+            >
               <LogOut className="h-3.5 w-3.5" />
             </Button>
-          </div>}
+          </div>
+        )}
+
         {user && isCollapsed && (
           <TooltipProvider delayDuration={300}>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="ghost" size="icon" className="w-full h-9 text-muted-foreground hover:text-foreground hover:bg-accent/50" onClick={() => signOut()}>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="w-full h-9 text-muted-foreground hover:text-foreground hover:bg-accent/50" 
+                  onClick={() => signOut()}
+                >
                   <LogOut className="h-4 w-4" />
                 </Button>
               </TooltipTrigger>
@@ -441,7 +503,12 @@ export function ProjectSidebar({
             <DialogTitle>Create New Folder</DialogTitle>
             <DialogDescription>Enter a name for your new folder</DialogDescription>
           </DialogHeader>
-          <Input value={newFolderName} onChange={e => setNewFolderName(e.target.value)} placeholder="Folder name" onKeyDown={e => e.key === 'Enter' && handleCreateFolder()} />
+          <Input 
+            value={newFolderName} 
+            onChange={e => setNewFolderName(e.target.value)} 
+            placeholder="Folder name" 
+            onKeyDown={e => e.key === 'Enter' && handleCreateFolder()} 
+          />
           <DialogFooter>
             <Button variant="outline" onClick={() => setNewFolderDialog(false)}>
               Cancel
@@ -460,7 +527,12 @@ export function ProjectSidebar({
               Enter a new name for this {renamingItem?.type}
             </DialogDescription>
           </DialogHeader>
-          <Input value={renameValue} onChange={e => setRenameValue(e.target.value)} placeholder="New name" onKeyDown={e => e.key === 'Enter' && handleRename()} />
+          <Input 
+            value={renameValue} 
+            onChange={e => setRenameValue(e.target.value)} 
+            placeholder="New name" 
+            onKeyDown={e => e.key === 'Enter' && handleRename()} 
+          />
           <DialogFooter>
             <Button variant="outline" onClick={() => setRenamingItem(null)}>
               Cancel
@@ -481,7 +553,10 @@ export function ProjectSidebar({
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={confirmDeleteFolder} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+            <AlertDialogAction 
+              onClick={confirmDeleteFolder} 
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
               Delete
             </AlertDialogAction>
           </AlertDialogFooter>
@@ -499,16 +574,34 @@ export function ProjectSidebar({
           </DialogHeader>
           <ScrollArea className="max-h-[400px] pr-4">
             <div className="space-y-2">
-              {standaloneProjects.length === 0 ? <p className="text-sm text-muted-foreground text-center py-8">
+              {standaloneProjects.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-8">
                   No projects available to move
-                </p> : standaloneProjects.map(project => <div key={project.id} onClick={() => toggleProjectSelection(project.id)} className={cn("flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors", selectedProjectsToMove.has(project.id) ? "bg-primary/10 border-primary" : "hover:bg-accent")}>
-                    <div className={cn("h-4 w-4 rounded border-2 flex items-center justify-center shrink-0", selectedProjectsToMove.has(project.id) ? "bg-primary border-primary" : "border-muted-foreground")}>
-                      {selectedProjectsToMove.has(project.id) && <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                </p>
+              ) : (
+                standaloneProjects.map(project => (
+                  <div 
+                    key={project.id} 
+                    onClick={() => toggleProjectSelection(project.id)} 
+                    className={cn(
+                      "flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-colors",
+                      selectedProjectsToMove.has(project.id) ? "bg-primary/10 border-primary" : "hover:bg-accent"
+                    )}
+                  >
+                    <div className={cn(
+                      "h-4 w-4 rounded border-2 flex items-center justify-center shrink-0",
+                      selectedProjectsToMove.has(project.id) ? "bg-primary border-primary" : "border-muted-foreground"
+                    )}>
+                      {selectedProjectsToMove.has(project.id) && (
+                        <svg className="h-3 w-3 text-primary-foreground" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M5 13l4 4L19 7" />
-                        </svg>}
+                        </svg>
+                      )}
                     </div>
-                    <span className="text-sm flex-1 truncate">{project.title}</span>
-                  </div>)}
+                    <span className="text-sm flex-1 min-w-0 truncate">{project.title}</span>
+                  </div>
+                ))
+              )}
             </div>
           </ScrollArea>
           <DialogFooter>
@@ -521,5 +614,6 @@ export function ProjectSidebar({
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </div>;
+    </div>
+  );
 }
