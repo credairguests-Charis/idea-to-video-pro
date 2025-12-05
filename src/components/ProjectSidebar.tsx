@@ -286,14 +286,14 @@ export function ProjectSidebar({
                 </div>
 
                 {isExpanded && <div className="ml-8 space-y-0.5">
-                    {folderProjects.map(project => <div key={project.id} className="relative group flex items-center w-full rounded-lg hover:bg-accent/50 transition-colors mx-0 my-0.5 overflow-hidden">
-                        <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 justify-start px-4 h-10 hover:bg-transparent text-left pr-12 overflow-hidden", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
-                          <span className="text-sm truncate block w-full" title={project.title}>{project.title}</span>
+                    {folderProjects.map(project => <div key={project.id} className="group flex items-center rounded-lg hover:bg-accent/50 transition-colors my-0.5">
+                        <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 justify-start px-4 h-10 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
+                          <span className="text-sm truncate" title={project.title}>{project.title}</span>
                         </Button>
 
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                             <Button aria-label="Project options" variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-20 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
+                             <Button aria-label="Project options" variant="ghost" size="icon" className="shrink-0 h-8 w-8 mr-1 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity duration-150 hover:bg-accent hover:text-accent-foreground">
                               <MoreVertical className="h-4 w-4" />
                             </Button>
                           </DropdownMenuTrigger>
@@ -329,7 +329,7 @@ export function ProjectSidebar({
         })}
 
           {/* Standalone Projects */}
-          {standaloneProjects.map(project => <div key={project.id} className="relative group flex items-center w-full rounded-lg hover:bg-accent/50 transition-colors mx-0 my-0.5 overflow-hidden">
+          {standaloneProjects.map(project => <div key={project.id} className="group flex items-center rounded-lg hover:bg-accent/50 transition-colors my-0.5">
               {isCollapsed ? (
                 <TooltipProvider delayDuration={300}>
                   <Tooltip>
@@ -345,13 +345,13 @@ export function ProjectSidebar({
                 </TooltipProvider>
               ) : (
                 <>
-                  <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 justify-start rounded-lg h-10 text-left px-3 pr-12 hover:bg-transparent overflow-hidden", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
-                    <span className="truncate text-sm block w-full" title={project.title}>{project.title}</span>
+                  <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 justify-start h-10 px-3 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
+                    <span className="truncate text-sm" title={project.title}>{project.title}</span>
                   </Button>
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button aria-label="Project options" variant="ghost" size="icon" className="absolute right-1.5 top-1/2 -translate-y-1/2 z-20 h-8 w-8 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity">
+                  <Button aria-label="Project options" variant="ghost" size="icon" className="shrink-0 h-8 w-8 mr-1 opacity-0 group-hover:opacity-100 data-[state=open]:opacity-100 transition-opacity duration-150 hover:bg-accent hover:text-accent-foreground">
                     <MoreVertical className="h-4 w-4" />
                   </Button>
                 </DropdownMenuTrigger>
