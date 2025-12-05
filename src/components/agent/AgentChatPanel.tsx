@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Loader2, Check, Plus, Link2, ArrowUp, Image, FileText, X, Upload } from "lucide-react";
+import { Search, Loader2, Check, Plus, Link2, ArrowUp, Image, FileText, X, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -11,6 +11,13 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 interface AgentLog {
   id: string;
@@ -33,6 +40,12 @@ interface UploadedFile {
   isUploading?: boolean;
 }
 
+interface AttachedUrl {
+  id: string;
+  url: string;
+  title?: string;
+}
+
 interface AgentChatPanelProps {
   logs: AgentLog[];
   isRunning: boolean;
@@ -42,6 +55,7 @@ interface AgentChatPanelProps {
 
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
 const MAX_FILES = 10;
+const MAX_URLS = 5;
 const ALLOWED_TYPES = [
   'image/jpeg',
   'image/png',
@@ -59,7 +73,10 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
   const { user } = useAuth();
   const [inputValue, setInputValue] = useState("");
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
+  const [attachedUrls, setAttachedUrls] = useState<AttachedUrl[]>([]);
   const [isUploadMenuOpen, setIsUploadMenuOpen] = useState(false);
+  const [isUrlPopoverOpen, setIsUrlPopoverOpen] = useState(false);
+  const [urlInputValue, setUrlInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -77,16 +94,18 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!inputValue.trim() && uploadedFiles.length === 0) || isRunning) return;
+    if ((!inputValue.trim() && uploadedFiles.length === 0 && attachedUrls.length === 0) || isRunning) return;
 
     onSubmit({
       prompt: inputValue.trim(),
       brandName: "Agent Query",
       competitorQuery: inputValue.trim(),
       attachedFiles: uploadedFiles.map(f => ({ name: f.name, url: f.url, type: f.type })),
+      attachedUrls: attachedUrls.map(u => ({ url: u.url, title: u.title })),
     });
     setInputValue("");
     setUploadedFiles([]);
+    setAttachedUrls([]);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
@@ -179,6 +198,68 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
 
   const removeFile = (fileId: string) => {
     setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
+  };
+
+  const isValidUrl = (string: string): boolean => {
+    try {
+      const url = new URL(string);
+      return url.protocol === 'http:' || url.protocol === 'https:';
+    } catch {
+      return false;
+    }
+  };
+
+  const addUrl = () => {
+    const trimmedUrl = urlInputValue.trim();
+    
+    if (!trimmedUrl) {
+      toast.error("Please enter a URL");
+      return;
+    }
+
+    if (!isValidUrl(trimmedUrl)) {
+      toast.error("Please enter a valid URL (starting with http:// or https://)");
+      return;
+    }
+
+    if (attachedUrls.length >= MAX_URLS) {
+      toast.error(`Maximum ${MAX_URLS} URLs allowed`);
+      return;
+    }
+
+    if (attachedUrls.some(u => u.url === trimmedUrl)) {
+      toast.error("This URL has already been added");
+      return;
+    }
+
+    // Extract domain as title
+    try {
+      const urlObj = new URL(trimmedUrl);
+      const title = urlObj.hostname.replace('www.', '');
+      
+      setAttachedUrls(prev => [...prev, {
+        id: crypto.randomUUID(),
+        url: trimmedUrl,
+        title
+      }]);
+      
+      setUrlInputValue("");
+      setIsUrlPopoverOpen(false);
+      toast.success("URL added");
+    } catch {
+      toast.error("Invalid URL format");
+    }
+  };
+
+  const removeUrl = (urlId: string) => {
+    setAttachedUrls(prev => prev.filter(u => u.id !== urlId));
+  };
+
+  const handleUrlKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      addUrl();
+    }
   };
 
   // Convert logs to task items
@@ -317,6 +398,28 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
 
       {/* Bottom Input - Sticky */}
       <div className="p-3 bg-[#F9FAFB] border-t border-border/30">
+        {/* Attached URLs Preview */}
+        {attachedUrls.length > 0 && (
+          <div className="mb-2 flex flex-wrap gap-2">
+            {attachedUrls.map((urlItem) => (
+              <div
+                key={urlItem.id}
+                className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-md px-2 py-1.5 text-xs"
+              >
+                <Globe className="h-3.5 w-3.5 text-blue-600" />
+                <span className="max-w-[120px] truncate text-blue-700 font-medium">{urlItem.title}</span>
+                <button
+                  type="button"
+                  onClick={() => removeUrl(urlItem.id)}
+                  className="p-0.5 rounded hover:bg-blue-100 text-blue-500 hover:text-blue-700 transition-colors"
+                >
+                  <X className="h-3 w-3" />
+                </button>
+              </div>
+            ))}
+          </div>
+        )}
+
         {/* Uploaded Files Preview */}
         {uploadedFiles.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
@@ -356,7 +459,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
               placeholder="Plan, search, or enrich your data..."
               disabled={isRunning}
               rows={1}
-              className="w-full px-3.5 py-3 pr-28 text-sm bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground/60 disabled:opacity-50 min-h-[44px]"
+              className="w-full px-3.5 py-3 pr-32 text-sm bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground/60 disabled:opacity-50 min-h-[44px]"
             />
             <div className="absolute right-2 bottom-2 flex items-center gap-1">
               {/* File Upload Dropdown */}
@@ -389,16 +492,56 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              <button
-                type="button"
-                className="p-1.5 rounded hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
-                title="Add link"
-              >
-                <Link2 className="h-4 w-4" />
-              </button>
+              {/* URL Input Popover */}
+              <Popover open={isUrlPopoverOpen} onOpenChange={setIsUrlPopoverOpen}>
+                <PopoverTrigger asChild>
+                  <button
+                    type="button"
+                    disabled={isRunning || attachedUrls.length >= MAX_URLS}
+                    className="p-1.5 rounded hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    title="Add competitor URL"
+                  >
+                    <Link2 className="h-4 w-4" />
+                  </button>
+                </PopoverTrigger>
+                <PopoverContent align="end" className="w-80 p-3">
+                  <div className="space-y-3">
+                    <div className="space-y-1">
+                      <h4 className="text-sm font-medium text-foreground">Add Competitor URL</h4>
+                      <p className="text-xs text-muted-foreground">
+                        Paste a competitor's ad or website URL to analyze
+                      </p>
+                    </div>
+                    <div className="flex gap-2">
+                      <Input
+                        type="url"
+                        value={urlInputValue}
+                        onChange={(e) => setUrlInputValue(e.target.value)}
+                        onKeyDown={handleUrlKeyDown}
+                        placeholder="https://example.com/ad"
+                        className="flex-1 h-8 text-sm"
+                      />
+                      <Button 
+                        type="button" 
+                        size="sm" 
+                        onClick={addUrl}
+                        className="h-8 px-3"
+                      >
+                        Add
+                      </Button>
+                    </div>
+                    {attachedUrls.length > 0 && (
+                      <div className="text-xs text-muted-foreground">
+                        {attachedUrls.length}/{MAX_URLS} URLs added
+                      </div>
+                    )}
+                  </div>
+                </PopoverContent>
+              </Popover>
+
               <button
                 type="submit"
-                disabled={(!inputValue.trim() && uploadedFiles.length === 0) || isRunning || uploadedFiles.some(f => f.isUploading)}
+                disabled={(!inputValue.trim() && uploadedFiles.length === 0 && attachedUrls.length === 0) || isRunning || uploadedFiles.some(f => f.isUploading)}
                 className="w-7 h-7 rounded-full bg-foreground flex items-center justify-center hover:bg-foreground/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Send"
               >
