@@ -251,6 +251,7 @@ export type Database = {
           progress: number | null
           project_id: string | null
           state: string
+          title: string | null
           updated_at: string
           user_id: string
         }
@@ -263,6 +264,7 @@ export type Database = {
           progress?: number | null
           project_id?: string | null
           state?: string
+          title?: string | null
           updated_at?: string
           user_id: string
         }
@@ -275,6 +277,7 @@ export type Database = {
           progress?: number | null
           project_id?: string | null
           state?: string
+          title?: string | null
           updated_at?: string
           user_id?: string
         }
