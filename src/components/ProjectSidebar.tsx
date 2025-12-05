@@ -169,7 +169,7 @@ export function ProjectSidebar({
   }) => (
     <div
       className={cn(
-        "group flex items-center h-10 rounded-lg cursor-pointer transition-colors",
+        "group flex items-center h-10 rounded-lg cursor-pointer transition-colors overflow-hidden",
         isInFolder ? "px-3" : "px-3",
         isSelected ? "bg-primary/10 text-primary" : "hover:bg-accent/50"
       )}
@@ -243,9 +243,9 @@ export function ProjectSidebar({
     const isExpanded = expandedFolders.has(folder.id);
 
     return (
-      <div className="space-y-0.5">
+      <div className="space-y-0.5 overflow-hidden">
         <div
-          className="group flex items-center h-10 px-3 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors"
+          className="group flex items-center h-10 px-3 rounded-lg cursor-pointer hover:bg-accent/50 transition-colors overflow-hidden"
           onClick={() => toggleFolder(folder.id)}
         >
           {isExpanded ? (
@@ -317,7 +317,7 @@ export function ProjectSidebar({
 
   return (
     <div className={cn(
-      "flex flex-col h-full bg-sidebar border-r transition-all duration-300",
+      "flex flex-col h-full bg-sidebar border-r transition-all duration-300 overflow-hidden",
       isCollapsed ? "w-16" : "w-64"
     )}>
       {/* Header */}
@@ -392,7 +392,7 @@ export function ProjectSidebar({
 
       {/* Scrollable Content */}
       <ScrollArea className="flex-1" onScrollCapture={handleScroll}>
-        <div className={cn("space-y-0.5", isCollapsed ? "p-1" : "p-3")} ref={scrollRef}>
+        <div className={cn("space-y-0.5 overflow-hidden", isCollapsed ? "p-1" : "p-3")} ref={scrollRef}>
           {/* Folders */}
           {!isCollapsed && folders.map(folder => (
             <FolderItem key={folder.id} folder={folder} />
