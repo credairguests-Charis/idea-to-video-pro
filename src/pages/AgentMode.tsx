@@ -352,6 +352,9 @@ export default function AgentMode() {
         onShare={handleShare}
         onDelete={handleDelete}
         onToggleCollapse={handleToggleCollapse}
+        onViewHistory={() => {
+          toast.info("Workspace history feature coming soon!");
+        }}
       />
 
       {/* Main Content - Two Panel Layout with Resizable */}

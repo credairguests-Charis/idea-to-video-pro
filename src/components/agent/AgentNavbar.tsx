@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, Pencil, Check, X, ChevronDown, Copy, Share2, Trash2, PanelLeftClose } from "lucide-react";
+import { Bell, Pencil, Check, X, ChevronDown, Copy, Share2, Trash2, PanelLeftClose, History } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -21,6 +21,7 @@ interface AgentNavbarProps {
   onShare?: () => void;
   onDelete?: () => void;
   onToggleCollapse?: () => void;
+  onViewHistory?: () => void;
 }
 
 export function AgentNavbar({ 
@@ -30,7 +31,8 @@ export function AgentNavbar({
   onDuplicate,
   onShare,
   onDelete,
-  onToggleCollapse
+  onToggleCollapse,
+  onViewHistory
 }: AgentNavbarProps) {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -144,18 +146,31 @@ export function AgentNavbar({
           )}
         </div>
 
-        {/* Collapse Button */}
-        {onToggleCollapse && (
-          <Button 
-            variant="ghost" 
-            size="sm" 
-            onClick={onToggleCollapse}
-            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground ml-1"
-            title="Collapse chat panel"
-          >
-            <PanelLeftClose className="h-4 w-4" />
-          </Button>
-        )}
+        {/* History & Collapse Buttons */}
+        <div className="flex items-center gap-1 ml-2">
+          {onViewHistory && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onViewHistory}
+              className="h-7 w-7 p-0 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              title="View workspace history"
+            >
+              <History className="h-4 w-4" />
+            </Button>
+          )}
+          {onToggleCollapse && (
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={onToggleCollapse}
+              className="h-7 w-7 p-0 text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors"
+              title="Collapse chat panel"
+            >
+              <PanelLeftClose className="h-4 w-4" />
+            </Button>
+          )}
+        </div>
       </div>
 
       {/* Right side - Actions and user */}
