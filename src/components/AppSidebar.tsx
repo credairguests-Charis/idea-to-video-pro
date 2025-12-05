@@ -50,11 +50,11 @@ export function AppSidebar() {
               {items.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                     <NavLink 
+                    <NavLink 
                       to={item.url} 
                       end={item.url === "/app"}
                       className={({ isActive }) => 
-                        isActive ? "bg-accent text-accent-foreground" : ""
+                        isActive ? "bg-primary text-primary-foreground" : ""
                       }
                     >
                       <item.icon className="h-4 w-4" />
