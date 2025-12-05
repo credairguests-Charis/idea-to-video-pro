@@ -240,7 +240,7 @@ export function ProjectSidebar({
                     <TooltipProvider delayDuration={300}>
                       <Tooltip>
                         <TooltipTrigger asChild>
-                          <span className="truncate text-sm font-medium" title={folder.name}>{folder.name}</span>
+                          <span className="truncate text-sm font-medium flex-1 min-w-0" title={folder.name}>{folder.name}</span>
                         </TooltipTrigger>
                         <TooltipContent side="right" align="start" className="max-w-xs break-words">
                           {folder.name}
@@ -288,7 +288,7 @@ export function ProjectSidebar({
                 {isExpanded && <div className="ml-8 space-y-0.5">
                     {folderProjects.map(project => <div key={project.id} className="group flex items-center w-full overflow-hidden rounded-lg hover:bg-accent/50 transition-colors my-0.5">
                         <Button variant="ghost" size="sm" className={cn("flex flex-1 min-w-0 overflow-hidden justify-start px-4 h-10 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
-                          <span className="truncate text-sm" title={project.title}>{project.title}</span>
+                          <span className="truncate text-sm flex-1 min-w-0" title={project.title}>{project.title}</span>
                         </Button>
 
                         <DropdownMenu>
@@ -346,7 +346,7 @@ export function ProjectSidebar({
               ) : (
                 <>
                   <Button variant="ghost" size="sm" className={cn("flex flex-1 min-w-0 overflow-hidden justify-start h-10 px-3 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
-                    <span className="truncate text-sm" title={project.title}>{project.title}</span>
+                    <span className="truncate text-sm flex-1 min-w-0" title={project.title}>{project.title}</span>
                   </Button>
 
               <DropdownMenu>
