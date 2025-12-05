@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Loader2, Check, Plus, Link2, ArrowUp, Image, FileText, X, Globe } from "lucide-react";
+import { Search, Loader2, Check, Plus, Link2, ArrowUp, Image, FileText, X, Globe, Sparkles, MessageSquare, Mic } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -80,7 +80,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
   const [isUrlPopoverOpen, setIsUrlPopoverOpen] = useState(false);
   const [urlInputValue, setUrlInputValue] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
-  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const inputRef = useRef<HTMLInputElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const imageInputRef = useRef<HTMLInputElement>(null);
 
@@ -400,21 +400,21 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
       </div>
 
       {/* Bottom Input - Sticky */}
-      <div className="p-3 bg-[#F9FAFB] border-t border-border/30">
+      <div className="p-4 pb-5">
         {/* Attached URLs Preview */}
         {attachedUrls.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-2">
+          <div className="mb-3 flex flex-wrap gap-2">
             {attachedUrls.map((urlItem) => (
               <div
                 key={urlItem.id}
-                className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-md px-2 py-1.5 text-xs"
+                className="flex items-center gap-1.5 bg-blue-50 border border-blue-200 rounded-full px-2.5 py-1 text-xs"
               >
                 <Globe className="h-3.5 w-3.5 text-blue-600" />
                 <span className="max-w-[120px] truncate text-blue-700 font-medium">{urlItem.title}</span>
                 <button
                   type="button"
                   onClick={() => removeUrl(urlItem.id)}
-                  className="p-0.5 rounded hover:bg-blue-100 text-blue-500 hover:text-blue-700 transition-colors"
+                  className="p-0.5 rounded-full hover:bg-blue-100 text-blue-500 hover:text-blue-700 transition-colors"
                 >
                   <X className="h-3 w-3" />
                 </button>
@@ -425,11 +425,11 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
 
         {/* Uploaded Files Preview */}
         {uploadedFiles.length > 0 && (
-          <div className="mb-2 flex flex-wrap gap-2">
+          <div className="mb-3 flex flex-wrap gap-2">
             {uploadedFiles.map((file) => (
               <div
                 key={file.id}
-                className="flex items-center gap-1.5 bg-white border border-border/50 rounded-md px-2 py-1.5 text-xs"
+                className="flex items-center gap-1.5 bg-muted/50 border border-border/50 rounded-full px-2.5 py-1 text-xs"
               >
                 {file.isUploading ? (
                   <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
@@ -442,7 +442,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
                   <button
                     type="button"
                     onClick={() => removeFile(file.id)}
-                    className="p-0.5 rounded hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+                    className="p-0.5 rounded-full hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
                   >
                     <X className="h-3 w-3" />
                   </button>
@@ -453,31 +453,21 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="relative bg-white rounded-lg border border-border/50 shadow-sm">
-            <textarea
-              ref={inputRef}
-              value={inputValue}
-              onChange={(e) => setInputValue(e.target.value)}
-              onKeyDown={handleKeyDown}
-              placeholder="Plan, search, or enrich your data..."
-              disabled={isRunning}
-              rows={1}
-              className="w-full px-3.5 py-3 pr-32 text-sm bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground/60 disabled:opacity-50 min-h-[44px]"
-            />
-            <div className="absolute right-2 bottom-2 flex items-center gap-1">
-              {/* File Upload Dropdown */}
+          <div className="relative bg-white rounded-full border border-border/50 shadow-sm">
+            <div className="flex items-center h-11 pl-2 pr-2">
+              {/* Left: Plus button for file uploads */}
               <DropdownMenu open={isUploadMenuOpen} onOpenChange={setIsUploadMenuOpen}>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
                     disabled={isRunning || uploadedFiles.length >= MAX_FILES}
-                    className="p-1.5 rounded hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    className="p-2 rounded-full hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
                     title="Upload files"
                   >
                     <Plus className="h-4 w-4" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="start" className="w-48">
                   <DropdownMenuItem 
                     onClick={() => imageInputRef.current?.click()}
                     className="cursor-pointer"
@@ -495,19 +485,19 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* URL Input Popover */}
+              {/* Visual edits button */}
               <Popover open={isUrlPopoverOpen} onOpenChange={setIsUrlPopoverOpen}>
                 <PopoverTrigger asChild>
                   <button
                     type="button"
                     disabled={isRunning || attachedUrls.length >= MAX_URLS}
-                    className="p-1.5 rounded hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
-                    title="Add competitor URL"
+                    className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full hover:bg-muted/50 text-muted-foreground hover:text-foreground text-sm transition-colors disabled:opacity-50"
                   >
-                    <Link2 className="h-4 w-4" />
+                    <Sparkles className="h-3.5 w-3.5" />
+                    <span>Add URL</span>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent align="end" className="w-80 p-3">
+                <PopoverContent align="start" className="w-80 p-3">
                   <div className="space-y-3">
                     <div className="space-y-1">
                       <h4 className="text-sm font-medium text-foreground">Add Competitor URL</h4>
@@ -542,6 +532,36 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
                 </PopoverContent>
               </Popover>
 
+              {/* Chat button - active state */}
+              <button
+                type="button"
+                className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-full bg-muted/40 text-foreground text-sm ml-1"
+              >
+                <MessageSquare className="h-3.5 w-3.5" />
+                <span>Chat</span>
+              </button>
+
+              {/* Text input */}
+              <input
+                ref={inputRef}
+                type="text"
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder="Ask Charis..."
+                disabled={isRunning}
+                className="flex-1 px-3 text-sm bg-transparent focus:outline-none placeholder:text-muted-foreground/60 disabled:opacity-50"
+              />
+
+              {/* Right: Audio icon */}
+              <button
+                type="button"
+                className="p-2 rounded-full hover:bg-muted/50 text-muted-foreground hover:text-foreground transition-colors"
+              >
+                <Mic className="h-4 w-4" />
+              </button>
+
+              {/* Send button */}
               <button
                 type="submit"
                 disabled={(!inputValue.trim() && uploadedFiles.length === 0 && attachedUrls.length === 0) || isRunning || uploadedFiles.some(f => f.isUploading)}
