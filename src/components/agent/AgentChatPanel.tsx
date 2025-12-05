@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Loader2, Check, Plus, Link2, ArrowUp, Image, FileText, X, Globe, PanelLeftClose } from "lucide-react";
+import { Search, Loader2, Check, Plus, Link2, ArrowUp, Image, FileText, X, Globe } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -298,19 +298,6 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
 
   return (
     <div className="flex flex-col h-full bg-white">
-      {/* Panel Header with Collapse Button */}
-      <div className="h-10 flex items-center justify-between px-3 border-b border-border/30">
-        <span className="text-sm font-medium text-foreground">Chat</span>
-        {onToggleCollapse && (
-          <button
-            onClick={onToggleCollapse}
-            className="p-1.5 rounded hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
-            title="Collapse panel"
-          >
-            <PanelLeftClose className="h-4 w-4" />
-          </button>
-        )}
-      </div>
 
       {/* Hidden file inputs */}
       <input

@@ -347,11 +347,11 @@ export default function AgentMode() {
       <AgentNavbar 
         workspaceTitle={workspaceTitle} 
         sessionId={session?.id}
-        rowCount={logs.length}
         onTitleChange={handleTitleChange}
         onDuplicate={handleDuplicate}
         onShare={handleShare}
         onDelete={handleDelete}
+        onToggleCollapse={handleToggleCollapse}
       />
 
       {/* Main Content - Two Panel Layout with Resizable */}
