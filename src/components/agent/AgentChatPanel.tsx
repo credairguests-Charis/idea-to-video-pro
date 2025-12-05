@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Loader2, Check, Plus, Link2, ArrowUp, Image, FileText, X, Globe } from "lucide-react";
+import { Search, Loader2, Check, Plus, Link2, ArrowUp, Image, FileText, X, Globe, Sparkles, MessageSquare } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -454,13 +454,13 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
 
         <form onSubmit={handleSubmit}>
           {/* Input Field */}
-          <div className="relative bg-white rounded-xl border border-border shadow-sm mb-2">
+          <div className="relative bg-white rounded-xl border border-border/30 mb-2">
             <textarea
               ref={inputRef}
               value={inputValue}
               onChange={(e) => setInputValue(e.target.value)}
               onKeyDown={handleKeyDown}
-              placeholder="Plan, search, or enrich your data..."
+              placeholder="Ask Lovable..."
               disabled={isRunning}
               rows={1}
               className="w-full px-4 py-3 text-sm bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground/60 disabled:opacity-50 min-h-[44px]"
@@ -505,9 +505,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
                 type="button"
                 className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
               >
-                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path d="M12 3l1.912 5.813h6.088l-4.912 3.587 1.824 5.6-4.912-3.587-4.912 3.587 1.824-5.6-4.912-3.587h6.088z" />
-                </svg>
+                <Sparkles className="h-4 w-4" />
                 <span>Visual edits</span>
               </button>
 
@@ -517,11 +515,9 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
                   <button
                     type="button"
                     disabled={isRunning || attachedUrls.length >= MAX_URLS}
-                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-muted/50 text-foreground hover:bg-muted transition-colors disabled:opacity-50"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-sm bg-muted/40 text-muted-foreground hover:bg-muted/60 transition-colors disabled:opacity-50"
                   >
-                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-                    </svg>
+                    <MessageSquare className="h-4 w-4" />
                     <span>Chat</span>
                   </button>
                 </PopoverTrigger>
@@ -581,7 +577,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
               <button
                 type="submit"
                 disabled={(!inputValue.trim() && uploadedFiles.length === 0 && attachedUrls.length === 0) || isRunning || uploadedFiles.some(f => f.isUploading)}
-                className="w-8 h-8 rounded-full bg-gradient-to-r from-orange-500 to-pink-500 flex items-center justify-center hover:from-orange-600 hover:to-pink-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-8 h-8 rounded-full bg-orange-500 flex items-center justify-center hover:bg-orange-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Send"
               >
                 <ArrowUp className="h-4 w-4 text-white" />
