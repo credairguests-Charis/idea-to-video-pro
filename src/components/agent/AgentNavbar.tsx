@@ -14,7 +14,7 @@ export function AgentNavbar({ workspaceTitle = "Charis Agent Workspace", session
   const { user } = useAuth();
 
   return (
-    <div className="h-12 flex items-center justify-between px-4 border-b border-border/40 bg-[#F5F5F5]">
+    <div className="h-12 flex items-center justify-between px-4 border-b border-border/40 bg-white">
       {/* Left side - Logo and workspace title */}
       <div className="flex items-center gap-3">
         {/* Charis Logo */}
