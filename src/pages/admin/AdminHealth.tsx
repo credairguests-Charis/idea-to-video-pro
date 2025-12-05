@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { RefreshCw, CheckCircle, AlertTriangle, XCircle } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 
 export default function AdminHealth() {
   const [checking, setChecking] = useState(false);
@@ -163,7 +163,7 @@ export default function AdminHealth() {
         <h1 className="text-3xl font-bold text-gray-900">API Health Monitoring</h1>
         <Button onClick={runHealthCheck} disabled={checking}>
           {checking ? (
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <CharisLoader size="sm" className="mr-2" />
           ) : (
             <RefreshCw className="h-4 w-4 mr-2" />
           )}

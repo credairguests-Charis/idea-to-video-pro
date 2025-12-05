@@ -8,7 +8,7 @@ import { Alert, AlertDescription } from "@/components/ui/alert";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate, useNavigate } from "react-router-dom";
-import { Loader2 } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 import { useEffect } from "react";
 import { Separator } from "@/components/ui/separator";
 export default function Auth() {
@@ -200,7 +200,7 @@ export default function Auth() {
                   <Input id="signin-password" name="signin-password" type="password" placeholder="Enter your password" required />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading || googleLoading}>
-                  {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  {loading && <CharisLoader size="sm" className="mr-2" />}
                   Sign In
                 </Button>
               </form>
@@ -222,7 +222,7 @@ export default function Auth() {
                 disabled={loading || googleLoading}
               >
                 {googleLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <CharisLoader size="sm" className="mr-2" />
                 ) : (
                   <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
@@ -250,7 +250,7 @@ export default function Auth() {
                   <Input id="signup-password" name="signup-password" type="password" placeholder="Create a password" minLength={6} required />
                 </div>
                 <Button type="submit" className="w-full" disabled={loading || googleLoading}>
-                  {loading && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  {loading && <CharisLoader size="sm" className="mr-2" />}
                   Sign Up
                 </Button>
               </form>
@@ -272,7 +272,7 @@ export default function Auth() {
                 disabled={loading || googleLoading}
               >
                 {googleLoading ? (
-                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  <CharisLoader size="sm" className="mr-2" />
                 ) : (
                   <svg className="h-4 w-4 mr-2" viewBox="0 0 24 24">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

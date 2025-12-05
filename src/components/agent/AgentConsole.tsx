@@ -1,7 +1,8 @@
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Loader2, Square, CheckCircle2, XCircle, AlertCircle, Image, Search, Code, Telescope, Lightbulb, Sparkles, ArrowDown } from "lucide-react";
+import { Square, CheckCircle2, XCircle, AlertCircle, Image, Search, Code, Telescope, Lightbulb, Sparkles, ArrowDown } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 import { formatDistanceToNow } from "date-fns";
 import { useEffect, useRef, useState } from "react";
 import { WorkflowStepCard } from "./WorkflowStepCard";
@@ -95,7 +96,7 @@ export function AgentConsole({ logs, session, isRunning, onStop }: AgentConsoleP
     switch (status) {
       case "running":
       case "in_progress":
-        return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
+        return <CharisLoader size="sm" />;
       case "completed":
       case "success":
         return <CheckCircle2 className="h-4 w-4 text-green-500" />;
@@ -195,7 +196,7 @@ export function AgentConsole({ logs, session, isRunning, onStop }: AgentConsoleP
           </div>
         ) : logs.length === 0 ? (
           <div className="flex flex-col items-center justify-center h-full text-center px-4">
-            <Loader2 className="h-8 w-8 animate-spin text-primary mb-3" />
+            <CharisLoader size="lg" className="mb-3" />
             <div className="text-foreground font-medium mb-1">Initializing Workflow</div>
             <div className="text-muted-foreground text-sm">
               Setting up agent execution pipeline...
@@ -226,7 +227,7 @@ export function AgentConsole({ logs, session, isRunning, onStop }: AgentConsoleP
             {/* Active Step Indicator */}
             {isRunning && session?.current_step && (
               <div className="flex items-center gap-3 p-3 bg-primary/10 border border-primary/20 rounded-lg animate-pulse">
-                <Loader2 className="h-5 w-5 animate-spin text-primary" />
+                <CharisLoader size="md" />
                 <div>
                   <div className="text-sm font-medium text-foreground">
                     {session.current_step.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase())}

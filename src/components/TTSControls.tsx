@@ -2,7 +2,8 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
-import { Volume2, Loader2 } from "lucide-react";
+import { Volume2 } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 
 interface TTSControlsProps {
   onGenerate: (voice: string, language: string) => void;
@@ -93,7 +94,7 @@ export function TTSControls({ onGenerate, disabled, isGenerating }: TTSControlsP
       >
         {isGenerating ? (
           <>
-            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+            <CharisLoader size="sm" className="mr-2" />
             Generating Audio...
           </>
         ) : (

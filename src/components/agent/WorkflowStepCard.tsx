@@ -1,5 +1,6 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, CheckCircle2, Loader2, XCircle, Clock, Telescope, Image, Video, Sparkles } from "lucide-react";
+import { ChevronDown, ChevronRight, CheckCircle2, XCircle, Clock, Telescope, Image, Video, Sparkles } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { formatDistanceToNow } from "date-fns";
@@ -71,7 +72,7 @@ export function WorkflowStepCard({
     switch (status) {
       case "running":
       case "in_progress":
-        return <Loader2 className="h-5 w-5 animate-spin text-primary" />;
+        return <CharisLoader size="md" />;
       case "completed":
       case "success":
         return <CheckCircle2 className="h-5 w-5 text-green-500" />;

@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
-import { Loader2, User, Shield, Settings as SettingsIcon, Lock } from "lucide-react"
+import { User, Shield, Settings as SettingsIcon, Lock } from "lucide-react"
+import { CharisLoader } from "@/components/ui/charis-loader"
 
 interface Profile {
   id: string
@@ -156,7 +157,7 @@ export default function Settings() {
       <div className="p-6">
         <div className="max-w-2xl mx-auto">
           <div className="flex items-center justify-center py-12">
-            <Loader2 className="h-8 w-8 animate-spin" />
+            <CharisLoader size="lg" />
           </div>
         </div>
       </div>
@@ -205,7 +206,7 @@ export default function Settings() {
                   />
                 </div>
                 <Button type="submit" disabled={updating}>
-                  {updating && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                  {updating && <CharisLoader size="sm" className="mr-2" />}
                   Update Profile
                 </Button>
               </form>
@@ -251,7 +252,7 @@ export default function Settings() {
                 />
               </div>
               <Button type="submit" disabled={changingPassword}>
-                {changingPassword && <Loader2 className="h-4 w-4 animate-spin mr-2" />}
+                {changingPassword && <CharisLoader size="sm" className="mr-2" />}
                 Update Password
               </Button>
             </form>

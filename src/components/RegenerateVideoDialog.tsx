@@ -5,7 +5,8 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Sparkles } from "lucide-react";
+import { Sparkles } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 
 interface VideoGeneration {
   id: string;
@@ -142,7 +143,7 @@ export function RegenerateVideoDialog({ video, open, onOpenChange, onSuccess, pr
           >
             {isRegenerating ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <CharisLoader size="sm" className="mr-2" />
                 Regenerating...
               </>
             ) : (

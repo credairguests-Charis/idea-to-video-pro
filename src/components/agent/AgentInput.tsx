@@ -3,7 +3,8 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Play, Loader2 } from "lucide-react";
+import { Play } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 
 interface AgentInputProps {
   onSubmit: (brandData: any) => void;
@@ -148,7 +149,7 @@ export function AgentInput({ onSubmit, isRunning }: AgentInputProps) {
         >
           {isRunning ? (
             <>
-              <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+              <CharisLoader size="sm" className="mr-2" />
               Running Workflow...
             </>
           ) : (

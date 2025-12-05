@@ -10,7 +10,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { Progress } from "@/components/ui/progress";
 import { toast } from "sonner";
-import { Upload, Loader2, Video, Download, Trash2 } from "lucide-react";
+import { Upload, Video, Download, Trash2 } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 
 interface VideoGeneration {
   id: string;
@@ -242,7 +243,7 @@ export default function VideoGenerator() {
           >
             {isGenerating ? (
               <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                <CharisLoader size="sm" className="mr-2" />
                 Generating...
               </>
             ) : (
@@ -263,7 +264,7 @@ export default function VideoGenerator() {
         <CardContent>
           {isLoadingHistory ? (
             <div className="flex justify-center py-8">
-              <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+              <CharisLoader size="lg" />
             </div>
           ) : generations.length === 0 ? (
             <div className="text-center py-8 text-muted-foreground">
