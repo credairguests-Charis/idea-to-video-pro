@@ -6,7 +6,6 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { 
   Table2, 
   Plus, 
-  Brain, 
   TrendingUp, 
   Target, 
   Lightbulb, 
@@ -24,18 +23,21 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
   if (!session || !data) {
     return (
       <div className="h-full flex items-center justify-center bg-white">
-        <div className="text-center max-w-md px-8">
-          <div className="w-16 h-16 mx-auto mb-6 flex items-center justify-center">
-            <Table2 className="h-12 w-12 text-muted-foreground/40" strokeWidth={1} />
+        <div className="text-center max-w-sm px-8">
+          {/* Table Icon - Minimal line style */}
+          <div className="w-14 h-14 mx-auto mb-5 flex items-center justify-center border border-border/60 rounded-lg">
+            <Table2 className="h-6 w-6 text-muted-foreground/60" strokeWidth={1.5} />
           </div>
-          <h3 className="text-lg font-medium text-foreground mb-2">
+          
+          <h3 className="text-base font-medium text-foreground mb-2">
             No columns in this table yet
           </h3>
-          <p className="text-sm text-muted-foreground mb-6">
+          <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
             Start by adding enrichments or ask Charis agent to help you get started!
           </p>
-          <Button className="rounded-lg shadow-sm">
-            <Plus className="h-4 w-4 mr-2" />
+          
+          <Button variant="default" className="rounded-lg shadow-sm h-9 px-4 text-sm">
+            <Plus className="h-4 w-4 mr-1.5" />
             Add Column
           </Button>
         </div>
@@ -50,9 +52,9 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
     return (
       <ScrollArea className="h-full bg-white">
         <div className="p-6">
-          <Card className="p-6">
+          <Card className="p-6 border-border/40">
             <h3 className="text-lg font-semibold mb-4">Raw Output</h3>
-            <pre className="text-xs bg-muted p-4 rounded overflow-auto">
+            <pre className="text-xs bg-muted/30 p-4 rounded-lg overflow-auto border border-border/30">
               {JSON.stringify(data, null, 2)}
             </pre>
           </Card>
@@ -65,7 +67,7 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
     <ScrollArea className="h-full bg-white">
       <div className="p-6 space-y-6">
         {/* Header */}
-        <div className="pb-4 border-b border-border">
+        <div className="pb-4 border-b border-border/40">
           <div className="flex items-center gap-2 mb-2">
             <CheckCircle2 className="h-5 w-5 text-green-500" />
             <h2 className="text-xl font-semibold text-foreground">Analysis Complete</h2>
@@ -77,18 +79,18 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
         </div>
 
         <Tabs defaultValue="scripts" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-muted/30">
-            <TabsTrigger value="scripts" className="text-sm">Scripts</TabsTrigger>
-            <TabsTrigger value="analysis" className="text-sm">Analysis</TabsTrigger>
-            <TabsTrigger value="insights" className="text-sm">Insights</TabsTrigger>
-            <TabsTrigger value="trends" className="text-sm">Trends</TabsTrigger>
+          <TabsList className="grid w-full grid-cols-4 bg-muted/20 rounded-lg p-1">
+            <TabsTrigger value="scripts" className="text-sm rounded-md">Scripts</TabsTrigger>
+            <TabsTrigger value="analysis" className="text-sm rounded-md">Analysis</TabsTrigger>
+            <TabsTrigger value="insights" className="text-sm rounded-md">Insights</TabsTrigger>
+            <TabsTrigger value="trends" className="text-sm rounded-md">Trends</TabsTrigger>
           </TabsList>
 
           {/* UGC Scripts */}
           <TabsContent value="scripts" className="space-y-4 mt-4">
             {data.suggestedScripts && data.suggestedScripts.length > 0 ? (
               data.suggestedScripts.map((script: any, index: number) => (
-                <Card key={index} className="p-5 border-border/50">
+                <Card key={index} className="p-5 border-border/40">
                   <div className="flex items-start justify-between mb-4">
                     <div>
                       <h3 className="text-base font-semibold text-foreground">{script.scriptTitle}</h3>
@@ -102,7 +104,7 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
                   <div className="space-y-4">
                     <div>
                       <div className="text-xs font-medium text-muted-foreground mb-2">Full Script</div>
-                      <p className="text-sm whitespace-pre-line bg-muted/30 p-3 rounded-lg">
+                      <p className="text-sm whitespace-pre-line bg-muted/20 p-3 rounded-lg border border-border/30">
                         {script.fullScript}
                       </p>
                     </div>
@@ -134,7 +136,7 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
 
                     <div>
                       <div className="text-xs font-medium text-muted-foreground mb-2">Why It Works</div>
-                      <p className="text-sm bg-muted/20 p-3 rounded-lg italic text-muted-foreground">
+                      <p className="text-sm bg-muted/10 p-3 rounded-lg italic text-muted-foreground">
                         {script.whyItWorks}
                       </p>
                     </div>
@@ -158,7 +160,7 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
           <TabsContent value="analysis" className="space-y-4 mt-4">
             {data.adAnalyses && data.adAnalyses.length > 0 ? (
               data.adAnalyses.map((analysis: any, index: number) => (
-                <Card key={index} className="p-5 border-border/50">
+                <Card key={index} className="p-5 border-border/40">
                   <div className="flex items-start gap-4">
                     {analysis.videoUrl && (
                       <div className="flex-shrink-0">
@@ -212,7 +214,7 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
             {data.insights ? (
               <>
                 {data.insights.marketTrends && data.insights.marketTrends.length > 0 && (
-                  <Card className="p-5 border-border/50">
+                  <Card className="p-5 border-border/40">
                     <div className="flex items-center gap-2 mb-4">
                       <TrendingUp className="h-5 w-5 text-blue-500" />
                       <h3 className="text-base font-semibold text-foreground">Market Trends</h3>
@@ -229,7 +231,7 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
                 )}
 
                 {data.insights.opportunityGaps && data.insights.opportunityGaps.length > 0 && (
-                  <Card className="p-5 border-border/50">
+                  <Card className="p-5 border-border/40">
                     <div className="flex items-center gap-2 mb-4">
                       <Lightbulb className="h-5 w-5 text-yellow-500" />
                       <h3 className="text-base font-semibold text-foreground">Opportunity Gaps</h3>
@@ -246,7 +248,7 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
                 )}
 
                 {data.insights.competitiveAdvantages && data.insights.competitiveAdvantages.length > 0 && (
-                  <Card className="p-5 border-border/50">
+                  <Card className="p-5 border-border/40">
                     <div className="flex items-center gap-2 mb-4">
                       <Target className="h-5 w-5 text-green-500" />
                       <h3 className="text-base font-semibold text-foreground">Competitive Advantages</h3>
@@ -272,7 +274,7 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
           {/* Trends & Recommendations */}
           <TabsContent value="trends" className="space-y-4 mt-4">
             {data.competitorSummary && (
-              <Card className="p-5 border-border/50">
+              <Card className="p-5 border-border/40">
                 <h3 className="text-base font-semibold text-foreground mb-4">Summary</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div>
@@ -292,7 +294,7 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
             )}
 
             {data.competitorSummary?.keyTrends && data.competitorSummary.keyTrends.length > 0 && (
-              <Card className="p-5 border-border/50">
+              <Card className="p-5 border-border/40">
                 <h3 className="text-base font-semibold text-foreground mb-4">Key Trends</h3>
                 <div className="flex flex-wrap gap-2">
                   {data.competitorSummary.keyTrends.map((trend: string, i: number) => (
@@ -303,7 +305,7 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
             )}
 
             {data.recommendations && (
-              <Card className="p-5 border-border/50">
+              <Card className="p-5 border-border/40">
                 <h3 className="text-base font-semibold text-foreground mb-4">Recommendations</h3>
                 <div className="space-y-4">
                   {data.recommendations.topPerformingPatterns && data.recommendations.topPerformingPatterns.length > 0 && (

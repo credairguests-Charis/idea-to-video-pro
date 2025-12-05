@@ -152,17 +152,18 @@ export default function AgentMode() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-white">
-      {/* Top Navigation Bar */}
+    <div className="flex flex-col h-screen bg-[#F5F5F5]">
+      {/* Top Navigation Bar - Full Width */}
       <AgentNavbar 
         workspaceTitle="Charis Agent Workspace" 
         sessionId={session?.id}
+        rowCount={logs.length}
       />
 
       {/* Main Content - Two Panel Layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel - Chat/Task Feed (Fixed Width: 380-420px) */}
-        <div className="w-[400px] flex-shrink-0 border-r border-border/50">
+        {/* Left Panel - Chat/Task Feed (Fixed Width: 340px) */}
+        <div className="w-[340px] flex-shrink-0 bg-white">
           <AgentChatPanel 
             logs={logs}
             isRunning={isRunning}
@@ -171,12 +172,14 @@ export default function AgentMode() {
           />
         </div>
 
-        {/* Right Panel - Workspace (Flexible Width) */}
-        <div className="flex-1 overflow-hidden">
-          <AgentWorkspace 
-            data={previewData}
-            session={session}
-          />
+        {/* Right Panel - Workspace with curved corners */}
+        <div className="flex-1 p-3 overflow-hidden">
+          <div className="h-full bg-white rounded-xl shadow-sm border border-border/30 overflow-hidden">
+            <AgentWorkspace 
+              data={previewData}
+              session={session}
+            />
+          </div>
         </div>
       </div>
     </div>
