@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, Plus, Filter, Columns3, Pencil, Check, X, ChevronDown, Copy, Share2, Trash2, MoreHorizontal } from "lucide-react";
+import { Bell, Pencil, Check, X, ChevronDown, Copy, Share2, Trash2, PanelLeftClose } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,21 +16,21 @@ import charisLogo from "@/assets/charis-logo-icon.png";
 interface AgentNavbarProps {
   workspaceTitle?: string;
   sessionId?: string;
-  rowCount?: number;
   onTitleChange?: (newTitle: string) => void;
   onDuplicate?: () => void;
   onShare?: () => void;
   onDelete?: () => void;
+  onToggleCollapse?: () => void;
 }
 
 export function AgentNavbar({ 
   workspaceTitle = "Charis Agent Workspace", 
   sessionId, 
-  rowCount = 0, 
   onTitleChange,
   onDuplicate,
   onShare,
-  onDelete
+  onDelete,
+  onToggleCollapse
 }: AgentNavbarProps) {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
@@ -142,47 +142,24 @@ export function AgentNavbar({
               </DropdownMenuContent>
             </DropdownMenu>
           )}
-          <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted/40 rounded">
-            {rowCount} rows
-          </span>
         </div>
 
-        {/* Action Icons */}
-        <div className="flex items-center gap-0.5 ml-1">
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="10" />
-              <path d="M12 8v8M8 12h8" />
-            </svg>
+        {/* Collapse Button */}
+        {onToggleCollapse && (
+          <Button 
+            variant="ghost" 
+            size="sm" 
+            onClick={onToggleCollapse}
+            className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground ml-1"
+            title="Collapse chat panel"
+          >
+            <PanelLeftClose className="h-4 w-4" />
           </Button>
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
-            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-              <circle cx="12" cy="12" r="3" />
-              <circle cx="12" cy="12" r="8" strokeDasharray="4 4" />
-            </svg>
-          </Button>
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
-            <Plus className="h-4 w-4" />
-          </Button>
-        </div>
+        )}
       </div>
 
       {/* Right side - Actions and user */}
       <div className="flex items-center gap-1">
-        {/* Filter/View Actions */}
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
-          <Filter className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
-          <Columns3 className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
-          <Plus className="h-4 w-4" />
-        </Button>
-
-        {/* Separator */}
-        <div className="w-px h-5 bg-border/50 mx-2" />
-
         {/* Feedback Link */}
         <span className="text-xs text-muted-foreground mr-2 cursor-pointer hover:text-foreground transition-colors">
           Feedback
