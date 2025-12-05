@@ -322,7 +322,7 @@ export function AnimatedAIInput({
                                         <DropdownMenuTrigger asChild>
                                             <Button
                                                 variant="ghost"
-                                                className="flex items-center gap-1 h-8 pl-1 pr-2 text-xs rounded-md hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-ring"
+                                                className="flex items-center gap-1 h-8 pl-1 pr-2 text-xs rounded-md hover:bg-accent hover:text-accent-foreground focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-ring"
                                             >
                                                 <AnimatePresence mode="wait">
                                                     <motion.div
@@ -366,7 +366,7 @@ export function AnimatedAIInput({
                                         variant="ghost"
                                         className={cn(
                                             "rounded-lg p-2 bg-accent/20 cursor-pointer",
-                                            "hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-ring",
+                                            "hover:bg-accent hover:text-accent-foreground focus-visible:ring-1 focus-visible:ring-offset-0 focus-visible:ring-ring",
                                             "text-muted-foreground h-8"
                                         )}
                                         aria-label="Add actors"

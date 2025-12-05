@@ -146,7 +146,7 @@ export function BottomInputPanel({
         <div className="relative px-3 md:px-4 pt-3 md:pt-4 pb-2">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-6 md:h-7 gap-1 text-xs text-gray-600 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white">
+              <Button variant="ghost" size="sm" className="h-6 md:h-7 gap-1 text-xs text-gray-600 hover:bg-accent hover:text-accent-foreground">
                 <Users className="h-3 w-3 md:h-3.5 md:w-3.5" />
                 <span className="hidden sm:inline">Talking Actors</span>
                 <span className="sm:hidden">Actors</span>
@@ -211,7 +211,7 @@ export function BottomInputPanel({
                   <button
                     onClick={handleRemoveProductImage}
                     disabled={isLoading || productImage.isUploading}
-                    className="ml-1 p-0.5 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white rounded-full transition-colors disabled:opacity-50"
+                    className="ml-1 p-0.5 hover:bg-accent hover:text-accent-foreground rounded-full transition-colors disabled:opacity-50"
                   >
                     <X className="h-3 w-3 text-gray-500" />
                   </button>
@@ -225,7 +225,7 @@ export function BottomInputPanel({
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 px-3 md:px-4 pb-3 md:pb-4 pt-3 border-t border-gray-100">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="h-6 md:h-7 gap-1 text-xs text-gray-700 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white">
+              <Button variant="ghost" size="sm" className="h-6 md:h-7 gap-1 text-xs text-gray-700 hover:bg-accent hover:text-accent-foreground">
                 <Film className="h-3 w-3 md:h-3.5 md:w-3.5" />
                 {aspectRatio === "portrait" ? "9:16" : "16:9"}
                 <ChevronDown className="h-3 w-3" />
@@ -264,7 +264,7 @@ export function BottomInputPanel({
               variant="ghost"
               size="sm"
               onClick={onOpenActorSelector}
-              className="h-6 md:h-7 text-[10px] md:text-xs text-gray-700 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white px-2 md:px-3"
+              className="h-6 md:h-7 text-[10px] md:text-xs text-gray-700 hover:bg-accent hover:text-accent-foreground px-2 md:px-3"
               disabled={isLoading}
             >
               <Users className="h-3 w-3 md:h-3.5 md:w-3.5" />
@@ -277,7 +277,7 @@ export function BottomInputPanel({
                   <Button
                     variant="ghost"
                     size="sm"
-                    className="h-6 md:h-7 text-[10px] md:text-xs text-gray-700 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white px-2 md:px-3"
+                    className="h-6 md:h-7 text-[10px] md:text-xs text-gray-700 hover:bg-accent hover:text-accent-foreground px-2 md:px-3"
                     disabled={isLoading || !script.trim() || productImage?.isUploading}
                   >
                     <Film className="h-3 w-3 md:h-3.5 md:w-3.5" />
@@ -286,19 +286,19 @@ export function BottomInputPanel({
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="z-[100] bg-white shadow-lg border border-gray-200">
-                  <DropdownMenuItem onClick={() => onBulkGenerate(2)} className="cursor-pointer hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white">
+                  <DropdownMenuItem onClick={() => onBulkGenerate(2)} className="cursor-pointer">
                     2 videos
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onBulkGenerate(4)} className="cursor-pointer hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white">
+                  <DropdownMenuItem onClick={() => onBulkGenerate(4)} className="cursor-pointer">
                     4 videos
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onBulkGenerate(6)} className="cursor-pointer hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white">
+                  <DropdownMenuItem onClick={() => onBulkGenerate(6)} className="cursor-pointer">
                     6 videos
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onBulkGenerate(8)} className="cursor-pointer hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white">
+                  <DropdownMenuItem onClick={() => onBulkGenerate(8)} className="cursor-pointer">
                     8 videos
                   </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => onBulkGenerate(10)} className="cursor-pointer hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white">
+                  <DropdownMenuItem onClick={() => onBulkGenerate(10)} className="cursor-pointer">
                     10 videos
                   </DropdownMenuItem>
                 </DropdownMenuContent>
@@ -318,7 +318,7 @@ export function BottomInputPanel({
               variant="ghost"
               size="sm"
               onClick={() => fileInputRef.current?.click()}
-              className="h-6 md:h-7 text-[10px] md:text-xs text-gray-700 hover:bg-gray-800 hover:text-white dark:hover:bg-gray-700 dark:hover:text-white px-2 md:px-3"
+              className="h-6 md:h-7 text-[10px] md:text-xs text-gray-700 hover:bg-accent hover:text-accent-foreground px-2 md:px-3"
               disabled={isLoading}
             >
               <ImageIcon className="h-3 w-3 md:h-3.5 md:w-3.5" />
