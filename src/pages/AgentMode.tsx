@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { AgentChatPanel } from "@/components/agent/AgentChatPanel";
@@ -28,6 +28,7 @@ interface AgentSession {
   current_step?: string;
   progress?: number;
   metadata?: any;
+  title?: string;
 }
 
 export default function AgentMode() {
@@ -40,6 +41,90 @@ export default function AgentMode() {
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [workspaceTitle, setWorkspaceTitle] = useState("Untitled Workspace");
   const leftPanelRef = useRef<any>(null);
+  const titleSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  // Load or create session on mount
+  useEffect(() => {
+    if (!user) return;
+
+    const loadOrCreateSession = async () => {
+      // Try to find an existing active session
+      const { data: existingSession, error: fetchError } = await supabase
+        .from("agent_sessions")
+        .select("*")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (existingSession && !fetchError) {
+        setSession({
+          id: existingSession.id,
+          state: existingSession.state,
+          current_step: existingSession.current_step || undefined,
+          progress: existingSession.progress || 0,
+          metadata: existingSession.metadata,
+          title: existingSession.title || "Untitled Workspace",
+        });
+        setWorkspaceTitle(existingSession.title || "Untitled Workspace");
+      } else {
+        // Create a new session
+        const { data: newSession, error: createError } = await supabase
+          .from("agent_sessions")
+          .insert({
+            user_id: user.id,
+            state: "idle",
+            title: "Untitled Workspace",
+          })
+          .select()
+          .single();
+
+        if (newSession && !createError) {
+          setSession({
+            id: newSession.id,
+            state: newSession.state,
+            progress: 0,
+            title: newSession.title || "Untitled Workspace",
+          });
+        }
+      }
+    };
+
+    loadOrCreateSession();
+  }, [user]);
+
+  // Save title to database with debounce
+  const handleTitleChange = useCallback((newTitle: string) => {
+    setWorkspaceTitle(newTitle);
+    
+    // Clear existing timeout
+    if (titleSaveTimeoutRef.current) {
+      clearTimeout(titleSaveTimeoutRef.current);
+    }
+    
+    // Debounce save to database
+    titleSaveTimeoutRef.current = setTimeout(async () => {
+      if (!session?.id) return;
+      
+      const { error } = await supabase
+        .from("agent_sessions")
+        .update({ title: newTitle })
+        .eq("id", session.id);
+      
+      if (error) {
+        console.error("Failed to save workspace title:", error);
+      }
+    }, 500);
+  }, [session?.id]);
+
+  // Cleanup timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (titleSaveTimeoutRef.current) {
+        clearTimeout(titleSaveTimeoutRef.current);
+      }
+    };
+  }, []);
 
   useEffect(() => {
     if (!user || !session) return;
@@ -174,7 +259,7 @@ export default function AgentMode() {
         workspaceTitle={workspaceTitle} 
         sessionId={session?.id}
         rowCount={logs.length}
-        onTitleChange={setWorkspaceTitle}
+        onTitleChange={handleTitleChange}
       />
 
       {/* Main Content - Two Panel Layout with Resizable */}
