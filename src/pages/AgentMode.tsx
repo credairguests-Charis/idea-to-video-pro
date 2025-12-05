@@ -38,6 +38,7 @@ export default function AgentMode() {
   const [previewData, setPreviewData] = useState<any>(null);
   const [userPrompt, setUserPrompt] = useState<string>("");
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const [workspaceTitle, setWorkspaceTitle] = useState("Untitled Workspace");
   const leftPanelRef = useRef<any>(null);
 
   useEffect(() => {
@@ -170,9 +171,10 @@ export default function AgentMode() {
     <div className="flex flex-col h-screen bg-[#F5F5F5]">
       {/* Top Navigation Bar - Full Width */}
       <AgentNavbar 
-        workspaceTitle="Charis Agent Workspace" 
+        workspaceTitle={workspaceTitle} 
         sessionId={session?.id}
         rowCount={logs.length}
+        onTitleChange={setWorkspaceTitle}
       />
 
       {/* Main Content - Two Panel Layout with Resizable */}
