@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { AgentChatPanel } from "@/components/agent/AgentChatPanel";
@@ -6,6 +6,9 @@ import { AgentWorkspace } from "@/components/agent/AgentWorkspace";
 import { AgentNavbar } from "@/components/agent/AgentNavbar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
+import { PanelLeftClose, PanelLeft } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 interface AgentLog {
   id: string;
@@ -34,6 +37,8 @@ export default function AgentMode() {
   const [isRunning, setIsRunning] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
   const [userPrompt, setUserPrompt] = useState<string>("");
+  const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
+  const leftPanelRef = useRef<any>(null);
 
   useEffect(() => {
     if (!user || !session) return;
@@ -151,6 +156,16 @@ export default function AgentMode() {
     return <Navigate to="/auth" replace />;
   }
 
+  const handleToggleCollapse = () => {
+    if (leftPanelRef.current) {
+      if (isLeftPanelCollapsed) {
+        leftPanelRef.current.expand();
+      } else {
+        leftPanelRef.current.collapse();
+      }
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen bg-[#F5F5F5]">
       {/* Top Navigation Bar - Full Width */}
@@ -160,27 +175,56 @@ export default function AgentMode() {
         rowCount={logs.length}
       />
 
-      {/* Main Content - Two Panel Layout */}
-      <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel - Chat/Task Feed (Fixed Width: 340px) */}
-        <div className="w-[340px] flex-shrink-0 bg-white">
-          <AgentChatPanel 
-            logs={logs}
-            isRunning={isRunning}
-            userPrompt={userPrompt}
-            onSubmit={handleStartAgent}
-          />
-        </div>
-
-        {/* Right Panel - Workspace with curved corners */}
-        <div className="flex-1 p-3 overflow-hidden">
-          <div className="h-full bg-white rounded-xl shadow-sm border border-border/30 overflow-hidden">
-            <AgentWorkspace 
-              data={previewData}
-              session={session}
+      {/* Main Content - Two Panel Layout with Resizable */}
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          {/* Left Panel - Chat/Task Feed */}
+          <ResizablePanel
+            ref={leftPanelRef}
+            defaultSize={25}
+            minSize={18}
+            maxSize={40}
+            collapsible
+            collapsedSize={0}
+            onCollapse={() => setIsLeftPanelCollapsed(true)}
+            onExpand={() => setIsLeftPanelCollapsed(false)}
+          >
+            <AgentChatPanel 
+              logs={logs}
+              isRunning={isRunning}
+              userPrompt={userPrompt}
+              onSubmit={handleStartAgent}
+              isCollapsed={isLeftPanelCollapsed}
+              onToggleCollapse={handleToggleCollapse}
             />
-          </div>
-        </div>
+          </ResizablePanel>
+
+          {/* Resize Handle */}
+          <ResizableHandle className="w-px bg-border/40 hover:bg-primary/30 transition-colors" />
+
+          {/* Right Panel - Workspace with curved corners */}
+          <ResizablePanel defaultSize={75}>
+            <div className="h-full p-3">
+              <div className="h-full bg-white rounded-xl border border-border/40 overflow-hidden relative">
+                {/* Collapse toggle button - shown when panel is collapsed */}
+                {isLeftPanelCollapsed && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={handleToggleCollapse}
+                    className="absolute top-3 left-3 z-10 h-8 w-8 p-0 bg-white/80 backdrop-blur-sm border border-border/40 shadow-sm hover:bg-white"
+                  >
+                    <PanelLeft className="h-4 w-4" />
+                  </Button>
+                )}
+                <AgentWorkspace 
+                  data={previewData}
+                  session={session}
+                />
+              </div>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
       </div>
     </div>
   );
