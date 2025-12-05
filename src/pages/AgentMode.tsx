@@ -387,7 +387,7 @@ export default function AgentMode() {
           {/* Right Panel - Workspace with curved corners */}
           <ResizablePanel defaultSize={75} className="transition-all duration-300 ease-in-out">
             <div className="h-full py-3 pr-3 bg-white">
-              <div className="h-full bg-white rounded-xl border border-border/40 overflow-hidden relative">
+              <div className="h-full bg-white rounded-xl border border-border overflow-hidden relative">
                 {/* Collapse toggle button - shown when panel is collapsed */}
                 <div className={`absolute top-3 left-3 z-10 transition-all duration-300 ease-in-out ${isLeftPanelCollapsed ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
                   <Button

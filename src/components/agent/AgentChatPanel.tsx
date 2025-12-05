@@ -400,7 +400,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
       </div>
 
       {/* Bottom Input - Sticky */}
-      <div className="p-3 bg-[#F9FAFB] border-t border-border/30">
+      <div className="p-3 bg-white">
         {/* Attached URLs Preview */}
         {attachedUrls.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">
@@ -453,7 +453,8 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
         )}
 
         <form onSubmit={handleSubmit}>
-          <div className="relative bg-white rounded-lg border border-border/50 shadow-sm">
+          {/* Input Field */}
+          <div className="relative bg-white rounded-xl border border-border shadow-sm mb-2">
             <textarea
               ref={inputRef}
               value={inputValue}
@@ -462,22 +463,26 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
               placeholder="Plan, search, or enrich your data..."
               disabled={isRunning}
               rows={1}
-              className="w-full px-3.5 py-3 pr-32 text-sm bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground/60 disabled:opacity-50 min-h-[44px]"
+              className="w-full px-4 py-3 text-sm bg-transparent resize-none focus:outline-none placeholder:text-muted-foreground/60 disabled:opacity-50 min-h-[44px]"
             />
-            <div className="absolute right-2 bottom-2 flex items-center gap-1">
-              {/* File Upload Dropdown */}
+          </div>
+
+          {/* Bottom Action Bar */}
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-1">
+              {/* Plus Upload Button */}
               <DropdownMenu open={isUploadMenuOpen} onOpenChange={setIsUploadMenuOpen}>
                 <DropdownMenuTrigger asChild>
                   <button
                     type="button"
                     disabled={isRunning || uploadedFiles.length >= MAX_FILES}
-                    className="p-1.5 rounded hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
+                    className="p-2 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
                     title="Upload files"
                   >
-                    <Plus className="h-4 w-4" />
+                    <Plus className="h-5 w-5" />
                   </button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuContent align="start" className="w-48 bg-white z-50">
                   <DropdownMenuItem 
                     onClick={() => imageInputRef.current?.click()}
                     className="cursor-pointer"
@@ -495,19 +500,32 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
                 </DropdownMenuContent>
               </DropdownMenu>
 
-              {/* URL Input Popover */}
+              {/* Visual Edits Button */}
+              <button
+                type="button"
+                className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm text-muted-foreground hover:bg-muted/50 transition-colors"
+              >
+                <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <path d="M12 3l1.912 5.813h6.088l-4.912 3.587 1.824 5.6-4.912-3.587-4.912 3.587 1.824-5.6-4.912-3.587h6.088z" />
+                </svg>
+                <span>Visual edits</span>
+              </button>
+
+              {/* Chat Button */}
               <Popover open={isUrlPopoverOpen} onOpenChange={setIsUrlPopoverOpen}>
                 <PopoverTrigger asChild>
                   <button
                     type="button"
                     disabled={isRunning || attachedUrls.length >= MAX_URLS}
-                    className="p-1.5 rounded hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground disabled:opacity-50"
-                    title="Add competitor URL"
+                    className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-sm bg-muted/50 text-foreground hover:bg-muted transition-colors disabled:opacity-50"
                   >
-                    <Link2 className="h-4 w-4" />
+                    <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+                    </svg>
+                    <span>Chat</span>
                   </button>
                 </PopoverTrigger>
-                <PopoverContent align="end" className="w-80 p-3">
+                <PopoverContent align="start" className="w-80 p-3 bg-white z-50">
                   <div className="space-y-3">
                     <div className="space-y-1">
                       <h4 className="text-sm font-medium text-foreground">Add Competitor URL</h4>
@@ -541,14 +559,32 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
                   </div>
                 </PopoverContent>
               </Popover>
+            </div>
 
+            <div className="flex items-center gap-1">
+              {/* Voice Button */}
+              <button
+                type="button"
+                className="p-2 rounded-lg hover:bg-muted/50 transition-colors text-muted-foreground hover:text-foreground"
+                title="Voice input"
+              >
+                <svg className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                  <rect x="4" y="4" width="2" height="16" rx="1" />
+                  <rect x="8" y="7" width="2" height="10" rx="1" />
+                  <rect x="12" y="2" width="2" height="20" rx="1" />
+                  <rect x="16" y="7" width="2" height="10" rx="1" />
+                  <rect x="20" y="4" width="2" height="16" rx="1" />
+                </svg>
+              </button>
+
+              {/* Send Button */}
               <button
                 type="submit"
                 disabled={(!inputValue.trim() && uploadedFiles.length === 0 && attachedUrls.length === 0) || isRunning || uploadedFiles.some(f => f.isUploading)}
-                className="w-7 h-7 rounded-full bg-foreground flex items-center justify-center hover:bg-foreground/90 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                className="w-8 h-8 rounded-full bg-gradient-to-r from-orange-500 to-pink-500 flex items-center justify-center hover:from-orange-600 hover:to-pink-600 transition-all disabled:opacity-40 disabled:cursor-not-allowed"
                 title="Send"
               >
-                <ArrowUp className="h-4 w-4 text-background" />
+                <ArrowUp className="h-4 w-4 text-white" />
               </button>
             </div>
           </div>
