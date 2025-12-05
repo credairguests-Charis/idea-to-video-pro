@@ -72,7 +72,7 @@ export function AgentNavbar({
   };
 
   return (
-    <div className="h-12 flex items-center justify-between px-4 border-b border-border/40 bg-white">
+    <div className="h-12 flex items-center justify-between px-4 bg-white">
       {/* Left side - Logo and workspace title */}
       <div className="flex items-center gap-3">
         {/* Charis Logo */}
