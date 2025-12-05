@@ -287,8 +287,8 @@ export function ProjectSidebar({
 
                 {isExpanded && <div className="ml-8 space-y-0.5">
                     {folderProjects.map(project => <div key={project.id} className="group flex items-center w-full overflow-hidden rounded-lg hover:bg-accent/50 transition-colors my-0.5">
-                        <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 overflow-hidden justify-start px-4 h-10 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
-                          <span className="text-sm truncate block w-full text-left" title={project.title}>{project.title}</span>
+                        <Button variant="ghost" size="sm" className={cn("flex flex-1 min-w-0 overflow-hidden justify-start px-4 h-10 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
+                          <span className="truncate text-sm" title={project.title}>{project.title}</span>
                         </Button>
 
                         <DropdownMenu>
@@ -345,8 +345,8 @@ export function ProjectSidebar({
                 </TooltipProvider>
               ) : (
                 <>
-                  <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 overflow-hidden justify-start h-10 px-3 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
-                    <span className="truncate text-sm block w-full text-left" title={project.title}>{project.title}</span>
+                  <Button variant="ghost" size="sm" className={cn("flex flex-1 min-w-0 overflow-hidden justify-start h-10 px-3 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
+                    <span className="truncate text-sm" title={project.title}>{project.title}</span>
                   </Button>
 
               <DropdownMenu>
