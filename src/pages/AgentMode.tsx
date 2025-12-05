@@ -188,35 +188,38 @@ export default function AgentMode() {
             collapsedSize={0}
             onCollapse={() => setIsLeftPanelCollapsed(true)}
             onExpand={() => setIsLeftPanelCollapsed(false)}
+            className="transition-all duration-300 ease-in-out"
           >
-            <AgentChatPanel 
-              logs={logs}
-              isRunning={isRunning}
-              userPrompt={userPrompt}
-              onSubmit={handleStartAgent}
-              isCollapsed={isLeftPanelCollapsed}
-              onToggleCollapse={handleToggleCollapse}
-            />
+            <div className={`h-full transition-opacity duration-200 ${isLeftPanelCollapsed ? 'opacity-0' : 'opacity-100'}`}>
+              <AgentChatPanel 
+                logs={logs}
+                isRunning={isRunning}
+                userPrompt={userPrompt}
+                onSubmit={handleStartAgent}
+                isCollapsed={isLeftPanelCollapsed}
+                onToggleCollapse={handleToggleCollapse}
+              />
+            </div>
           </ResizablePanel>
 
           {/* Resize Handle */}
-          <ResizableHandle className="w-px bg-border/40 hover:bg-primary/30 transition-colors" />
+          <ResizableHandle className="w-px bg-border/40 hover:bg-primary/50 transition-colors duration-200" />
 
           {/* Right Panel - Workspace with curved corners */}
-          <ResizablePanel defaultSize={75}>
+          <ResizablePanel defaultSize={75} className="transition-all duration-300 ease-in-out">
             <div className="h-full p-3">
               <div className="h-full bg-white rounded-xl border border-border/40 overflow-hidden relative">
                 {/* Collapse toggle button - shown when panel is collapsed */}
-                {isLeftPanelCollapsed && (
+                <div className={`absolute top-3 left-3 z-10 transition-all duration-300 ease-in-out ${isLeftPanelCollapsed ? 'opacity-100 scale-100' : 'opacity-0 scale-95 pointer-events-none'}`}>
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={handleToggleCollapse}
-                    className="absolute top-3 left-3 z-10 h-8 w-8 p-0 bg-white/80 backdrop-blur-sm border border-border/40 shadow-sm hover:bg-white"
+                    className="h-8 w-8 p-0 bg-white/80 backdrop-blur-sm border border-border/40 shadow-sm hover:bg-white hover:scale-105 transition-transform duration-200"
                   >
                     <PanelLeft className="h-4 w-4" />
                   </Button>
-                )}
+                </div>
                 <AgentWorkspace 
                   data={previewData}
                   session={session}
