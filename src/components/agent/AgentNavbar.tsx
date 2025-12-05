@@ -1,8 +1,15 @@
 import { useState, useRef, useEffect } from "react";
-import { Bell, Plus, Filter, Columns3, Pencil, Check, X } from "lucide-react";
+import { Bell, Plus, Filter, Columns3, Pencil, Check, X, ChevronDown, Copy, Share2, Trash2, MoreHorizontal } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useAuth } from "@/hooks/useAuth";
 import charisLogo from "@/assets/charis-logo-icon.png";
 
@@ -11,9 +18,20 @@ interface AgentNavbarProps {
   sessionId?: string;
   rowCount?: number;
   onTitleChange?: (newTitle: string) => void;
+  onDuplicate?: () => void;
+  onShare?: () => void;
+  onDelete?: () => void;
 }
 
-export function AgentNavbar({ workspaceTitle = "Charis Agent Workspace", sessionId, rowCount = 0, onTitleChange }: AgentNavbarProps) {
+export function AgentNavbar({ 
+  workspaceTitle = "Charis Agent Workspace", 
+  sessionId, 
+  rowCount = 0, 
+  onTitleChange,
+  onDuplicate,
+  onShare,
+  onDelete
+}: AgentNavbarProps) {
   const { user } = useAuth();
   const [isEditing, setIsEditing] = useState(false);
   const [editedTitle, setEditedTitle] = useState(workspaceTitle);
@@ -91,13 +109,38 @@ export function AgentNavbar({ workspaceTitle = "Charis Agent Workspace", session
               </Button>
             </div>
           ) : (
-            <button
-              onClick={() => setIsEditing(true)}
-              className="flex items-center gap-1.5 group hover:bg-muted/50 px-2 py-1 -mx-2 rounded-md transition-colors"
-            >
-              <h1 className="text-sm font-medium text-foreground">{workspaceTitle}</h1>
-              <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
-            </button>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="flex items-center gap-1.5 group hover:bg-muted/50 px-2 py-1 -mx-2 rounded-md transition-colors"
+                >
+                  <h1 className="text-sm font-medium text-foreground">{workspaceTitle}</h1>
+                  <ChevronDown className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-48 bg-white z-50">
+                <DropdownMenuItem onClick={() => setIsEditing(true)} className="cursor-pointer">
+                  <Pencil className="h-4 w-4 mr-2" />
+                  Rename
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onDuplicate} className="cursor-pointer">
+                  <Copy className="h-4 w-4 mr-2" />
+                  Duplicate
+                </DropdownMenuItem>
+                <DropdownMenuItem onClick={onShare} className="cursor-pointer">
+                  <Share2 className="h-4 w-4 mr-2" />
+                  Share
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem 
+                  onClick={onDelete} 
+                  className="cursor-pointer text-destructive focus:text-destructive focus:bg-destructive/10"
+                >
+                  <Trash2 className="h-4 w-4 mr-2" />
+                  Delete
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           )}
           <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted/40 rounded">
             {rowCount} rows
