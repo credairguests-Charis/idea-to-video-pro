@@ -2,7 +2,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 
 export function AdminGuard({ children }: { children: React.ReactNode }) {
   const { user, loading } = useAuth();
@@ -51,7 +51,7 @@ export function AdminGuard({ children }: { children: React.ReactNode }) {
   if (loading || checking) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-gray-50">
-        <Loader2 className="h-8 w-8 animate-spin text-[#0f1729]" />
+        <CharisLoader size="lg" />
       </div>
     );
   }

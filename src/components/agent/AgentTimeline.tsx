@@ -1,6 +1,7 @@
 import { Progress } from "@/components/ui/progress";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle2, Clock, Loader2 } from "lucide-react";
+import { CheckCircle2, Clock } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 import { formatDistanceToNow } from "date-fns";
 
 interface AgentLog {
@@ -51,7 +52,7 @@ export function AgentTimeline({ logs, session }: AgentTimelineProps) {
     if (status === "success") {
       return <CheckCircle2 className="h-4 w-4 text-green-500" />;
     } else if (status === "in_progress") {
-      return <Loader2 className="h-4 w-4 animate-spin text-primary" />;
+      return <CharisLoader size="sm" />;
     }
     return <Clock className="h-4 w-4 text-muted-foreground" />;
   };

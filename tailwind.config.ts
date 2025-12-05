@@ -72,6 +72,27 @@ export default {
             height: "var(--radix-accordion-content-height)",
           },
         },
+        "charis-pulse": {
+          "0%, 100%": {
+            transform: "scale(1)",
+            opacity: "1",
+          },
+          "50%": {
+            transform: "scale(1.08)",
+            opacity: "0.7",
+          },
+        },
+        "charis-glitch": {
+          "0%, 100%": {
+            transform: "translateX(0)",
+          },
+          "25%": {
+            transform: "translateX(-1px)",
+          },
+          "75%": {
+            transform: "translateX(1px)",
+          },
+        },
         "accordion-up": {
           from: {
             height: "var(--radix-accordion-content-height)",
@@ -104,6 +125,9 @@ export default {
         "accordion-up": "accordion-up 0.2s ease-out",
         "shimmer": "shimmer 2s infinite",
         "fade-in": "fade-in 0.3s ease-out",
+        "charis-pulse": "charis-pulse 1.5s ease-in-out infinite",
+        "charis-glitch": "charis-glitch 0.3s ease-in-out infinite",
+        "charis-loader": "charis-pulse 1.5s ease-in-out infinite, charis-glitch 0.3s ease-in-out infinite",
       },
     },
   },

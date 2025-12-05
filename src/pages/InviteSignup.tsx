@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, AlertCircle, CheckCircle2 } from "lucide-react";
+import { AlertCircle, CheckCircle2 } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -104,7 +105,7 @@ export default function InviteSignup() {
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <CharisLoader size="lg" />
       </div>
     );
   }
@@ -181,7 +182,7 @@ export default function InviteSignup() {
             <Button type="submit" className="w-full" disabled={signingUp}>
               {signingUp ? (
                 <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  <CharisLoader size="sm" className="mr-2" />
                   Creating Account...
                 </>
               ) : (

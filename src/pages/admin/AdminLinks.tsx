@@ -8,7 +8,8 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
-import { Copy, Plus, Users, Ban, Loader2, ExternalLink } from "lucide-react";
+import { Copy, Plus, Users, Ban, ExternalLink } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -155,7 +156,7 @@ export default function AdminLinks() {
   if (loading) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <CharisLoader size="lg" />
       </div>
     );
   }
@@ -207,7 +208,7 @@ export default function AdminLinks() {
               <Button onClick={createInviteLink} disabled={creating} className="w-full">
                 {creating ? (
                   <>
-                    <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    <CharisLoader size="sm" className="mr-2" />
                     Creating...
                   </>
                 ) : (
@@ -303,7 +304,7 @@ export default function AdminLinks() {
                               <div className="mt-6 space-y-4">
                                 {loadingUsages ? (
                                   <div className="flex justify-center py-8">
-                                    <Loader2 className="h-6 w-6 animate-spin" />
+                                    <CharisLoader size="md" />
                                   </div>
                                 ) : usages.length === 0 ? (
                                   <div className="text-center py-8 text-muted-foreground">

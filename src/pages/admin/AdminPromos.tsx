@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { Plus, Copy, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 
 export default function AdminPromos() {
@@ -237,7 +237,7 @@ export default function AdminPromos() {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={creating}>
-                  {creating && <Loader2 className="h-4 w-4 mr-2 animate-spin" />}
+                  {creating && <CharisLoader size="sm" className="mr-2" />}
                   Create Promo
                 </Button>
               </div>

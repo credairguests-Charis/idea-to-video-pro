@@ -7,7 +7,8 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { CheckCircle, Loader2 } from "lucide-react";
+import { CheckCircle } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 
 const formSchema = z.object({
   email: z.string().trim().email({ message: "Invalid email address" }).max(255),
@@ -126,7 +127,7 @@ export const WaitlistForm = () => {
         >
           {isSubmitting ? (
             <>
-              <Loader2 className="mr-2 h-5 w-5 animate-spin" />
+              <CharisLoader size="md" className="mr-2" />
               Joining Waitlist...
             </>
           ) : (

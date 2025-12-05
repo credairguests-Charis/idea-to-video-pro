@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2 } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 import { Progress } from "@/components/ui/progress";
 
 interface VideoGeneration {
@@ -255,7 +255,7 @@ export function VideoGenerationTracker() {
               {batchCompleted >= batchTotal && batchTotal > 0 ? (
                 <span className="text-green-500 font-medium">✓</span>
               ) : (
-                <Loader2 className="h-4 w-4 animate-spin text-primary" />
+                <CharisLoader size="sm" />
               )}
               <span className="font-medium text-sm">
                 {batchCompleted >= batchTotal && batchTotal > 0 

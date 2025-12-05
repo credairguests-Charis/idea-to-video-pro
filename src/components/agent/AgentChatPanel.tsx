@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Loader2, Check, Image, FileText, X, Globe } from "lucide-react";
+import { Search, Check, Image, FileText, X, Globe } from "lucide-react";
+import { CharisLoader } from "@/components/ui/charis-loader";
 import charisLogo from "@/assets/charis-logo-icon.png";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
 
@@ -74,7 +75,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
 
   const getTaskIcon = (icon: string, status: string) => {
     if (status === "running" || status === "in_progress") {
-      return <Loader2 className="h-3.5 w-3.5 text-muted-foreground animate-spin" />;
+      return <CharisLoader size="xs" />;
     }
     if (status === "success" || status === "completed") {
       return <Check className="h-3.5 w-3.5 text-green-600" />;
@@ -119,7 +120,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
             <div className="text-sm text-foreground leading-relaxed">
               {isRunning ? (
                 <span className="flex items-center gap-2">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  <CharisLoader size="xs" />
                   Processing your request...
                 </span>
               ) : logs.length > 0 ? (
@@ -156,7 +157,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
                 
                 {isRunning && (
                   <div className="flex items-center gap-2 py-1.5 px-1.5">
-                    <Loader2 className="h-3.5 w-3.5 text-primary animate-spin" />
+                    <CharisLoader size="xs" />
                     <span className="text-sm text-muted-foreground">Processing...</span>
                   </div>
                 )}
@@ -212,7 +213,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
                 className="flex items-center gap-1.5 bg-white border border-border/50 rounded-md px-2 py-1.5 text-xs"
               >
                 {file.isUploading ? (
-                  <Loader2 className="h-3.5 w-3.5 animate-spin text-primary" />
+                  <CharisLoader size="xs" />
                 ) : (
                   getFileIcon(file.type)
                 )}
