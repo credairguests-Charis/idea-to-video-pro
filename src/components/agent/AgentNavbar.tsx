@@ -1,51 +1,84 @@
-import { Bell, Settings, HelpCircle, ChevronDown } from "lucide-react";
+import { Bell, Settings, HelpCircle, ChevronDown, Plus, Filter, Columns3 } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
+import charisLogo from "@/assets/charis-logo-icon.png";
 
 interface AgentNavbarProps {
   workspaceTitle?: string;
   sessionId?: string;
+  rowCount?: number;
 }
 
-export function AgentNavbar({ workspaceTitle = "Charis Agent Workspace", sessionId }: AgentNavbarProps) {
+export function AgentNavbar({ workspaceTitle = "Charis Agent Workspace", sessionId, rowCount = 0 }: AgentNavbarProps) {
   const { user } = useAuth();
 
   return (
-    <div className="h-14 flex items-center justify-between px-4 border-b border-border/50 bg-white">
-      {/* Left side - Workspace title */}
+    <div className="h-12 flex items-center justify-between px-4 border-b border-border/40 bg-white">
+      {/* Left side - Logo and workspace title */}
       <div className="flex items-center gap-3">
-        <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center">
-          <span className="text-sm font-semibold text-primary">C</span>
-        </div>
+        {/* Charis Logo */}
+        <img src={charisLogo} alt="Charis" className="w-7 h-7 rounded-lg" />
+        
+        {/* Workspace Title */}
         <div className="flex items-center gap-2">
-          <h1 className="text-sm font-semibold text-foreground">{workspaceTitle}</h1>
-          <span className="text-xs text-muted-foreground px-2 py-0.5 bg-muted/50 rounded">
-            0 rows
+          <h1 className="text-sm font-medium text-foreground">{workspaceTitle}</h1>
+          <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted/40 rounded">
+            {rowCount} rows
           </span>
         </div>
-        <div className="flex items-center gap-1 ml-2">
-          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground">
-            <ChevronDown className="h-4 w-4" />
+
+        {/* Action Icons */}
+        <div className="flex items-center gap-0.5 ml-1">
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="10" />
+              <path d="M12 8v8M8 12h8" />
+            </svg>
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+            <svg className="h-4 w-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+              <circle cx="12" cy="12" r="3" />
+              <circle cx="12" cy="12" r="8" strokeDasharray="4 4" />
+            </svg>
+          </Button>
+          <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+            <Plus className="h-4 w-4" />
           </Button>
         </div>
       </div>
 
-      {/* Right side - Actions */}
-      <div className="flex items-center gap-2">
-        <span className="text-xs text-muted-foreground mr-2">Feedback</span>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
+      {/* Right side - Actions and user */}
+      <div className="flex items-center gap-1">
+        {/* Filter/View Actions */}
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+          <Filter className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+          <Columns3 className="h-4 w-4" />
+        </Button>
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground">
+          <Plus className="h-4 w-4" />
+        </Button>
+
+        {/* Separator */}
+        <div className="w-px h-5 bg-border/50 mx-2" />
+
+        {/* Feedback Link */}
+        <span className="text-xs text-muted-foreground mr-2 cursor-pointer hover:text-foreground transition-colors">
+          Feedback
+        </span>
+
+        {/* Utility Icons */}
+        <Button variant="ghost" size="sm" className="h-7 w-7 p-0 text-muted-foreground hover:text-foreground relative">
           <Bell className="h-4 w-4" />
+          <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-destructive rounded-full" />
         </Button>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-          <Settings className="h-4 w-4" />
-        </Button>
-        <Button variant="ghost" size="sm" className="h-8 w-8 p-0 text-muted-foreground hover:text-foreground">
-          <HelpCircle className="h-4 w-4" />
-        </Button>
-        <Avatar className="h-8 w-8 ml-1">
+
+        {/* User Avatar */}
+        <Avatar className="h-7 w-7 ml-1 cursor-pointer">
           <AvatarImage src={user?.user_metadata?.avatar_url} />
-          <AvatarFallback className="bg-orange-500 text-white text-xs">
+          <AvatarFallback className="bg-orange-500 text-white text-xs font-medium">
             {user?.email?.charAt(0).toUpperCase() || "U"}
           </AvatarFallback>
         </Avatar>
