@@ -1,13 +1,11 @@
 import { useState, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
-import { AgentConsole } from "@/components/agent/AgentConsole";
-import { AgentPreview } from "@/components/agent/AgentPreview";
-import { AgentInput } from "@/components/agent/AgentInput";
-import { AgentTimeline } from "@/components/agent/AgentTimeline";
+import { AgentChatPanel } from "@/components/agent/AgentChatPanel";
+import { AgentWorkspace } from "@/components/agent/AgentWorkspace";
+import { AgentNavbar } from "@/components/agent/AgentNavbar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 interface AgentLog {
   id: string;
@@ -35,6 +33,7 @@ export default function AgentMode() {
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [isRunning, setIsRunning] = useState(false);
   const [previewData, setPreviewData] = useState<any>(null);
+  const [userPrompt, setUserPrompt] = useState<string>("");
 
   useEffect(() => {
     if (!user || !session) return;
@@ -89,6 +88,7 @@ export default function AgentMode() {
       setIsRunning(true);
       setLogs([]);
       setPreviewData(null);
+      setUserPrompt(brandData.prompt || brandData.competitorQuery || "");
       
       toast.info("Starting workflow...");
 
@@ -147,81 +147,33 @@ export default function AgentMode() {
     }
   };
 
-  const handleStopAgent = async () => {
-    if (!session) return;
-
-    try {
-      await supabase
-        .from("agent_sessions")
-        .update({ state: "cancelled" })
-        .eq("id", session.id);
-      
-      setIsRunning(false);
-      toast.info("Agent execution stopped");
-    } catch (error) {
-      console.error("Error stopping agent:", error);
-      toast.error("Failed to stop agent");
-    }
-  };
-
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
 
   return (
-    <div className="flex flex-col h-screen bg-background">
-      {/* Top Sticky Menu Bar */}
-      <div className="sticky top-0 z-50 h-12 flex items-center justify-between px-4 border-b border-border bg-card">
-        <div className="flex items-center gap-3">
-          <h1 className="text-sm font-semibold">Agent Mode</h1>
-          <span className="text-xs text-muted-foreground">/app/agent-mode</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {session && (
-            <span className="text-xs text-muted-foreground">
-              Session: {session.id.slice(0, 8)}...
-            </span>
-          )}
-        </div>
-      </div>
+    <div className="flex flex-col h-screen bg-white">
+      {/* Top Navigation Bar */}
+      <AgentNavbar 
+        workspaceTitle="Charis Agent Workspace" 
+        sessionId={session?.id}
+      />
 
-      {/* Main Content */}
+      {/* Main Content - Two Panel Layout */}
       <div className="flex flex-1 overflow-hidden">
-        {/* Left Panel - Console (Fixed Width: 420-480px) */}
-        <div className="w-[460px] flex flex-col border-r border-border">
-          <Tabs defaultValue="console" className="flex-1 flex flex-col">
-            <TabsList className="w-full justify-start border-b rounded-none bg-transparent px-4">
-              <TabsTrigger value="console" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                Console
-              </TabsTrigger>
-              <TabsTrigger value="timeline" className="rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:bg-transparent">
-                Timeline
-              </TabsTrigger>
-            </TabsList>
-            <TabsContent value="console" className="flex-1 mt-0 flex flex-col">
-              <AgentConsole 
-                logs={logs}
-                session={session}
-                isRunning={isRunning}
-                onStop={handleStopAgent}
-              />
-              <AgentInput 
-                onSubmit={handleStartAgent} 
-                isRunning={isRunning}
-              />
-            </TabsContent>
-            <TabsContent value="timeline" className="flex-1 mt-0">
-              <AgentTimeline 
-                logs={logs}
-                session={session}
-              />
-            </TabsContent>
-          </Tabs>
+        {/* Left Panel - Chat/Task Feed (Fixed Width: 380-420px) */}
+        <div className="w-[400px] flex-shrink-0 border-r border-border/50">
+          <AgentChatPanel 
+            logs={logs}
+            isRunning={isRunning}
+            userPrompt={userPrompt}
+            onSubmit={handleStartAgent}
+          />
         </div>
 
-        {/* Right Panel - Preview (Flexible Width) */}
-        <div className="flex-1 overflow-auto bg-muted/30">
-          <AgentPreview 
+        {/* Right Panel - Workspace (Flexible Width) */}
+        <div className="flex-1 overflow-hidden">
+          <AgentWorkspace 
             data={previewData}
             session={session}
           />
