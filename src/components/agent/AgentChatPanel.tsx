@@ -297,7 +297,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit, isCollap
   };
 
   return (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-white border-r border-border/30">
 
       {/* Hidden file inputs */}
       <input
