@@ -1,6 +1,8 @@
-import { Bell, Settings, HelpCircle, ChevronDown, Plus, Filter, Columns3 } from "lucide-react";
+import { useState, useRef, useEffect } from "react";
+import { Bell, Plus, Filter, Columns3, Pencil, Check, X } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { useAuth } from "@/hooks/useAuth";
 import charisLogo from "@/assets/charis-logo-icon.png";
 
@@ -8,10 +10,48 @@ interface AgentNavbarProps {
   workspaceTitle?: string;
   sessionId?: string;
   rowCount?: number;
+  onTitleChange?: (newTitle: string) => void;
 }
 
-export function AgentNavbar({ workspaceTitle = "Charis Agent Workspace", sessionId, rowCount = 0 }: AgentNavbarProps) {
+export function AgentNavbar({ workspaceTitle = "Charis Agent Workspace", sessionId, rowCount = 0, onTitleChange }: AgentNavbarProps) {
   const { user } = useAuth();
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedTitle, setEditedTitle] = useState(workspaceTitle);
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    setEditedTitle(workspaceTitle);
+  }, [workspaceTitle]);
+
+  useEffect(() => {
+    if (isEditing && inputRef.current) {
+      inputRef.current.focus();
+      inputRef.current.select();
+    }
+  }, [isEditing]);
+
+  const handleSave = () => {
+    const trimmedTitle = editedTitle.trim();
+    if (trimmedTitle && trimmedTitle !== workspaceTitle) {
+      onTitleChange?.(trimmedTitle);
+    } else {
+      setEditedTitle(workspaceTitle);
+    }
+    setIsEditing(false);
+  };
+
+  const handleCancel = () => {
+    setEditedTitle(workspaceTitle);
+    setIsEditing(false);
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter') {
+      handleSave();
+    } else if (e.key === 'Escape') {
+      handleCancel();
+    }
+  };
 
   return (
     <div className="h-12 flex items-center justify-between px-4 border-b border-border/40 bg-white">
@@ -20,9 +60,45 @@ export function AgentNavbar({ workspaceTitle = "Charis Agent Workspace", session
         {/* Charis Logo */}
         <img src={charisLogo} alt="Charis" className="w-7 h-7 rounded-lg" />
         
-        {/* Workspace Title */}
+        {/* Workspace Title - Editable */}
         <div className="flex items-center gap-2">
-          <h1 className="text-sm font-medium text-foreground">{workspaceTitle}</h1>
+          {isEditing ? (
+            <div className="flex items-center gap-1">
+              <Input
+                ref={inputRef}
+                value={editedTitle}
+                onChange={(e) => setEditedTitle(e.target.value)}
+                onKeyDown={handleKeyDown}
+                onBlur={handleSave}
+                className="h-7 text-sm font-medium w-48 px-2"
+                placeholder="Workspace name"
+              />
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleSave}
+                className="h-6 w-6 p-0 text-green-600 hover:text-green-700 hover:bg-green-50"
+              >
+                <Check className="h-3.5 w-3.5" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCancel}
+                className="h-6 w-6 p-0 text-muted-foreground hover:text-destructive hover:bg-destructive/10"
+              >
+                <X className="h-3.5 w-3.5" />
+              </Button>
+            </div>
+          ) : (
+            <button
+              onClick={() => setIsEditing(true)}
+              className="flex items-center gap-1.5 group hover:bg-muted/50 px-2 py-1 -mx-2 rounded-md transition-colors"
+            >
+              <h1 className="text-sm font-medium text-foreground">{workspaceTitle}</h1>
+              <Pencil className="h-3 w-3 text-muted-foreground opacity-0 group-hover:opacity-100 transition-opacity" />
+            </button>
+          )}
           <span className="text-xs text-muted-foreground px-1.5 py-0.5 bg-muted/40 rounded">
             {rowCount} rows
           </span>
