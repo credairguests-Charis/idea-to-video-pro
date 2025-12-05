@@ -117,6 +117,95 @@ export default function AgentMode() {
     }, 500);
   }, [session?.id]);
 
+  // Duplicate workspace
+  const handleDuplicate = useCallback(async () => {
+    if (!user || !session) return;
+    
+    try {
+      const { data: newSession, error } = await supabase
+        .from("agent_sessions")
+        .insert({
+          user_id: user.id,
+          state: "idle",
+          title: `${workspaceTitle} (Copy)`,
+          metadata: session.metadata,
+        })
+        .select()
+        .single();
+
+      if (error) throw error;
+
+      if (newSession) {
+        setSession({
+          id: newSession.id,
+          state: newSession.state,
+          progress: 0,
+          title: newSession.title || "Untitled Workspace",
+        });
+        setWorkspaceTitle(newSession.title || "Untitled Workspace");
+        setLogs([]);
+        setPreviewData(null);
+        toast.success("Workspace duplicated");
+      }
+    } catch (error) {
+      console.error("Failed to duplicate workspace:", error);
+      toast.error("Failed to duplicate workspace");
+    }
+  }, [user, session, workspaceTitle]);
+
+  // Share workspace (placeholder - copies link)
+  const handleShare = useCallback(() => {
+    if (!session?.id) return;
+    
+    const shareUrl = `${window.location.origin}/app/agent-mode?session=${session.id}`;
+    navigator.clipboard.writeText(shareUrl);
+    toast.success("Share link copied to clipboard");
+  }, [session?.id]);
+
+  // Delete workspace
+  const handleDelete = useCallback(async () => {
+    if (!user || !session) return;
+    
+    const confirmed = window.confirm("Are you sure you want to delete this workspace? This action cannot be undone.");
+    if (!confirmed) return;
+
+    try {
+      const { error } = await supabase
+        .from("agent_sessions")
+        .delete()
+        .eq("id", session.id);
+
+      if (error) throw error;
+
+      // Create a new session after deletion
+      const { data: newSession, error: createError } = await supabase
+        .from("agent_sessions")
+        .insert({
+          user_id: user.id,
+          state: "idle",
+          title: "Untitled Workspace",
+        })
+        .select()
+        .single();
+
+      if (newSession && !createError) {
+        setSession({
+          id: newSession.id,
+          state: newSession.state,
+          progress: 0,
+          title: newSession.title || "Untitled Workspace",
+        });
+        setWorkspaceTitle(newSession.title || "Untitled Workspace");
+        setLogs([]);
+        setPreviewData(null);
+        toast.success("Workspace deleted");
+      }
+    } catch (error) {
+      console.error("Failed to delete workspace:", error);
+      toast.error("Failed to delete workspace");
+    }
+  }, [user, session]);
+
   // Cleanup timeout on unmount
   useEffect(() => {
     return () => {
@@ -260,6 +349,9 @@ export default function AgentMode() {
         sessionId={session?.id}
         rowCount={logs.length}
         onTitleChange={handleTitleChange}
+        onDuplicate={handleDuplicate}
+        onShare={handleShare}
+        onDelete={handleDelete}
       />
 
       {/* Main Content - Two Panel Layout with Resizable */}
