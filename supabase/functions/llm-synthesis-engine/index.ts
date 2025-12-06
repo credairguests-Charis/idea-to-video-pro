@@ -41,7 +41,7 @@ serve(async (req) => {
         session_id: sessionId,
         step_name: "LLM Synthesis",
         tool_name: "llm-synthesis-engine",
-        status: "running",
+        status: "started",
         input_data: {
           tool_icon: "🧠",
           progress_percent: 0,

@@ -45,7 +45,7 @@ serve(async (req) => {
         session_id: sessionId,
         step_name: "Azure Video Indexer Processing",
         tool_name: "azure-video-analyzer",
-        status: "running",
+        status: "started",
         input_data: { videoUrl, videoName },
       });
     }

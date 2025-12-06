@@ -158,7 +158,7 @@ serve(async (req) => {
     // Log workflow start immediately for real-time feedback
     await logExecution(
       "Workflow Starting",
-      "running",
+      "started",
       "workflow",
       { query: input.competitorQuery, brand: input.brandName },
       null,
@@ -175,7 +175,7 @@ serve(async (req) => {
 
     await logExecution(
       "Deep Research",
-      "running",
+      "started",
       "firecrawl",
       { query: input.competitorQuery },
       null,
@@ -231,7 +231,7 @@ serve(async (req) => {
       console.error(`[AGENT-WORKFLOW] Step 1 error:`, step1Error);
       await logExecution(
         "Deep Research",
-        "warning",
+        "failed",
         "firecrawl",
         { query: input.competitorQuery },
         null,
@@ -253,7 +253,7 @@ serve(async (req) => {
 
     await logExecution(
       "Meta Ads Extraction",
-      "running",
+      "started",
       "meta-ads",
       { competitorCount: competitors.length },
       null,
@@ -319,7 +319,7 @@ serve(async (req) => {
       console.error(`[AGENT-WORKFLOW] Step 2 error:`, step2Error);
       await logExecution(
         "Meta Ads Extraction",
-        "warning",
+        "failed",
         "meta-ads",
         null,
         null,
@@ -338,7 +338,7 @@ serve(async (req) => {
     if (videoAds.length > 0) {
       await logExecution(
         "Video Download",
-        "running",
+        "started",
         "download",
         { videoCount: videoAds.length },
         null,
@@ -384,7 +384,7 @@ serve(async (req) => {
         console.error(`[AGENT-WORKFLOW] Step 3 error:`, step3Error);
         await logExecution(
           "Video Download",
-          "warning",
+          "failed",
           "download",
           null,
           null,
@@ -416,7 +416,7 @@ serve(async (req) => {
     if (downloadedVideos.length > 0) {
       await logExecution(
         "Video Analysis",
-        "running",
+        "started",
         "azure",
         { videoCount: downloadedVideos.length },
         null,
@@ -438,7 +438,7 @@ serve(async (req) => {
           
           await logExecution(
             "Video Analysis",
-            "running",
+            "started",
             "azure",
             null,
             null,
@@ -484,7 +484,7 @@ serve(async (req) => {
         console.error(`[AGENT-WORKFLOW] Step 4 error:`, step4Error);
         await logExecution(
           "Video Analysis",
-          "warning",
+          "failed",
           "azure",
           null,
           null,
@@ -515,7 +515,7 @@ serve(async (req) => {
 
     await logExecution(
       "AI Synthesis",
-      "running",
+      "started",
       "llm",
       { dataPoints: competitors.length + allAds.length + videoAnalyses.length },
       null,
@@ -572,7 +572,7 @@ serve(async (req) => {
       console.error(`[AGENT-WORKFLOW] Step 5 error:`, step5Error);
       await logExecution(
         "AI Synthesis",
-        "warning",
+        "failed",
         "llm",
         null,
         null,
