@@ -321,7 +321,15 @@ export default function AgentMode() {
           progress: 100,
           metadata: data.metadata,
         });
-        setPreviewData(data.synthesis);
+        
+        // Defensive check: only set preview data if it's a valid object
+        const synthesisData = data.synthesis;
+        if (synthesisData && typeof synthesisData === 'object') {
+          setPreviewData(synthesisData);
+        } else {
+          console.warn("[AgentMode] Invalid synthesis data received:", synthesisData);
+          setPreviewData(null);
+        }
         
         // Show detailed success message
         const { metadata } = data;
