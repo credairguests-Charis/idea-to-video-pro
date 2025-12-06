@@ -37,6 +37,131 @@ async function fetchWithTimeout(url: string, options: RequestInit, timeoutMs: nu
   }
 }
 
+// Make Klavis MCP request using Streamable HTTP (Strata pattern)
+async function makeKlavisMCPRequest(
+  endpoint: string,
+  method: string,
+  params: Record<string, any>,
+  timeoutMs: number = 45000
+): Promise<any> {
+  const requestBody = {
+    jsonrpc: "2.0",
+    id: crypto.randomUUID(),
+    method,
+    params,
+  };
+
+  console.log(`[MCP-FIRECRAWL] Making Klavis request: ${method}`, JSON.stringify(params));
+
+  const response = await fetchWithTimeout(
+    endpoint,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(requestBody),
+    },
+    timeoutMs
+  );
+
+  if (!response.ok) {
+    const errorText = await response.text();
+    throw new Error(`Klavis MCP request failed: ${response.status} - ${errorText}`);
+  }
+
+  const result = await response.json();
+  
+  if (result.error) {
+    throw new Error(`MCP error: ${result.error.message || JSON.stringify(result.error)}`);
+  }
+
+  return result.result;
+}
+
+// Discover available Firecrawl actions using Strata pattern
+async function discoverFirecrawlActions(endpoint: string): Promise<any> {
+  try {
+    // Step 1: Discover servers and categories
+    const discovery = await makeKlavisMCPRequest(endpoint, "tools/call", {
+      name: "discover_server_categories_or_actions",
+      arguments: {
+        user_query: "deep research web scraping competitor analysis meta ads",
+        server_names: ["firecrawl"],
+        detail_level: "full_details",
+      },
+    });
+
+    console.log(`[MCP-FIRECRAWL] Discovery result:`, JSON.stringify(discovery).slice(0, 500));
+    return discovery;
+  } catch (error) {
+    console.error(`[MCP-FIRECRAWL] Discovery failed:`, error);
+    return null;
+  }
+}
+
+// Execute Firecrawl deep research using Strata pattern
+async function executeStrataDeepResearch(
+  endpoint: string,
+  query: string,
+  maxResults: number
+): Promise<any> {
+  // Try Strata execute_action pattern
+  try {
+    const result = await makeKlavisMCPRequest(endpoint, "tools/call", {
+      name: "execute_action",
+      arguments: {
+        server_name: "firecrawl",
+        category_name: "scraping",
+        action_name: "deep_research",
+        body_schema: JSON.stringify({
+          query: `${query} meta ads facebook advertising competitors`,
+          maxDepth: 2,
+          maxUrls: maxResults * 3,
+          timeLimit: 60,
+        }),
+      },
+    });
+
+    console.log(`[MCP-FIRECRAWL] Strata execute_action result received`);
+    return result;
+  } catch (strataError) {
+    console.warn(`[MCP-FIRECRAWL] Strata execute_action failed, trying direct tool call:`, strataError);
+    
+    // Fallback to direct tool call (for servers that still support it)
+    const result = await makeKlavisMCPRequest(endpoint, "tools/call", {
+      name: "firecrawl_deep_research",
+      arguments: {
+        query: `${query} meta ads facebook advertising competitors`,
+        maxDepth: 2,
+        maxUrls: maxResults * 3,
+        timeLimit: 60,
+      },
+    });
+
+    return result;
+  }
+}
+
+// Try calling with simple deep_research tool name (some MCPs use this)
+async function executeDirectDeepResearch(
+  endpoint: string,
+  query: string,
+  maxResults: number
+): Promise<any> {
+  const result = await makeKlavisMCPRequest(endpoint, "tools/call", {
+    name: "deep_research",
+    arguments: {
+      query: `${query} meta ads facebook advertising competitors`,
+      maxDepth: 2,
+      maxUrls: maxResults * 3,
+      timeLimit: 60,
+    },
+  });
+
+  return result;
+}
+
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -50,9 +175,9 @@ serve(async (req) => {
 
     console.log(`[MCP-FIRECRAWL] Starting deep research for query: ${query}`);
 
-    // Get MCP credentials
+    // Get MCP credentials - Klavis Streamable HTTP URL (contains auth in URL)
     const mcpEndpoint = Deno.env.get("KLAVIS_MCP_ENDPOINT");
-    const mcpToken = Deno.env.get("KLAVIS_MCP_BEARER_TOKEN");
+    const mcpToken = Deno.env.get("KLAVIS_MCP_BEARER_TOKEN"); // Optional, URL may contain auth
 
     // Initialize Supabase for logging
     const supabaseUrl = Deno.env.get("SUPABASE_URL");
@@ -88,11 +213,10 @@ serve(async (req) => {
     };
 
     // Check if MCP is configured
-    if (!mcpEndpoint || !mcpToken) {
-      console.warn(`[MCP-FIRECRAWL] MCP credentials not configured, returning fallback`);
-      await logProgress("warning", "MCP not configured, using fallback results");
+    if (!mcpEndpoint) {
+      console.warn(`[MCP-FIRECRAWL] MCP endpoint not configured, returning fallback`);
+      await logProgress("failed", "MCP not configured, using fallback results");
       
-      // Return fallback competitors based on query
       const fallbackCompetitors = generateFallbackCompetitors(query, max_results);
       
       return new Response(
@@ -106,53 +230,55 @@ serve(async (req) => {
       );
     }
 
-    await logProgress("started", "Connecting to MCP Firecrawl service...");
+    await logProgress("started", "Connecting to Klavis MCP Firecrawl service...");
 
-    // Build MCP request
-    const mcpRequestBody = {
-      jsonrpc: "2.0",
-      id: crypto.randomUUID(),
-      method: "tools/call",
-      params: {
-        name: "deep_research",
-        arguments: {
-          query: `${query} meta ads facebook advertising competitors`,
-          maxDepth: 2,
-          maxUrls: max_results * 3,
-          timeLimit: 60,
-        },
-      },
-    };
+    let mcpResult = null;
+    let attemptedMethods: string[] = [];
 
-    console.log(`[MCP-FIRECRAWL] Calling MCP endpoint...`);
-
+    // Try multiple approaches in order of preference
     try {
-      const mcpResponse = await fetchWithTimeout(
-        mcpEndpoint,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${mcpToken}`,
-          },
-          body: JSON.stringify(mcpRequestBody),
-        },
-        45000 // 45 second timeout
-      );
-
-      if (!mcpResponse.ok) {
-        const errorText = await mcpResponse.text();
-        console.error(`[MCP-FIRECRAWL] MCP request failed: ${mcpResponse.status} - ${errorText}`);
-        throw new Error(`MCP request failed: ${mcpResponse.status}`);
+      // Approach 1: Strata pattern with execute_action
+      attemptedMethods.push("strata_execute_action");
+      console.log(`[MCP-FIRECRAWL] Attempting Strata execute_action pattern...`);
+      mcpResult = await executeStrataDeepResearch(mcpEndpoint, query, max_results);
+    } catch (error1) {
+      console.warn(`[MCP-FIRECRAWL] Strata pattern failed:`, error1);
+      
+      try {
+        // Approach 2: Direct deep_research tool call
+        attemptedMethods.push("direct_deep_research");
+        console.log(`[MCP-FIRECRAWL] Attempting direct deep_research tool call...`);
+        mcpResult = await executeDirectDeepResearch(mcpEndpoint, query, max_results);
+      } catch (error2) {
+        console.warn(`[MCP-FIRECRAWL] Direct deep_research failed:`, error2);
+        
+        try {
+          // Approach 3: Discovery to find available tools
+          attemptedMethods.push("discovery");
+          console.log(`[MCP-FIRECRAWL] Attempting tool discovery...`);
+          const discovery = await discoverFirecrawlActions(mcpEndpoint);
+          
+          if (discovery) {
+            // Extract any competitor/research data from discovery response
+            mcpResult = discovery;
+          }
+        } catch (error3) {
+          console.error(`[MCP-FIRECRAWL] All approaches failed:`, error3);
+          throw new Error(`All MCP approaches failed: ${attemptedMethods.join(", ")}`);
+        }
       }
+    }
 
-      const mcpResult = await mcpResponse.json();
+    if (mcpResult) {
       console.log(`[MCP-FIRECRAWL] MCP response received`);
-
+      
       // Parse the MCP result to extract competitors
       const competitors = parseCompetitorsFromMCP(mcpResult, query, max_results);
       
-      await logProgress("completed", `Found ${competitors.length} competitors`, { competitors });
+      await logProgress("completed", `Found ${competitors.length} competitors via Klavis MCP`, { 
+        competitors,
+        methods_tried: attemptedMethods 
+      });
 
       const duration = Date.now() - startTime;
       console.log(`[MCP-FIRECRAWL] Completed in ${duration}ms, found ${competitors.length} competitors`);
@@ -161,39 +287,25 @@ serve(async (req) => {
         JSON.stringify({
           success: true,
           competitors,
-          source: "mcp",
+          source: "klavis_mcp",
+          methods_tried: attemptedMethods,
           durationMs: duration,
         }),
         { headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
-    } catch (mcpError) {
-      console.error(`[MCP-FIRECRAWL] MCP call failed:`, mcpError);
-      
-      // Check if it's a timeout
-      if (mcpError instanceof Error && mcpError.name === "AbortError") {
-        await logProgress("warning", "MCP request timed out, using fallback");
-      } else {
-        await logProgress("warning", `MCP call failed: ${mcpError instanceof Error ? mcpError.message : "Unknown error"}`);
-      }
-      
-      // Return fallback data
-      const fallbackCompetitors = generateFallbackCompetitors(query, max_results);
-      
-      return new Response(
-        JSON.stringify({
-          success: true,
-          competitors: fallbackCompetitors,
-          source: "fallback",
-          message: "MCP call failed, using fallback data",
-        }),
-        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
     }
+
+    // If we got here, no result from MCP - use fallback
+    throw new Error("No result from MCP");
+
   } catch (error) {
     console.error(`[MCP-FIRECRAWL] Error:`, error);
     
-    // Even on error, return fallback data to keep workflow running
-    const fallbackCompetitors = generateFallbackCompetitors("general", 3);
+    const startTime = Date.now();
+    const fallbackCompetitors = generateFallbackCompetitors(
+      (error as any)?.query || "general", 
+      3
+    );
     
     return new Response(
       JSON.stringify({
@@ -215,18 +327,31 @@ function parseCompetitorsFromMCP(mcpResult: any, query: string, maxResults: numb
     // Handle different possible MCP response structures
     let content = mcpResult;
     
-    if (mcpResult.result?.content) {
+    // Strata response structure
+    if (mcpResult?.content) {
+      content = mcpResult.content;
+    } else if (mcpResult?.result?.content) {
       content = mcpResult.result.content;
-    } else if (mcpResult.result) {
+    } else if (mcpResult?.result) {
       content = mcpResult.result;
+    } else if (mcpResult?.data) {
+      content = mcpResult.data;
     }
 
-    // If content is an array
+    console.log(`[MCP-FIRECRAWL] Parsing content type: ${typeof content}`);
+
+    // If content is an array of text items (common MCP format)
     if (Array.isArray(content)) {
       for (const item of content) {
-        const competitor = extractCompetitorFromItem(item);
-        if (competitor) {
-          competitors.push(competitor);
+        // Handle text content items
+        if (item?.type === "text" && item?.text) {
+          const textCompetitors = extractCompetitorsFromText(item.text, maxResults - competitors.length);
+          competitors.push(...textCompetitors);
+        } else {
+          const competitor = extractCompetitorFromItem(item);
+          if (competitor) {
+            competitors.push(competitor);
+          }
         }
         if (competitors.length >= maxResults) break;
       }
@@ -234,20 +359,8 @@ function parseCompetitorsFromMCP(mcpResult: any, query: string, maxResults: numb
 
     // If content is a string, try to parse it
     if (typeof content === "string") {
-      // Extract URLs and brand names from text
-      const urlMatches = content.match(/https?:\/\/[^\s<>"{}|\\^`\[\]]+/g) || [];
-      
-      for (const url of urlMatches.slice(0, maxResults)) {
-        const brandName = extractBrandFromUrl(url);
-        if (brandName !== "Unknown") {
-          competitors.push({
-            name: brandName,
-            brand_name: brandName,
-            website: url,
-            meta_ads_library_url: `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&q=${encodeURIComponent(brandName)}`,
-          });
-        }
-      }
+      const textCompetitors = extractCompetitorsFromText(content, maxResults);
+      competitors.push(...textCompetitors);
     }
 
     // If content has resources or data property
@@ -274,6 +387,13 @@ function parseCompetitorsFromMCP(mcpResult: any, query: string, maxResults: numb
         if (competitors.length >= maxResults) break;
       }
     }
+
+    // Check for actions array (Strata discovery response)
+    if (content?.actions && Array.isArray(content.actions)) {
+      console.log(`[MCP-FIRECRAWL] Found Strata actions in response`);
+      // This is a discovery response, not competitor data
+    }
+
   } catch (parseError) {
     console.error(`[MCP-FIRECRAWL] Error parsing MCP result:`, parseError);
   }
@@ -284,6 +404,29 @@ function parseCompetitorsFromMCP(mcpResult: any, query: string, maxResults: numb
   }
 
   return competitors.slice(0, maxResults);
+}
+
+// Extract competitors from text content
+function extractCompetitorsFromText(text: string, maxResults: number): CompetitorBrand[] {
+  const competitors: CompetitorBrand[] = [];
+  
+  // Extract URLs and brand names from text
+  const urlMatches = text.match(/https?:\/\/[^\s<>"{}|\\^`\[\]]+/g) || [];
+  
+  for (const url of urlMatches.slice(0, maxResults)) {
+    const brandName = extractBrandFromUrl(url);
+    if (brandName !== "Unknown") {
+      competitors.push({
+        name: brandName,
+        brand_name: brandName,
+        website: url,
+        meta_ads_library_url: `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&q=${encodeURIComponent(brandName)}`,
+        metaAdsUrl: `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&q=${encodeURIComponent(brandName)}`,
+      });
+    }
+  }
+
+  return competitors;
 }
 
 function extractCompetitorFromItem(item: any): CompetitorBrand | null {

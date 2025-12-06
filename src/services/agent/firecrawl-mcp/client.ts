@@ -2,7 +2,7 @@
  * Firecrawl Deep Research MCP Client
  * 
  * JSON-RPC 2.0 client for Klavis Firecrawl MCP server
- * Implements Model Context Protocol specification
+ * Implements Model Context Protocol specification with Strata pattern support
  */
 
 import {
@@ -14,10 +14,15 @@ import {
   FirecrawlDeepResearchQuery,
   FirecrawlDeepResearchResult,
   CompetitorBrand,
+  StrataDiscoveryRequest,
+  StrataDiscoveryResult,
+  StrataExecuteRequest,
+  StrataExecuteResult,
+  StrataDetailLevel,
 } from "./types";
 
 export class FirecrawlMCPClient {
-  private config: Required<MCPClientConfig>;
+  private config: Required<Omit<MCPClientConfig, 'bearerToken'>> & { bearerToken?: string };
   private requestId = 0;
 
   constructor(config: MCPClientConfig) {
@@ -57,12 +62,19 @@ export class FirecrawlMCPClient {
       const controller = new AbortController();
       const timeoutId = setTimeout(() => controller.abort(), this.config.timeout);
 
+      const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+      };
+
+      // Only add Authorization header if bearer token is provided
+      // Klavis Streamable HTTP URLs contain auth in the URL itself
+      if (this.config.bearerToken) {
+        headers.Authorization = `Bearer ${this.config.bearerToken}`;
+      }
+
       const response = await fetch(this.config.endpoint, {
         method: "POST",
-        headers: {
-          Authorization: `Bearer ${this.config.bearerToken}`,
-          "Content-Type": "application/json",
-        },
+        headers,
         body: JSON.stringify(request),
         signal: controller.signal,
       });
@@ -73,7 +85,7 @@ export class FirecrawlMCPClient {
         if (response.status === 401 || response.status === 403) {
           throw new FirecrawlMCPError(
             MCPErrorCode.AUTH_ERROR,
-            "Authentication failed. Check your bearer token.",
+            "Authentication failed. Check your Klavis MCP URL or bearer token.",
             { status: response.status }
           );
         }
@@ -151,22 +163,113 @@ export class FirecrawlMCPClient {
   }
 
   /**
+   * Discover available actions using Strata pattern
+   */
+  async discoverActions(
+    query: string,
+    serverNames?: string[],
+    detailLevel: StrataDetailLevel = "full_details"
+  ): Promise<StrataDiscoveryResult> {
+    console.log("[FirecrawlMCP] Discovering actions with Strata pattern...");
+
+    const result = await this.makeRequest<any>("tools/call", {
+      name: "discover_server_categories_or_actions",
+      arguments: {
+        user_query: query,
+        server_names: serverNames || ["firecrawl"],
+        detail_level: detailLevel,
+      },
+    });
+
+    return result;
+  }
+
+  /**
+   * Execute action using Strata pattern
+   */
+  async executeAction(
+    serverName: string,
+    categoryName: string,
+    actionName: string,
+    params: Record<string, any>
+  ): Promise<StrataExecuteResult> {
+    console.log(`[FirecrawlMCP] Executing action: ${serverName}/${categoryName}/${actionName}`);
+
+    const result = await this.makeRequest<any>("tools/call", {
+      name: "execute_action",
+      arguments: {
+        server_name: serverName,
+        category_name: categoryName,
+        action_name: actionName,
+        body_schema: JSON.stringify(params),
+      },
+    });
+
+    return result;
+  }
+
+  /**
    * Execute deep research query via Firecrawl MCP
+   * Tries multiple approaches: Strata pattern, then direct tool calls
    */
   async deepResearch(
     query: FirecrawlDeepResearchQuery
   ): Promise<FirecrawlDeepResearchResult> {
     console.log("[FirecrawlMCP] Starting deep research:", query);
 
-    const result = await this.makeRequest<any>("tools/call", {
-      name: "deep_research",
-      arguments: {
-        query: query.query,
-        max_results: query.max_results || 3,
-        include_video_urls: query.include_video_urls !== false,
-        platforms: query.platforms || ["meta", "facebook", "instagram"],
-      },
-    });
+    const methodsTried: string[] = [];
+    let result: any = null;
+
+    // Approach 1: Try Strata execute_action pattern
+    try {
+      methodsTried.push("strata_execute_action");
+      result = await this.executeAction(
+        "firecrawl",
+        "scraping",
+        "deep_research",
+        {
+          query: query.query,
+          maxDepth: query.maxDepth || 2,
+          maxUrls: query.max_results ? query.max_results * 3 : 15,
+          timeLimit: query.timeLimit || 60,
+        }
+      );
+    } catch (strataError) {
+      console.warn("[FirecrawlMCP] Strata pattern failed, trying direct call:", strataError);
+
+      // Approach 2: Try direct tool call with firecrawl_deep_research
+      try {
+        methodsTried.push("firecrawl_deep_research");
+        result = await this.makeRequest<any>("tools/call", {
+          name: "firecrawl_deep_research",
+          arguments: {
+            query: query.query,
+            max_results: query.max_results || 3,
+            include_video_urls: query.include_video_urls !== false,
+            platforms: query.platforms || ["meta", "facebook", "instagram"],
+          },
+        });
+      } catch (directError) {
+        console.warn("[FirecrawlMCP] Direct firecrawl_deep_research failed, trying deep_research:", directError);
+
+        // Approach 3: Try simple deep_research tool name
+        try {
+          methodsTried.push("deep_research");
+          result = await this.makeRequest<any>("tools/call", {
+            name: "deep_research",
+            arguments: {
+              query: query.query,
+              max_results: query.max_results || 3,
+              include_video_urls: query.include_video_urls !== false,
+              platforms: query.platforms || ["meta", "facebook", "instagram"],
+            },
+          });
+        } catch (simpleError) {
+          console.error("[FirecrawlMCP] All approaches failed");
+          throw simpleError;
+        }
+      }
+    }
 
     // Parse MCP response structure
     const competitors: CompetitorBrand[] = this.parseFirecrawlResult(result);
@@ -177,6 +280,8 @@ export class FirecrawlMCPClient {
       total_found: competitors.length,
       query: query.query,
       timestamp: new Date().toISOString(),
+      source: "klavis_mcp",
+      methods_tried: methodsTried,
     };
   }
 
@@ -184,25 +289,33 @@ export class FirecrawlMCPClient {
    * Parse Firecrawl MCP result into structured format
    */
   private parseFirecrawlResult(result: any): CompetitorBrand[] {
-    console.log("[FirecrawlMCP] Parsing result structure:", result);
+    console.log("[FirecrawlMCP] Parsing result structure:", typeof result);
 
     // Handle different response structures
-    if (result.competitors && Array.isArray(result.competitors)) {
+    if (result?.competitors && Array.isArray(result.competitors)) {
       return result.competitors.map((comp: any) => this.normalizeCompetitor(comp));
     }
 
-    if (result.content && Array.isArray(result.content)) {
-      // MCP resource format
+    if (result?.content && Array.isArray(result.content)) {
+      // MCP text content format
       const competitors: CompetitorBrand[] = [];
       
       for (const item of result.content) {
-        if (item.type === "resource" && item.resource) {
+        if (item?.type === "text" && item?.text) {
+          // Extract URLs and brands from text
+          const textCompetitors = this.extractCompetitorsFromText(item.text);
+          competitors.push(...textCompetitors);
+        } else if (item?.type === "resource" && item?.resource) {
           const comp = this.parseResourceToCompetitor(item.resource);
           if (comp) competitors.push(comp);
         }
       }
 
       return competitors;
+    }
+
+    if (result?.data && Array.isArray(result.data)) {
+      return result.data.map((comp: any) => this.normalizeCompetitor(comp));
     }
 
     // Fallback: try to extract from result directly
@@ -212,6 +325,42 @@ export class FirecrawlMCPClient {
 
     console.warn("[FirecrawlMCP] Unknown result structure, returning empty array");
     return [];
+  }
+
+  /**
+   * Extract competitors from text content
+   */
+  private extractCompetitorsFromText(text: string): CompetitorBrand[] {
+    const competitors: CompetitorBrand[] = [];
+    const urlMatches = text.match(/https?:\/\/[^\s<>"{}|\\^`\[\]]+/g) || [];
+
+    for (const url of urlMatches.slice(0, 5)) {
+      const brandName = this.extractBrandFromUrl(url);
+      if (brandName !== "Unknown") {
+        competitors.push({
+          brand_name: brandName,
+          meta_ads_library_url: `https://www.facebook.com/ads/library/?active_status=active&ad_type=all&country=ALL&q=${encodeURIComponent(brandName)}`,
+          video_ads: [],
+          description: `Found from: ${url}`,
+        });
+      }
+    }
+
+    return competitors;
+  }
+
+  /**
+   * Extract brand name from URL
+   */
+  private extractBrandFromUrl(url: string): string {
+    try {
+      const hostname = new URL(url).hostname;
+      const parts = hostname.replace("www.", "").split(".");
+      const name = parts[0];
+      return name.charAt(0).toUpperCase() + name.slice(1);
+    } catch {
+      return "Unknown";
+    }
   }
 
   /**
