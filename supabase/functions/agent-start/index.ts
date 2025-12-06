@@ -204,7 +204,7 @@ async function executeStep(
     const { error: startLogError } = await supabase.from("agent_execution_logs").insert({
       session_id: sessionId,
       step_name: stepName,
-      status: "in_progress",
+      status: "started",
     });
 
     if (startLogError) {

@@ -2,6 +2,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 // Removed TooltipProvider to avoid Radix runtime error
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import Landing from "./pages/Landing";
 import Waitlist from "./pages/Waitlist";
@@ -39,11 +40,12 @@ const App = () => {
   const isWaitlistSubdomain = window.location.hostname.startsWith('waitlist.');
 
   return (
-    <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Toaster />
-        <Sonner />
-        <BrowserRouter>
+    <ErrorBoundary>
+      <QueryClientProvider client={queryClient}>
+        <AuthProvider>
+          <Toaster />
+          <Sonner />
+          <BrowserRouter>
           <Routes>
             {/* If on waitlist subdomain, show waitlist at root */}
             {isWaitlistSubdomain ? (
@@ -150,6 +152,7 @@ const App = () => {
         </BrowserRouter>
       </AuthProvider>
     </QueryClientProvider>
+  </ErrorBoundary>
   );
 };
 

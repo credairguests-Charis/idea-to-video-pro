@@ -97,7 +97,7 @@ Deno.serve(async (req) => {
     await supabaseClient.from("agent_execution_logs").insert({
       session_id,
       step_name: `AI Processing (${tool || 'general'})`,
-      status: "in_progress",
+      status: "started",
       tool_name: tool || "general",
       input_data: { prompt },
     });
