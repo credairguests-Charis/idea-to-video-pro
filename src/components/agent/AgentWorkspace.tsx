@@ -10,12 +10,20 @@ import {
   Target, 
   Lightbulb, 
   CheckCircle2, 
-  AlertCircle 
+  AlertCircle,
+  Video,
+  Eye
 } from "lucide-react";
+import { VideoGallery } from "./VideoGallery";
 
 interface AgentWorkspaceProps {
   data: any;
   session: any;
+  intermediateData?: {
+    extractedAds?: any[];
+    downloadedVideos?: any[];
+    videoAnalyses?: any[];
+  };
 }
 
 // Safe accessor for nested properties
@@ -23,7 +31,37 @@ const safeArray = (arr: any): any[] => Array.isArray(arr) ? arr : [];
 const safeString = (val: any, fallback = ""): string => typeof val === "string" ? val : fallback;
 const safeNumber = (val: any, fallback = 0): number => typeof val === "number" ? val : fallback;
 
-export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
+export function AgentWorkspace({ data, session, intermediateData }: AgentWorkspaceProps) {
+  // Extract intermediate data with safe defaults
+  const extractedAds = safeArray(intermediateData?.extractedAds);
+  const downloadedVideos = safeArray(intermediateData?.downloadedVideos);
+  const videoAnalyses = safeArray(intermediateData?.videoAnalyses);
+  
+  // Transform downloaded videos for VideoGallery
+  const videoItems = downloadedVideos.map((v: any) => ({
+    url: v.url || v.video_url || v.videoUrl || "",
+    thumbnailUrl: v.thumbnail_url || v.thumbnailUrl || v.thumbnail || "",
+    title: v.title || v.ad_title || "Competitor Ad",
+    advertiser: v.advertiser || v.advertiser_name || "",
+    duration: v.duration || "",
+    sourceUrl: v.source_url || v.sourceUrl || v.ad_url || "",
+  })).filter((v: any) => v.url);
+
+  // Also check for videos in final synthesis data
+  const synthesisVideos = safeArray(data?.adAnalyses)
+    .filter((ad: any) => ad.videoUrl || ad.video_url)
+    .map((ad: any) => ({
+      url: ad.videoUrl || ad.video_url || "",
+      thumbnailUrl: ad.thumbnailUrl || ad.thumbnail_url || "",
+      title: ad.title || "Analyzed Ad",
+      advertiser: ad.advertiser || "",
+      duration: ad.duration || "",
+      sourceUrl: ad.sourceUrl || ad.source_url || "",
+    }));
+
+  const allVideos = [...videoItems, ...synthesisVideos].filter((v, i, arr) => 
+    arr.findIndex(x => x.url === v.url) === i
+  );
   // Empty state when no data - also handles null/undefined gracefully
   if (!data) {
     return (
@@ -101,13 +139,95 @@ export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
           </p>
         </div>
 
-        <Tabs defaultValue="scripts" className="w-full">
-          <TabsList className="grid w-full grid-cols-4 bg-muted/20 rounded-lg p-1">
+        <Tabs defaultValue={allVideos.length > 0 ? "preview" : "scripts"} className="w-full">
+          <TabsList className="grid w-full grid-cols-5 bg-muted/20 rounded-lg p-1">
+            <TabsTrigger value="preview" className="text-sm rounded-md flex items-center gap-1.5">
+              <Eye className="h-3.5 w-3.5" />
+              Preview
+            </TabsTrigger>
             <TabsTrigger value="scripts" className="text-sm rounded-md">Scripts</TabsTrigger>
             <TabsTrigger value="analysis" className="text-sm rounded-md">Analysis</TabsTrigger>
             <TabsTrigger value="insights" className="text-sm rounded-md">Insights</TabsTrigger>
             <TabsTrigger value="trends" className="text-sm rounded-md">Trends</TabsTrigger>
           </TabsList>
+
+          {/* Live Preview Tab - Videos */}
+          <TabsContent value="preview" className="space-y-4 mt-4">
+            <Card className="p-5 border-border/40">
+              <div className="flex items-center gap-2 mb-4">
+                <Video className="h-5 w-5 text-purple-500" />
+                <h3 className="text-base font-semibold text-foreground">Downloaded Competitor Ads</h3>
+                {allVideos.length > 0 && (
+                  <Badge variant="secondary" className="ml-auto">
+                    {allVideos.length} video{allVideos.length !== 1 ? "s" : ""}
+                  </Badge>
+                )}
+              </div>
+              <VideoGallery 
+                videos={allVideos}
+                title=""
+                emptyMessage="Videos will appear here as they are downloaded during analysis"
+              />
+            </Card>
+
+            {/* Extracted Ads Preview */}
+            {extractedAds.length > 0 && (
+              <Card className="p-5 border-border/40">
+                <h3 className="text-base font-semibold text-foreground mb-4">
+                  Extracted Ads ({extractedAds.length})
+                </h3>
+                <div className="space-y-3 max-h-64 overflow-auto">
+                  {extractedAds.slice(0, 10).map((ad: any, i: number) => (
+                    <div key={i} className="flex items-start gap-3 p-2 bg-muted/20 rounded-lg">
+                      {ad.thumbnail_url && (
+                        <img 
+                          src={ad.thumbnail_url} 
+                          alt="" 
+                          className="w-16 h-10 object-cover rounded"
+                        />
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <div className="text-sm font-medium truncate">
+                          {ad.advertiser || ad.title || "Ad"}
+                        </div>
+                        <div className="text-xs text-muted-foreground truncate">
+                          {ad.ad_copy || ad.description || ""}
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+
+            {/* Video Analyses Preview */}
+            {videoAnalyses.length > 0 && (
+              <Card className="p-5 border-border/40">
+                <h3 className="text-base font-semibold text-foreground mb-4">
+                  Video Analyses ({videoAnalyses.length})
+                </h3>
+                <div className="space-y-3">
+                  {videoAnalyses.map((analysis: any, i: number) => (
+                    <div key={i} className="p-3 bg-muted/20 rounded-lg">
+                      <div className="text-sm font-medium mb-2">
+                        {analysis.title || `Video ${i + 1}`}
+                      </div>
+                      {analysis.transcript && (
+                        <div className="text-xs text-muted-foreground line-clamp-3">
+                          {analysis.transcript.slice(0, 200)}...
+                        </div>
+                      )}
+                      {analysis.scenes && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {analysis.scenes.length} scenes detected
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </Card>
+            )}
+          </TabsContent>
 
           {/* UGC Scripts */}
           <TabsContent value="scripts" className="space-y-4 mt-4">
