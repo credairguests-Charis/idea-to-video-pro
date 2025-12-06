@@ -90,9 +90,12 @@ export function AgentChatPanel({
   const [realtimeLogs, setRealtimeLogs] = useState<AgentLog[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
 
-  // Combine passed logs with realtime logs
-  const allLogs = [...logs, ...realtimeLogs].reduce((acc, log) => {
-    if (!acc.find(l => l.id === log.id)) {
+  // Combine passed logs with realtime logs - with null safety
+  const safeLogs = Array.isArray(logs) ? logs : [];
+  const safeRealtimeLogs = Array.isArray(realtimeLogs) ? realtimeLogs : [];
+  
+  const allLogs = [...safeLogs, ...safeRealtimeLogs].reduce((acc, log) => {
+    if (log && log.id && !acc.find(l => l.id === log.id)) {
       acc.push(log);
     }
     return acc;
