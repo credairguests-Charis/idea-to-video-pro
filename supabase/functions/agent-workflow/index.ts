@@ -129,18 +129,30 @@ serve(async (req) => {
       }
     };
 
-    // Create session first
+    // Create session first with valid state value
     const { error: sessionError } = await supabase.from("agent_sessions").insert({
       id: sessionId,
       user_id: input.userId,
-      state: "running",
+      state: "idle", // Use valid state - will be updated by updateSession
       progress: 0,
       current_step: "initializing",
     });
 
     if (sessionError) {
       console.error(`[AGENT-WORKFLOW] Failed to create session:`, sessionError);
-      // Try to continue anyway - session might already exist
+      // Session might already exist, try to update it instead
+      const { error: updateError } = await supabase.from("agent_sessions")
+        .update({ 
+          state: "idle", 
+          progress: 0, 
+          current_step: "initializing",
+          updated_at: new Date().toISOString()
+        })
+        .eq("id", sessionId);
+      
+      if (updateError) {
+        console.warn(`[AGENT-WORKFLOW] Also failed to update session:`, updateError);
+      }
     }
 
     // Log workflow start immediately for real-time feedback
@@ -176,7 +188,7 @@ serve(async (req) => {
 
     try {
       console.log(`[AGENT-WORKFLOW] Step 1: Deep Research`);
-      await updateSession("running", 10, "deep_research");
+      await updateSession("idle", 10, "deep_research");
 
       const { data: mcpResult, error: mcpError } = await supabase.functions.invoke("mcp-firecrawl-tool", {
         body: {
@@ -254,7 +266,7 @@ serve(async (req) => {
 
     try {
       console.log(`[AGENT-WORKFLOW] Step 2: Scrape Meta Ads`);
-      await updateSession("running", 30, "meta_ads_scraping");
+      await updateSession("idle", 30, "meta_ads_scraping");
 
       // Collect all Meta Ads Library URLs
       const metaAdsUrls: string[] = [];
@@ -339,7 +351,7 @@ serve(async (req) => {
 
       try {
         console.log(`[AGENT-WORKFLOW] Step 3: Download Videos`);
-        await updateSession("running", 50, "video_download");
+        await updateSession("idle", 50, "video_download");
 
         const videoUrls = videoAds.map((ad) => ad.videoUrl || ad.video_url).slice(0, 5);
         
@@ -417,7 +429,7 @@ serve(async (req) => {
 
       try {
         console.log(`[AGENT-WORKFLOW] Step 4: Analyze Videos`);
-        await updateSession("running", 65, "video_analysis");
+        await updateSession("idle", 65, "video_analysis");
 
         const videosToAnalyze = downloadedVideos.slice(0, 3);
         
@@ -516,7 +528,7 @@ serve(async (req) => {
 
     try {
       console.log(`[AGENT-WORKFLOW] Step 5: LLM Synthesis`);
-      await updateSession("running", 85, "llm_synthesis");
+      await updateSession("idle", 85, "llm_synthesis");
 
       const { data: llmResult, error: llmError } = await supabase.functions.invoke("llm-synthesis-engine", {
         body: {

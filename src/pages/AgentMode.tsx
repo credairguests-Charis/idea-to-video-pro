@@ -9,6 +9,8 @@ import { toast } from "sonner";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
 import { PanelLeftClose, PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { CharisLoader } from "@/components/ui/charis-loader";
 
 interface AgentLog {
   id: string;
@@ -32,7 +34,7 @@ interface AgentSession {
 }
 
 export default function AgentMode() {
-  const { user } = useAuth();
+  const { user, loading: authLoading } = useAuth();
   const [session, setSession] = useState<AgentSession | null>(null);
   const [logs, setLogs] = useState<AgentLog[]>([]);
   const [isRunning, setIsRunning] = useState(false);
@@ -40,53 +42,69 @@ export default function AgentMode() {
   const [userPrompt, setUserPrompt] = useState<string>("");
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [workspaceTitle, setWorkspaceTitle] = useState("Untitled Workspace");
+  const [isInitializing, setIsInitializing] = useState(true);
   const leftPanelRef = useRef<any>(null);
   const titleSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Load or create session on mount
   useEffect(() => {
-    if (!user) return;
+    if (!user) {
+      setIsInitializing(false);
+      return;
+    }
 
     const loadOrCreateSession = async () => {
-      // Try to find an existing active session
-      const { data: existingSession, error: fetchError } = await supabase
-        .from("agent_sessions")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false })
-        .limit(1)
-        .single();
-
-      if (existingSession && !fetchError) {
-        setSession({
-          id: existingSession.id,
-          state: existingSession.state,
-          current_step: existingSession.current_step || undefined,
-          progress: existingSession.progress || 0,
-          metadata: existingSession.metadata,
-          title: existingSession.title || "Untitled Workspace",
-        });
-        setWorkspaceTitle(existingSession.title || "Untitled Workspace");
-      } else {
-        // Create a new session
-        const { data: newSession, error: createError } = await supabase
+      try {
+        setIsInitializing(true);
+        
+        // Try to find an existing active session
+        const { data: existingSession, error: fetchError } = await supabase
           .from("agent_sessions")
-          .insert({
-            user_id: user.id,
-            state: "idle",
-            title: "Untitled Workspace",
-          })
-          .select()
-          .single();
+          .select("*")
+          .eq("user_id", user.id)
+          .order("created_at", { ascending: false })
+          .limit(1)
+          .maybeSingle();
 
-        if (newSession && !createError) {
+        if (existingSession && !fetchError) {
           setSession({
-            id: newSession.id,
-            state: newSession.state,
-            progress: 0,
-            title: newSession.title || "Untitled Workspace",
+            id: existingSession.id,
+            state: existingSession.state,
+            current_step: existingSession.current_step || undefined,
+            progress: existingSession.progress || 0,
+            metadata: existingSession.metadata,
+            title: existingSession.title || "Untitled Workspace",
           });
+          setWorkspaceTitle(existingSession.title || "Untitled Workspace");
+        } else {
+          // Create a new session
+          const { data: newSession, error: createError } = await supabase
+            .from("agent_sessions")
+            .insert({
+              user_id: user.id,
+              state: "idle",
+              title: "Untitled Workspace",
+            })
+            .select()
+            .single();
+
+          if (newSession && !createError) {
+            setSession({
+              id: newSession.id,
+              state: newSession.state,
+              progress: 0,
+              title: newSession.title || "Untitled Workspace",
+            });
+          } else if (createError) {
+            console.error("[AgentMode] Failed to create session:", createError);
+            toast.error("Failed to initialize workspace");
+          }
         }
+      } catch (error) {
+        console.error("[AgentMode] Session initialization error:", error);
+        toast.error("Failed to load workspace");
+      } finally {
+        setIsInitializing(false);
       }
     };
 
@@ -327,6 +345,16 @@ export default function AgentMode() {
     }
   };
 
+  // Show loading state
+  if (authLoading || isInitializing) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-white">
+        <CharisLoader size="lg" />
+        <p className="mt-4 text-sm text-muted-foreground">Loading workspace...</p>
+      </div>
+    );
+  }
+
   if (!user) {
     return <Navigate to="/auth" replace />;
   }
@@ -342,7 +370,8 @@ export default function AgentMode() {
   };
 
   return (
-    <div className="flex flex-col h-screen bg-white">
+    <ErrorBoundary>
+      <div className="flex flex-col h-screen bg-white">
       {/* Top Navigation Bar - Full Width */}
       <AgentNavbar 
         workspaceTitle={workspaceTitle} 
@@ -403,7 +432,7 @@ export default function AgentMode() {
                     <PanelLeft className="h-4 w-4" />
                   </Button>
                 </div>
-                <AgentWorkspace 
+              <AgentWorkspace 
                   data={previewData}
                   session={session}
                 />
@@ -413,5 +442,6 @@ export default function AgentMode() {
         </ResizablePanelGroup>
       </div>
     </div>
+    </ErrorBoundary>
   );
 }

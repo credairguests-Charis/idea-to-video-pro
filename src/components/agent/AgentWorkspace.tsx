@@ -19,8 +19,8 @@ interface AgentWorkspaceProps {
 }
 
 export function AgentWorkspace({ data, session }: AgentWorkspaceProps) {
-  // Empty state when no data
-  if (!session || !data) {
+  // Empty state when no data - also handles null/undefined gracefully
+  if (!data) {
     return (
       <div className="h-full flex items-center justify-center bg-white">
         <div className="text-center max-w-sm px-8">
