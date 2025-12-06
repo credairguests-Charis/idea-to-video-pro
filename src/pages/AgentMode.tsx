@@ -380,6 +380,7 @@ export default function AgentMode() {
                 onSubmit={handleStartAgent}
                 isCollapsed={isLeftPanelCollapsed}
                 onToggleCollapse={handleToggleCollapse}
+                sessionId={session?.id}
               />
             </div>
           </ResizablePanel>
