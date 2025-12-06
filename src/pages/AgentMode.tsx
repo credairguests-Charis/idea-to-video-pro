@@ -43,6 +43,17 @@ export default function AgentMode() {
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [workspaceTitle, setWorkspaceTitle] = useState("Untitled Workspace");
   const [isInitializing, setIsInitializing] = useState(true);
+  
+  // Intermediate data for real-time display
+  const [intermediateData, setIntermediateData] = useState<{
+    extractedAds: any[];
+    downloadedVideos: any[];
+    videoAnalyses: any[];
+  }>({
+    extractedAds: [],
+    downloadedVideos: [],
+    videoAnalyses: [],
+  });
   const leftPanelRef = useRef<any>(null);
   const titleSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -251,9 +262,50 @@ export default function AgentMode() {
           const newLog = payload.new as AgentLog;
           setLogs((prev) => [...prev, newLog]);
           
-          // Update preview if there's output data
+          // Extract intermediate data from logs for real-time preview
           if (newLog.output_data) {
-            setPreviewData(newLog.output_data);
+            const output = newLog.output_data;
+            
+            // Update extracted ads
+            if (output.ads && Array.isArray(output.ads)) {
+              setIntermediateData(prev => ({
+                ...prev,
+                extractedAds: [...prev.extractedAds, ...output.ads]
+              }));
+            }
+            
+            // Update downloaded videos
+            if (output.downloaded_videos && Array.isArray(output.downloaded_videos)) {
+              setIntermediateData(prev => ({
+                ...prev,
+                downloadedVideos: [...prev.downloadedVideos, ...output.downloaded_videos]
+              }));
+            }
+            if (output.videos && Array.isArray(output.videos)) {
+              setIntermediateData(prev => ({
+                ...prev,
+                downloadedVideos: [...prev.downloadedVideos, ...output.videos]
+              }));
+            }
+            
+            // Update video analyses
+            if (output.analyses && Array.isArray(output.analyses)) {
+              setIntermediateData(prev => ({
+                ...prev,
+                videoAnalyses: [...prev.videoAnalyses, ...output.analyses]
+              }));
+            }
+            if (output.video_analyses && Array.isArray(output.video_analyses)) {
+              setIntermediateData(prev => ({
+                ...prev,
+                videoAnalyses: [...prev.videoAnalyses, ...output.video_analyses]
+              }));
+            }
+            
+            // Update preview data with latest synthesis
+            if (output.synthesisId || output.suggestedScripts || output.adAnalyses) {
+              setPreviewData(output);
+            }
           }
         }
       )
@@ -286,6 +338,7 @@ export default function AgentMode() {
       setIsRunning(true);
       setLogs([]);
       setPreviewData(null);
+      setIntermediateData({ extractedAds: [], downloadedVideos: [], videoAnalyses: [] });
       setUserPrompt(brandData.prompt || brandData.competitorQuery || "");
       
       toast.info("Starting workflow...");
@@ -443,6 +496,7 @@ export default function AgentMode() {
               <AgentWorkspace 
                   data={previewData}
                   session={session}
+                  intermediateData={intermediateData}
                 />
               </div>
             </div>

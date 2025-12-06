@@ -1,12 +1,14 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Check, Image, FileText, X, Globe, Flame, Video, Brain, Download, Smartphone } from "lucide-react";
+import { Search, Image, FileText, X, Globe, ArrowDown } from "lucide-react";
 import { CharisLoader } from "@/components/ui/charis-loader";
 import charisLogo from "@/assets/charis-logo-icon.png";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
 import { supabase } from "@/integrations/supabase/client";
+import { LogDetailCard } from "./LogDetailCard";
+import { Button } from "@/components/ui/button";
 
-interface AgentLog {
+export interface AgentLog {
   id: string;
   step_name: string;
   status: string;
@@ -47,37 +49,6 @@ interface AgentChatPanelProps {
   onToggleCollapse?: () => void;
   sessionId?: string;
 }
-
-// Tool icon mapping
-const getToolIcon = (toolName?: string, inputData?: any) => {
-  // Check for custom icon in input_data
-  const customIcon = inputData?.tool_icon;
-  if (customIcon) {
-    return <span className="text-sm">{customIcon}</span>;
-  }
-
-  // Default icon mapping
-  switch (toolName) {
-    case "firecrawl_mcp":
-    case "firecrawl_meta_ads_scraper":
-    case "klavis_firecrawl_mcp":
-      return <Flame className="h-3.5 w-3.5 text-orange-500" />;
-    case "meta_ads_extractor":
-    case "firecrawl_meta_ads":
-      return <Smartphone className="h-3.5 w-3.5 text-blue-500" />;
-    case "video_download_service":
-      return <Download className="h-3.5 w-3.5 text-purple-500" />;
-    case "azure_video_indexer":
-    case "azure-video-analyzer":
-      return <Video className="h-3.5 w-3.5 text-cyan-500" />;
-    case "llm_synthesizer":
-    case "llm-synthesis-engine":
-      return <Brain className="h-3.5 w-3.5 text-pink-500" />;
-    default:
-      return <Search className="h-3.5 w-3.5 text-muted-foreground" />;
-  }
-};
-
 export function AgentChatPanel({ 
   logs, 
   isRunning, 
@@ -88,7 +59,10 @@ export function AgentChatPanel({
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [attachedUrls, setAttachedUrls] = useState<AttachedUrl[]>([]);
   const [realtimeLogs, setRealtimeLogs] = useState<AgentLog[]>([]);
+  const [showScrollButton, setShowScrollButton] = useState(false);
+  const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   // Combine passed logs with realtime logs - with null safety
   const safeLogs = Array.isArray(logs) ? logs : [];
@@ -136,15 +110,41 @@ export function AgentChatPanel({
     setRealtimeLogs([]);
   }, [sessionId]);
 
-  // Auto-scroll task list
+  // Auto-scroll task list with user scroll detection
   useEffect(() => {
-    if (scrollRef.current) {
-      const viewport = scrollRef.current.querySelector('[data-radix-scroll-area-viewport]');
+    if (scrollAreaRef.current && isAutoScrollEnabled) {
+      const viewport = scrollAreaRef.current.querySelector('[data-radix-scroll-area-viewport]');
       if (viewport) {
         viewport.scrollTop = viewport.scrollHeight;
       }
     }
-  }, [allLogs]);
+  }, [allLogs, isAutoScrollEnabled]);
+
+  // Handle scroll to detect manual scrolling
+  useEffect(() => {
+    const scrollArea = scrollAreaRef.current;
+    if (!scrollArea) return;
+    
+    const viewport = scrollArea.querySelector('[data-radix-scroll-area-viewport]');
+    if (!viewport) return;
+
+    const handleScroll = () => {
+      const isAtBottom = viewport.scrollHeight - viewport.scrollTop - viewport.clientHeight < 50;
+      setShowScrollButton(!isAtBottom);
+      setIsAutoScrollEnabled(isAtBottom);
+    };
+
+    viewport.addEventListener('scroll', handleScroll);
+    return () => viewport.removeEventListener('scroll', handleScroll);
+  }, []);
+
+  const scrollToBottom = () => {
+    const viewport = scrollAreaRef.current?.querySelector('[data-radix-scroll-area-viewport]');
+    if (viewport) {
+      viewport.scrollTo({ top: viewport.scrollHeight, behavior: 'smooth' });
+      setIsAutoScrollEnabled(true);
+    }
+  };
 
   const removeFile = (fileId: string) => {
     setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
@@ -154,39 +154,16 @@ export function AgentChatPanel({
     setAttachedUrls(prev => prev.filter(u => u.id !== urlId));
   };
 
-  // Convert logs to task items with enhanced display
-  const taskItems = allLogs.map((log) => {
-    const progressPercent = log.input_data?.progress_percent;
-    const subStep = log.input_data?.sub_step;
-    
-    return {
-      id: log.id,
-      toolName: log.tool_name,
-      inputData: log.input_data,
-      text: subStep || log.step_name.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
-      status: log.status,
-      progress: progressPercent,
-      duration: log.duration_ms,
-      outputData: log.output_data,
-    };
-  });
-
-  const getStatusIcon = (status: string, toolName?: string, inputData?: any) => {
-    // Handle all possible status values including "started" which is the valid DB value
-    if (status === "running" || status === "in_progress" || status === "started") {
-      return <CharisLoader size="xs" />;
-    }
-    if (status === "success" || status === "completed") {
-      return <Check className="h-3.5 w-3.5 text-green-600" />;
-    }
-    if (status === "failed" || status === "error") {
-      return <X className="h-3.5 w-3.5 text-red-500" />;
-    }
-    if (status === "skipped") {
-      return <Check className="h-3.5 w-3.5 text-muted-foreground" />;
-    }
-    return getToolIcon(toolName, inputData);
-  };
+  // Compute running and completed counts
+  const runningCount = allLogs.filter(l => 
+    l.status === "running" || l.status === "in_progress" || l.status === "started"
+  ).length;
+  const completedCount = allLogs.filter(l => 
+    l.status === "success" || l.status === "completed"
+  ).length;
+  const failedCount = allLogs.filter(l => 
+    l.status === "failed" || l.status === "error"
+  ).length;
 
   const getFileIcon = (type: string) => {
     if (type.startsWith('image/')) {
@@ -243,97 +220,77 @@ export function AgentChatPanel({
           </div>
         )}
 
-        {/* Task List Container */}
-        {(taskItems.length > 0 || isRunning) && (
-          <div className="bg-[#F9FAFB] rounded-lg p-3 border border-border/30">
-            <div className="flex items-center justify-between mb-2.5">
-              <span className="text-xs font-medium text-foreground">
-                Agent Workflow
-              </span>
-              {isRunning && (
-                <span className="text-xs text-muted-foreground animate-pulse">
-                  Live
+        {/* Task List Container - Lovable.dev Style Expandable Logs */}
+        {(allLogs.length > 0 || isRunning) && (
+          <div className="bg-[#F9FAFB] rounded-lg p-3 border border-border/30 relative">
+            {/* Header with stats */}
+            <div className="flex items-center justify-between mb-3">
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-foreground">
+                  Execution Log
                 </span>
+                {allLogs.length > 0 && (
+                  <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                    {completedCount}/{allLogs.length} steps
+                    {failedCount > 0 && <span className="text-red-500 ml-1">• {failedCount} failed</span>}
+                  </span>
+                )}
+              </div>
+              {isRunning && (
+                <div className="flex items-center gap-1.5">
+                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                  <span className="text-[10px] text-green-600 font-medium">
+                    Live
+                  </span>
+                </div>
               )}
             </div>
             
-            <ScrollArea ref={scrollRef} className="max-h-[320px]">
-              <div className="space-y-1">
-                {taskItems.map((task) => (
-                  <div
-                    key={task.id}
-                    className={`flex items-start gap-2 py-2 px-2 rounded transition-colors ${
-                      task.status === "running" || task.status === "started" ? "bg-primary/5" : ""
-                    }`}
-                  >
-                    <div className="mt-0.5">
-                      {getStatusIcon(task.status, task.toolName, task.inputData)}
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center gap-2">
-                        <span className={`text-sm truncate ${
-                          task.status === "running" || task.status === "started" ? "text-foreground font-medium" : "text-muted-foreground"
-                        }`}>
-                          {task.text}
-                        </span>
-                        {task.duration && task.status === "completed" && (
-                          <span className="text-xs text-muted-foreground/60">
-                            {formatDuration(task.duration)}
-                          </span>
-                        )}
-                      </div>
-                      
-                      {/* Progress bar for running/started tasks */}
-                      {(task.status === "running" || task.status === "started") && task.progress !== undefined && (
-                        <div className="mt-1.5 w-full bg-muted rounded-full h-1">
-                          <div 
-                            className="bg-primary h-1 rounded-full transition-all duration-500"
-                            style={{ width: `${task.progress}%` }}
-                          />
-                        </div>
-                      )}
-                      
-                      {/* Output summary for completed tasks */}
-                      {task.status === "completed" && task.outputData && (
-                        <div className="mt-1 text-xs text-muted-foreground/70">
-                          {task.outputData.competitors_found !== undefined && (
-                            <span>{task.outputData.competitors_found} competitors found</span>
-                          )}
-                          {task.outputData.total_ads !== undefined && (
-                            <span>{task.outputData.total_ads} ads extracted</span>
-                          )}
-                          {task.outputData.videos_analyzed !== undefined && (
-                            <span>{task.outputData.videos_analyzed} videos analyzed</span>
-                          )}
-                          {task.outputData.scriptsCount !== undefined && (
-                            <span>{task.outputData.scriptsCount} scripts generated</span>
-                          )}
-                        </div>
-                      )}
-                    </div>
-                    
-                    {/* Tool badge */}
-                    {task.toolName && task.status !== "running" && task.status !== "started" && (
-                      <div className="flex-shrink-0">
-                        {getToolIcon(task.toolName, task.inputData)}
-                      </div>
-                    )}
-                  </div>
+            <ScrollArea ref={scrollAreaRef} className="max-h-[400px]">
+              <div className="space-y-2 pr-2">
+                {allLogs.map((log) => (
+                  <LogDetailCard
+                    key={log.id}
+                    id={log.id}
+                    stepName={log.step_name}
+                    status={log.status}
+                    toolName={log.tool_name}
+                    inputData={log.input_data}
+                    outputData={log.output_data}
+                    errorMessage={log.error_message}
+                    durationMs={log.duration_ms}
+                    createdAt={log.created_at}
+                  />
                 ))}
                 
-                {isRunning && taskItems.length === 0 && (
-                  <div className="flex items-center gap-2 py-1.5 px-1.5">
+                {isRunning && allLogs.length === 0 && (
+                  <div className="flex items-center gap-2 py-3 px-2 border border-border/30 rounded-lg bg-white">
                     <CharisLoader size="xs" />
                     <span className="text-sm text-muted-foreground">Initializing workflow...</span>
                   </div>
                 )}
               </div>
             </ScrollArea>
+
+            {/* Scroll to bottom button */}
+            {showScrollButton && (
+              <div className="absolute bottom-14 left-1/2 -translate-x-1/2">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  onClick={scrollToBottom}
+                  className="h-7 px-3 text-xs shadow-md border border-border/50"
+                >
+                  <ArrowDown className="h-3 w-3 mr-1" />
+                  Scroll to latest
+                </Button>
+              </div>
+            )}
           </div>
         )}
 
         {/* Empty State */}
-        {!userPrompt && taskItems.length === 0 && (
+        {!userPrompt && allLogs.length === 0 && (
           <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
             <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
               <Search className="h-7 w-7 text-primary" />
