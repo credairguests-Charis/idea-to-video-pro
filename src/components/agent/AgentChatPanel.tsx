@@ -1,16 +1,22 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Check, Image, FileText, X, Globe } from "lucide-react";
+import { Search, Check, Image, FileText, X, Globe, Flame, Video, Brain, Download, Smartphone } from "lucide-react";
 import { CharisLoader } from "@/components/ui/charis-loader";
 import charisLogo from "@/assets/charis-logo-icon.png";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
+import { supabase } from "@/integrations/supabase/client";
 
 interface AgentLog {
   id: string;
   step_name: string;
   status: string;
   tool_name?: string;
-  input_data?: any;
+  input_data?: {
+    tool_icon?: string;
+    progress_percent?: number;
+    sub_step?: string;
+    [key: string]: any;
+  };
   output_data?: any;
   error_message?: string;
   duration_ms?: number;
@@ -39,12 +45,93 @@ interface AgentChatPanelProps {
   onSubmit: (brandData: any) => void;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
+  sessionId?: string;
 }
 
-export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentChatPanelProps) {
+// Tool icon mapping
+const getToolIcon = (toolName?: string, inputData?: any) => {
+  // Check for custom icon in input_data
+  const customIcon = inputData?.tool_icon;
+  if (customIcon) {
+    return <span className="text-sm">{customIcon}</span>;
+  }
+
+  // Default icon mapping
+  switch (toolName) {
+    case "firecrawl_mcp":
+    case "firecrawl_meta_ads_scraper":
+    case "klavis_firecrawl_mcp":
+      return <Flame className="h-3.5 w-3.5 text-orange-500" />;
+    case "meta_ads_extractor":
+    case "firecrawl_meta_ads":
+      return <Smartphone className="h-3.5 w-3.5 text-blue-500" />;
+    case "video_download_service":
+      return <Download className="h-3.5 w-3.5 text-purple-500" />;
+    case "azure_video_indexer":
+    case "azure-video-analyzer":
+      return <Video className="h-3.5 w-3.5 text-cyan-500" />;
+    case "llm_synthesizer":
+    case "llm-synthesis-engine":
+      return <Brain className="h-3.5 w-3.5 text-pink-500" />;
+    default:
+      return <Search className="h-3.5 w-3.5 text-muted-foreground" />;
+  }
+};
+
+export function AgentChatPanel({ 
+  logs, 
+  isRunning, 
+  userPrompt, 
+  onSubmit, 
+  sessionId 
+}: AgentChatPanelProps) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [attachedUrls, setAttachedUrls] = useState<AttachedUrl[]>([]);
+  const [realtimeLogs, setRealtimeLogs] = useState<AgentLog[]>([]);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Combine passed logs with realtime logs
+  const allLogs = [...logs, ...realtimeLogs].reduce((acc, log) => {
+    if (!acc.find(l => l.id === log.id)) {
+      acc.push(log);
+    }
+    return acc;
+  }, [] as AgentLog[]);
+
+  // Subscribe to real-time log updates
+  useEffect(() => {
+    if (!sessionId) return;
+
+    const channel = supabase
+      .channel(`agent-logs-${sessionId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "INSERT",
+          schema: "public",
+          table: "agent_execution_logs",
+          filter: `session_id=eq.${sessionId}`,
+        },
+        (payload) => {
+          console.log("[AgentChatPanel] New log received:", payload.new);
+          const newLog = payload.new as AgentLog;
+          setRealtimeLogs((prev) => {
+            if (prev.find(l => l.id === newLog.id)) return prev;
+            return [...prev, newLog];
+          });
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [sessionId]);
+
+  // Clear realtime logs when session changes
+  useEffect(() => {
+    setRealtimeLogs([]);
+  }, [sessionId]);
 
   // Auto-scroll task list
   useEffect(() => {
@@ -54,7 +141,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
         viewport.scrollTop = viewport.scrollHeight;
       }
     }
-  }, [logs]);
+  }, [allLogs]);
 
   const removeFile = (fileId: string) => {
     setUploadedFiles(prev => prev.filter(f => f.id !== fileId));
@@ -64,23 +151,34 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
     setAttachedUrls(prev => prev.filter(u => u.id !== urlId));
   };
 
-  // Convert logs to task items
-  const taskItems = logs.map((log) => ({
-    id: log.id,
-    icon: log.status === "success" || log.status === "completed" ? "check" : 
-          log.status === "running" || log.status === "in_progress" ? "loading" : "search",
-    text: log.step_name.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
-    status: log.status,
-  }));
+  // Convert logs to task items with enhanced display
+  const taskItems = allLogs.map((log) => {
+    const progressPercent = log.input_data?.progress_percent;
+    const subStep = log.input_data?.sub_step;
+    
+    return {
+      id: log.id,
+      toolName: log.tool_name,
+      inputData: log.input_data,
+      text: subStep || log.step_name.replace(/_/g, " ").replace(/\b\w/g, (l) => l.toUpperCase()),
+      status: log.status,
+      progress: progressPercent,
+      duration: log.duration_ms,
+      outputData: log.output_data,
+    };
+  });
 
-  const getTaskIcon = (icon: string, status: string) => {
+  const getStatusIcon = (status: string, toolName?: string, inputData?: any) => {
     if (status === "running" || status === "in_progress") {
       return <CharisLoader size="xs" />;
     }
     if (status === "success" || status === "completed") {
       return <Check className="h-3.5 w-3.5 text-green-600" />;
     }
-    return <Search className="h-3.5 w-3.5 text-muted-foreground" />;
+    if (status === "failed") {
+      return <X className="h-3.5 w-3.5 text-red-500" />;
+    }
+    return getToolIcon(toolName, inputData);
   };
 
   const getFileIcon = (type: string) => {
@@ -94,6 +192,12 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
     if (bytes < 1024) return `${bytes} B`;
     if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+  };
+
+  const formatDuration = (ms?: number) => {
+    if (!ms) return "";
+    if (ms < 1000) return `${ms}ms`;
+    return `${(ms / 1000).toFixed(1)}s`;
   };
 
   return (
@@ -123,7 +227,7 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
                   <CharisLoader size="xs" />
                   Processing your request...
                 </span>
-              ) : logs.length > 0 ? (
+              ) : allLogs.some(l => l.status === "completed") ? (
                 "I've completed the analysis. Check the results on the right panel."
               ) : (
                 "I'll build a targeted list based on your criteria."
@@ -135,30 +239,85 @@ export function AgentChatPanel({ logs, isRunning, userPrompt, onSubmit }: AgentC
         {/* Task List Container */}
         {(taskItems.length > 0 || isRunning) && (
           <div className="bg-[#F9FAFB] rounded-lg p-3 border border-border/30">
-            <div className="flex items-center gap-2 mb-2.5">
+            <div className="flex items-center justify-between mb-2.5">
               <span className="text-xs font-medium text-foreground">
-                Build<span className="text-primary">ing</span> <span className="text-primary">Agent</span> task list
+                Agent Workflow
               </span>
+              {isRunning && (
+                <span className="text-xs text-muted-foreground animate-pulse">
+                  Live
+                </span>
+              )}
             </div>
             
-            <ScrollArea ref={scrollRef} className="max-h-[240px]">
-              <div className="space-y-0.5">
+            <ScrollArea ref={scrollRef} className="max-h-[320px]">
+              <div className="space-y-1">
                 {taskItems.map((task) => (
                   <div
                     key={task.id}
-                    className="flex items-center gap-2 py-1.5 px-1.5 rounded text-muted-foreground"
+                    className={`flex items-start gap-2 py-2 px-2 rounded transition-colors ${
+                      task.status === "running" ? "bg-primary/5" : ""
+                    }`}
                   >
-                    {getTaskIcon(task.icon, task.status)}
-                    <span className="text-sm truncate">
-                      {task.text}
-                    </span>
+                    <div className="mt-0.5">
+                      {getStatusIcon(task.status, task.toolName, task.inputData)}
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        <span className={`text-sm truncate ${
+                          task.status === "running" ? "text-foreground font-medium" : "text-muted-foreground"
+                        }`}>
+                          {task.text}
+                        </span>
+                        {task.duration && task.status === "completed" && (
+                          <span className="text-xs text-muted-foreground/60">
+                            {formatDuration(task.duration)}
+                          </span>
+                        )}
+                      </div>
+                      
+                      {/* Progress bar for running tasks */}
+                      {task.status === "running" && task.progress !== undefined && (
+                        <div className="mt-1.5 w-full bg-muted rounded-full h-1">
+                          <div 
+                            className="bg-primary h-1 rounded-full transition-all duration-500"
+                            style={{ width: `${task.progress}%` }}
+                          />
+                        </div>
+                      )}
+                      
+                      {/* Output summary for completed tasks */}
+                      {task.status === "completed" && task.outputData && (
+                        <div className="mt-1 text-xs text-muted-foreground/70">
+                          {task.outputData.competitors_found !== undefined && (
+                            <span>{task.outputData.competitors_found} competitors found</span>
+                          )}
+                          {task.outputData.total_ads !== undefined && (
+                            <span>{task.outputData.total_ads} ads extracted</span>
+                          )}
+                          {task.outputData.videos_analyzed !== undefined && (
+                            <span>{task.outputData.videos_analyzed} videos analyzed</span>
+                          )}
+                          {task.outputData.scriptsCount !== undefined && (
+                            <span>{task.outputData.scriptsCount} scripts generated</span>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                    
+                    {/* Tool badge */}
+                    {task.toolName && task.status !== "running" && (
+                      <div className="flex-shrink-0">
+                        {getToolIcon(task.toolName, task.inputData)}
+                      </div>
+                    )}
                   </div>
                 ))}
                 
-                {isRunning && (
+                {isRunning && taskItems.length === 0 && (
                   <div className="flex items-center gap-2 py-1.5 px-1.5">
                     <CharisLoader size="xs" />
-                    <span className="text-sm text-muted-foreground">Processing...</span>
+                    <span className="text-sm text-muted-foreground">Initializing workflow...</span>
                   </div>
                 )}
               </div>

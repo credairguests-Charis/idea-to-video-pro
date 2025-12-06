@@ -50,50 +50,34 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
 
-[functions.diagnose-omnihuman]
-verify_jwt = false
-
-[functions.mcp-firecrawl-tool]
-verify_jwt = false
-
-[functions.meta-ads-extractor]
-verify_jwt = false
-
-[functions.azure-video-analyzer]
-verify_jwt = false
-
-[functions.llm-synthesis-engine]
-verify_jwt = false
-
+# Agent Workflow Functions
 [functions.agent-workflow]
 verify_jwt = false
 
-[functions.send-subscription-success-email]
+[functions.mcp-firecrawl-tool]
 verify_jwt = false
 
-[functions.mcp-firecrawl-tool]
-verify_jwt = true
+[functions.firecrawl-meta-ads-scraper]
+verify_jwt = false
 
-[functions.meta-ads-extractor]
-verify_jwt = true
+[functions.video-download-service]
+verify_jwt = false
 
 [functions.azure-video-analyzer]
-verify_jwt = true
+verify_jwt = false
 
 [functions.llm-synthesis-engine]
-verify_jwt = true
+verify_jwt = false
 
+[functions.meta-ads-extractor]
+verify_jwt = false
+
+# Admin Functions
 [functions.admin-create-invite]
 verify_jwt = true
 
 [functions.admin-revoke-invite]
 verify_jwt = true
-
-[functions.validate-invite]
-verify_jwt = false
-
-[functions.record-invite-usage]
-verify_jwt = false
 
 [functions.admin-create-marketing-link]
 verify_jwt = true
@@ -104,6 +88,13 @@ verify_jwt = true
 [functions.admin-toggle-marketing-link]
 verify_jwt = true
 
+# Public Functions
+[functions.validate-invite]
+verify_jwt = false
+
+[functions.record-invite-usage]
+verify_jwt = false
+
 [functions.validate-marketing-link]
 verify_jwt = false
 
@@ -113,6 +104,13 @@ verify_jwt = false
 [functions.record-marketing-signup]
 verify_jwt = false
 
+[functions.send-subscription-success-email]
+verify_jwt = false
+
+[functions.diagnose-omnihuman]
+verify_jwt = false
+
+# Protected Functions
 [functions.check-user-credits]
 verify_jwt = true
 
