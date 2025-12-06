@@ -56,20 +56,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const createUserProfile = async (user: User) => {
     try {
-      const { error } = await supabase
+      // Use UPSERT to handle existing profiles - prevents 409 duplicate key errors
+      const { data, error } = await supabase
         .from('profiles')
-        .insert({
+        .upsert({
           user_id: user.id,
           email: user.email,
           full_name: user.user_metadata?.full_name || '',
+          updated_at: new Date().toISOString(),
+        }, {
+          onConflict: 'user_id',
+          ignoreDuplicates: false,
         })
+        .select()
+        .single()
       
-      // If no error, it's a new user - send welcome email
-      if (!error) {
-        console.log('New user detected, sending welcome email')
-        sendWelcomeEmail(user)
-      } else if (!error.message.includes('duplicate key')) {
-        console.error('Error creating profile:', error)
+      // Check if this was a new profile (created_at equals updated_at approximately)
+      if (!error && data) {
+        const createdAt = new Date(data.created_at).getTime()
+        const updatedAt = new Date(data.updated_at).getTime()
+        // If created within last 5 seconds, it's a new user
+        if (Math.abs(updatedAt - createdAt) < 5000) {
+          console.log('New user detected, sending welcome email')
+          sendWelcomeEmail(user)
+        }
+      } else if (error) {
+        console.error('Error upserting profile:', error)
       }
     } catch (err) {
       console.error('Error creating profile:', err)

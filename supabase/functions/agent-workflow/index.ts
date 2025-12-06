@@ -79,7 +79,7 @@ serve(async (req) => {
     // Generate session ID
     sessionId = crypto.randomUUID();
 
-    // Helper function to log execution steps
+    // Helper function to log execution steps - ONLY uses valid status values: started, completed, failed, skipped
     const logExecution = async (
       stepName: string,
       status: string,
@@ -93,10 +93,15 @@ serve(async (req) => {
       subStep: string | null = null
     ) => {
       try {
+        // Map invalid status values to valid ones
+        const validStatus = status === "running" || status === "in_progress" ? "started" :
+                           status === "warning" || status === "error" ? "failed" :
+                           ["started", "completed", "failed", "skipped"].includes(status) ? status : "started";
+        
         await supabase.from("agent_execution_logs").insert({
           session_id: sessionId,
           step_name: stepName,
-          status,
+          status: validStatus,
           tool_name: toolName,
           input_data: { 
             ...inputData, 
@@ -653,7 +658,7 @@ serve(async (req) => {
         await supabase.from("agent_execution_logs").insert({
           session_id: sessionId,
           step_name: "Fatal Error",
-          status: "error",
+          status: "failed",
           tool_name: "workflow",
           error_message: error instanceof Error ? error.message : "Unknown fatal error",
           input_data: { tool_icon: TOOL_ICONS.workflow },

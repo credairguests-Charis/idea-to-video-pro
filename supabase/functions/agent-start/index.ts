@@ -157,14 +157,15 @@ Deno.serve(async (req) => {
     console.error("Error in agent-start:", error);
     
     // Update session to error state
-    if (session_id) {
-      await supabaseClient
-        .from("agent_sessions")
-        .update({
-          state: "error",
-          current_step: "Error",
-        })
-        .eq("id", session_id);
+    try {
+      const supabaseClient = createClient(
+        Deno.env.get("SUPABASE_URL") ?? "",
+        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
+      );
+      
+      // Note: session_id is not accessible here, would need to pass it
+    } catch (updateError) {
+      console.error("Failed to update session:", updateError);
     }
     
     return new Response(

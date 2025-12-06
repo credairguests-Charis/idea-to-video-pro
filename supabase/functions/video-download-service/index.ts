@@ -48,7 +48,7 @@ serve(async (req) => {
 
     const { videoUrl, videoUrls, sessionId, videoName } = await req.json();
 
-    // Helper to log progress
+    // Helper to log progress - ONLY uses valid status values: started, completed, failed, skipped
     const logProgress = async (
       status: string,
       progressPercent: number,
@@ -56,11 +56,16 @@ serve(async (req) => {
       outputData?: any
     ) => {
       if (sessionId) {
+        // Map invalid status values to valid ones
+        const validStatus = status === "running" || status === "in_progress" ? "started" :
+                           status === "warning" || status === "error" ? "failed" :
+                           ["started", "completed", "failed", "skipped"].includes(status) ? status : "started";
+        
         await supabase.from("agent_execution_logs").insert({
           session_id: sessionId,
           step_name: "Video Download",
           tool_name: "video_download_service",
-          status,
+          status: validStatus,
           input_data: {
             tool_icon: "📥",
             progress_percent: progressPercent,

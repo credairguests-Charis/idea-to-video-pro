@@ -226,7 +226,7 @@ serve(async (req) => {
 
     const firecrawl = new FirecrawlClient(FIRECRAWL_API_KEY);
 
-    // Helper to log progress
+    // Helper to log progress - ONLY uses valid status values: started, completed, failed, skipped
     const logProgress = async (
       stepName: string,
       status: string,
@@ -236,11 +236,16 @@ serve(async (req) => {
       outputData?: any
     ) => {
       if (sessionId) {
+        // Map invalid status values to valid ones
+        const validStatus = status === "running" || status === "in_progress" ? "started" :
+                           status === "warning" || status === "error" ? "failed" :
+                           ["started", "completed", "failed", "skipped"].includes(status) ? status : "started";
+        
         await supabase.from("agent_execution_logs").insert({
           session_id: sessionId,
           step_name: stepName,
           tool_name: "firecrawl_meta_ads_scraper",
-          status,
+          status: validStatus,
           input_data: { 
             tool_icon: toolIcon,
             progress_percent: progressPercent,
