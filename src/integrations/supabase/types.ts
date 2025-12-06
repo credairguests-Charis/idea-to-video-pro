@@ -161,6 +161,47 @@ export type Database = {
         }
         Relationships: []
       }
+      agent_chat_messages: {
+        Row: {
+          content: string
+          created_at: string
+          id: string
+          is_streaming: boolean | null
+          metadata: Json | null
+          role: string
+          session_id: string
+          updated_at: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          id?: string
+          is_streaming?: boolean | null
+          metadata?: Json | null
+          role: string
+          session_id: string
+          updated_at?: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          id?: string
+          is_streaming?: boolean | null
+          metadata?: Json | null
+          role?: string
+          session_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "agent_chat_messages_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "agent_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       agent_execution_logs: {
         Row: {
           created_at: string
