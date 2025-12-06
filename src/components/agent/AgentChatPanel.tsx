@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Search, Image, FileText, X, Globe, ArrowDown } from "lucide-react";
+import { Search, Image, FileText, X, Globe, ArrowDown, User } from "lucide-react";
 import { CharisLoader } from "@/components/ui/charis-loader";
 import charisLogo from "@/assets/charis-logo-icon.png";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
 import { supabase } from "@/integrations/supabase/client";
 import { LogDetailCard } from "./LogDetailCard";
 import { Button } from "@/components/ui/button";
+import { format, isToday, isYesterday } from "date-fns";
 
 export interface AgentLog {
   id: string;
@@ -23,6 +24,15 @@ export interface AgentLog {
   error_message?: string;
   duration_ms?: number;
   created_at: string;
+}
+
+export interface ChatMessage {
+  id: string;
+  role: "user" | "assistant" | "system";
+  content: string;
+  is_streaming?: boolean;
+  created_at: string;
+  metadata?: any;
 }
 
 interface UploadedFile {
@@ -48,13 +58,20 @@ interface AgentChatPanelProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   sessionId?: string;
+  messages: ChatMessage[];
+  onMessagesChange: (messages: ChatMessage[]) => void;
+  streamingContent?: string;
 }
+
 export function AgentChatPanel({ 
   logs, 
   isRunning, 
   userPrompt, 
   onSubmit, 
-  sessionId 
+  sessionId,
+  messages,
+  onMessagesChange,
+  streamingContent,
 }: AgentChatPanelProps) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [attachedUrls, setAttachedUrls] = useState<AttachedUrl[]>([]);
@@ -118,7 +135,7 @@ export function AgentChatPanel({
         viewport.scrollTop = viewport.scrollHeight;
       }
     }
-  }, [allLogs, isAutoScrollEnabled]);
+  }, [allLogs, messages, isAutoScrollEnabled, streamingContent]);
 
   // Handle scroll to detect manual scrolling
   useEffect(() => {
@@ -178,133 +195,205 @@ export function AgentChatPanel({
     return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
   };
 
-  const formatDuration = (ms?: number) => {
-    if (!ms) return "";
-    if (ms < 1000) return `${ms}ms`;
-    return `${(ms / 1000).toFixed(1)}s`;
+  const formatTimestamp = (dateStr: string) => {
+    const date = new Date(dateStr);
+    if (isToday(date)) {
+      return `Today at ${format(date, 'h:mm a')}`;
+    } else if (isYesterday(date)) {
+      return `Yesterday at ${format(date, 'h:mm a')}`;
+    } else {
+      return format(date, 'MMM d') + ` at ${format(date, 'h:mm a')}`;
+    }
+  };
+
+  // Get logs related to the most recent assistant message
+  const getLogsForMessage = (messageId: string, messageIndex: number) => {
+    // Find logs that were created around the time of this message
+    const message = messages[messageIndex];
+    if (!message || message.role !== 'assistant') return [];
+    
+    const messageTime = new Date(message.created_at).getTime();
+    const prevMessageTime = messageIndex > 0 
+      ? new Date(messages[messageIndex - 1]?.created_at || 0).getTime() 
+      : 0;
+    
+    return allLogs.filter(log => {
+      const logTime = new Date(log.created_at).getTime();
+      return logTime >= prevMessageTime && logTime <= messageTime + 60000; // 1 min buffer
+    });
   };
 
   return (
     <div className="flex flex-col h-full bg-white">
       {/* Chat Messages Area */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4">
-        {/* User Message Bubble */}
-        {userPrompt && (
-          <div className="bg-[#F3F4F6] rounded-lg p-3.5 text-sm text-foreground leading-relaxed">
-            {userPrompt}
-          </div>
-        )}
-
-        {/* Agent Response */}
-        {userPrompt && (
-          <div className="space-y-3">
-            {/* Agent Header */}
-            <div className="flex items-center gap-2">
-              <img src={charisLogo} alt="Charis" className="w-5 h-5 rounded" />
-              <span className="text-sm font-medium text-foreground">Charis</span>
-            </div>
-            
-            {/* Agent Message */}
-            <div className="text-sm text-foreground leading-relaxed">
-              {isRunning ? (
-                <span className="flex items-center gap-2">
-                  <CharisLoader size="xs" />
-                  Processing your request...
-                </span>
-              ) : allLogs.some(l => l.status === "completed") ? (
-                "I've completed the analysis. Check the results on the right panel."
-              ) : (
-                "I'll build a targeted list based on your criteria."
+      <ScrollArea ref={scrollAreaRef} className="flex-1">
+        <div className="p-4 space-y-4">
+          {/* Conversation History */}
+          {messages.map((message, index) => (
+            <div key={message.id} className="space-y-3">
+              {/* User Message */}
+              {message.role === 'user' && (
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2">
+                    <div className="w-5 h-5 rounded bg-muted flex items-center justify-center">
+                      <User className="w-3 h-3 text-muted-foreground" />
+                    </div>
+                    <span className="text-xs text-muted-foreground">
+                      {formatTimestamp(message.created_at)}
+                    </span>
+                  </div>
+                  <div className="bg-muted rounded-lg p-3.5 text-sm text-foreground leading-relaxed ml-7">
+                    {message.content}
+                  </div>
+                </div>
               )}
-            </div>
-          </div>
-        )}
 
-        {/* Task List Container - Lovable.dev Style Expandable Logs */}
-        {(allLogs.length > 0 || isRunning) && (
-          <div className="bg-[#F9FAFB] rounded-lg p-3 border border-border/30 relative">
-            {/* Header with stats */}
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-foreground">
-                  Execution Log
-                </span>
-                {allLogs.length > 0 && (
-                  <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
-                    {completedCount}/{allLogs.length} steps
-                    {failedCount > 0 && <span className="text-red-500 ml-1">• {failedCount} failed</span>}
-                  </span>
-                )}
-              </div>
-              {isRunning && (
-                <div className="flex items-center gap-1.5">
-                  <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
-                  <span className="text-[10px] text-green-600 font-medium">
-                    Live
-                  </span>
+              {/* Assistant Message */}
+              {message.role === 'assistant' && (
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2">
+                    <img src={charisLogo} alt="Charis" className="w-5 h-5 rounded" />
+                    <span className="text-sm font-medium text-foreground">Charis</span>
+                    <span className="text-xs text-muted-foreground">
+                      {formatTimestamp(message.created_at)}
+                    </span>
+                  </div>
+                  
+                  <div className="ml-7 text-sm text-foreground leading-relaxed">
+                    {message.is_streaming ? (
+                      <span className="flex items-start gap-2">
+                        <span className="whitespace-pre-wrap">{streamingContent || message.content}</span>
+                        <span className="inline-block w-2 h-4 bg-primary animate-pulse rounded-sm ml-0.5" />
+                      </span>
+                    ) : (
+                      <span className="whitespace-pre-wrap">{message.content}</span>
+                    )}
+                  </div>
+
+                  {/* Execution Logs for this message */}
+                  {(() => {
+                    const messageLogs = getLogsForMessage(message.id, index);
+                    if (messageLogs.length === 0) return null;
+                    
+                    return (
+                      <div className="ml-7 mt-2 bg-[#F9FAFB] rounded-lg p-3 border border-border/30">
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-muted-foreground">
+                            Execution Log
+                          </span>
+                          <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                            {messageLogs.filter(l => l.status === "completed" || l.status === "success").length}/{messageLogs.length} steps
+                          </span>
+                        </div>
+                        <div className="space-y-2">
+                          {messageLogs.map((log) => (
+                            <LogDetailCard
+                              key={log.id}
+                              id={log.id}
+                              stepName={log.step_name}
+                              status={log.status}
+                              toolName={log.tool_name}
+                              inputData={log.input_data}
+                              outputData={log.output_data}
+                              errorMessage={log.error_message}
+                              durationMs={log.duration_ms}
+                              createdAt={log.created_at}
+                            />
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               )}
             </div>
-            
-            <ScrollArea ref={scrollAreaRef} className="max-h-[400px]">
-              <div className="space-y-2 pr-2">
-                {allLogs.map((log) => (
-                  <LogDetailCard
-                    key={log.id}
-                    id={log.id}
-                    stepName={log.step_name}
-                    status={log.status}
-                    toolName={log.tool_name}
-                    inputData={log.input_data}
-                    outputData={log.output_data}
-                    errorMessage={log.error_message}
-                    durationMs={log.duration_ms}
-                    createdAt={log.created_at}
-                  />
-                ))}
-                
-                {isRunning && allLogs.length === 0 && (
-                  <div className="flex items-center gap-2 py-3 px-2 border border-border/30 rounded-lg bg-white">
-                    <CharisLoader size="xs" />
-                    <span className="text-sm text-muted-foreground">Initializing workflow...</span>
+          ))}
+
+          {/* Current Running State - when there's a prompt but no assistant message yet */}
+          {isRunning && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <img src={charisLogo} alt="Charis" className="w-5 h-5 rounded" />
+                <span className="text-sm font-medium text-foreground">Charis</span>
+              </div>
+              
+              <div className="ml-7 text-sm text-foreground leading-relaxed flex items-center gap-2">
+                <CharisLoader size="xs" />
+                <span>Thinking...</span>
+              </div>
+
+              {/* Live Execution Logs */}
+              {allLogs.length > 0 && (
+                <div className="ml-7 mt-2 bg-[#F9FAFB] rounded-lg p-3 border border-border/30 relative">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-foreground">
+                        Execution Log
+                      </span>
+                      <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                        {completedCount}/{allLogs.length} steps
+                        {failedCount > 0 && <span className="text-red-500 ml-1">• {failedCount} failed</span>}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-[10px] text-green-600 font-medium">Live</span>
+                    </div>
                   </div>
-                )}
-              </div>
-            </ScrollArea>
-
-            {/* Scroll to bottom button */}
-            {showScrollButton && (
-              <div className="absolute bottom-14 left-1/2 -translate-x-1/2">
-                <Button
-                  variant="secondary"
-                  size="sm"
-                  onClick={scrollToBottom}
-                  className="h-7 px-3 text-xs shadow-md border border-border/50"
-                >
-                  <ArrowDown className="h-3 w-3 mr-1" />
-                  Scroll to latest
-                </Button>
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Empty State */}
-        {!userPrompt && allLogs.length === 0 && (
-          <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
-            <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
-              <Search className="h-7 w-7 text-primary" />
+                  
+                  <div className="space-y-2 max-h-[300px] overflow-y-auto">
+                    {allLogs.map((log) => (
+                      <LogDetailCard
+                        key={log.id}
+                        id={log.id}
+                        stepName={log.step_name}
+                        status={log.status}
+                        toolName={log.tool_name}
+                        inputData={log.input_data}
+                        outputData={log.output_data}
+                        errorMessage={log.error_message}
+                        durationMs={log.duration_ms}
+                        createdAt={log.created_at}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-            <h3 className="text-base font-medium text-foreground mb-1.5">Start a conversation</h3>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Ask Charis to analyze competitors, research trends, or generate insights.
-            </p>
-          </div>
-        )}
-      </div>
+          )}
+
+          {/* Empty State */}
+          {messages.length === 0 && !isRunning && (
+            <div className="flex flex-col items-center justify-center h-full text-center px-6 py-12">
+              <div className="w-14 h-14 rounded-xl bg-primary/10 flex items-center justify-center mb-4">
+                <Search className="h-7 w-7 text-primary" />
+              </div>
+              <h3 className="text-base font-medium text-foreground mb-1.5">Start a conversation</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                Ask Charis to analyze competitors, research trends, or generate insights.
+              </p>
+            </div>
+          )}
+        </div>
+      </ScrollArea>
+
+      {/* Scroll to bottom button */}
+      {showScrollButton && (
+        <div className="absolute bottom-20 left-1/2 -translate-x-1/2 z-10">
+          <Button
+            variant="secondary"
+            size="sm"
+            onClick={scrollToBottom}
+            className="h-7 px-3 text-xs shadow-md border border-border/50"
+          >
+            <ArrowDown className="h-3 w-3 mr-1" />
+            Scroll to latest
+          </Button>
+        </div>
+      )}
 
       {/* Bottom Input - Sticky */}
-      <div className="p-3 bg-white">
+      <div className="p-3 bg-white border-t border-border/20">
         {/* Attached URLs Preview */}
         {attachedUrls.length > 0 && (
           <div className="mb-2 flex flex-wrap gap-2">

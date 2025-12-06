@@ -93,6 +93,25 @@ Deno.serve(async (req) => {
       Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? ""
     );
 
+    // Create placeholder assistant message for streaming
+    const { data: assistantMsg, error: msgError } = await supabaseClient
+      .from("agent_chat_messages")
+      .insert({
+        session_id,
+        role: "assistant",
+        content: "",
+        is_streaming: true,
+        metadata: { tool: tool || "general" },
+      })
+      .select()
+      .single();
+
+    if (msgError) {
+      console.error("Failed to create assistant message:", msgError);
+    }
+
+    const assistantMsgId = assistantMsg?.id;
+
     // Log stream start
     await supabaseClient.from("agent_execution_logs").insert({
       session_id,
@@ -138,6 +157,7 @@ Deno.serve(async (req) => {
         let buffer = "";
         let fullResponse = "";
         let toolCalls: any[] = [];
+        let lastUpdateTime = Date.now();
 
         while (true) {
           const { done, value } = await reader.read();
@@ -161,6 +181,16 @@ Deno.serve(async (req) => {
               // Collect content
               if (delta?.content) {
                 fullResponse += delta.content;
+                
+                // Update the assistant message every 500ms to show streaming
+                const now = Date.now();
+                if (assistantMsgId && now - lastUpdateTime > 500) {
+                  await supabaseClient
+                    .from("agent_chat_messages")
+                    .update({ content: fullResponse })
+                    .eq("id", assistantMsgId);
+                  lastUpdateTime = now;
+                }
               }
 
               // Collect tool calls
@@ -219,7 +249,7 @@ Deno.serve(async (req) => {
               await supabaseClient.from("agent_execution_logs").insert({
                 session_id,
                 step_name: "Image Generation",
-                status: "success",
+                status: "completed",
                 tool_name: "generateImage",
                 input_data: args,
                 output_data: toolResult,
@@ -240,7 +270,7 @@ Deno.serve(async (req) => {
               await supabaseClient.from("agent_execution_logs").insert({
                 session_id,
                 step_name: "Web Search",
-                status: "success",
+                status: "completed",
                 tool_name: "searchWeb",
                 input_data: args,
                 output_data: toolResult,
@@ -249,11 +279,23 @@ Deno.serve(async (req) => {
           }
         }
 
+        // Finalize the assistant message
+        if (assistantMsgId) {
+          await supabaseClient
+            .from("agent_chat_messages")
+            .update({
+              content: fullResponse || "I processed your request.",
+              is_streaming: false,
+              metadata: { tool: tool || "general", toolCalls: toolCalls.length },
+            })
+            .eq("id", assistantMsgId);
+        }
+
         // Log completion
         await supabaseClient.from("agent_execution_logs").insert({
           session_id,
           step_name: `AI Processing Complete`,
-          status: "success",
+          status: "completed",
           tool_name: tool || "general",
           output_data: { response: fullResponse, toolCalls: toolCalls.length },
         });
@@ -262,10 +304,23 @@ Deno.serve(async (req) => {
         await writer.close();
       } catch (error) {
         console.error("Stream processing error:", error);
+        
+        // Update assistant message with error
+        if (assistantMsgId) {
+          await supabaseClient
+            .from("agent_chat_messages")
+            .update({
+              content: "Sorry, I encountered an error while processing your request.",
+              is_streaming: false,
+              metadata: { error: true, errorMessage: error.message },
+            })
+            .eq("id", assistantMsgId);
+        }
+        
         await supabaseClient.from("agent_execution_logs").insert({
           session_id,
           step_name: "AI Processing Error",
-          status: "error",
+          status: "failed",
           error_message: error.message,
         });
         await writer.close();

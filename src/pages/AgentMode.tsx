@@ -1,13 +1,13 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Navigate } from "react-router-dom";
-import { AgentChatPanel } from "@/components/agent/AgentChatPanel";
+import { AgentChatPanel, ChatMessage } from "@/components/agent/AgentChatPanel";
 import { AgentWorkspace } from "@/components/agent/AgentWorkspace";
 import { AgentNavbar } from "@/components/agent/AgentNavbar";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from "@/components/ui/resizable";
-import { PanelLeftClose, PanelLeft } from "lucide-react";
+import { PanelLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { CharisLoader } from "@/components/ui/charis-loader";
@@ -43,6 +43,10 @@ export default function AgentMode() {
   const [isLeftPanelCollapsed, setIsLeftPanelCollapsed] = useState(false);
   const [workspaceTitle, setWorkspaceTitle] = useState("Untitled Workspace");
   const [isInitializing, setIsInitializing] = useState(true);
+  
+  // Chat messages state
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [streamingContent, setStreamingContent] = useState<string>("");
   
   // Intermediate data for real-time display
   const [intermediateData, setIntermediateData] = useState<{
@@ -87,6 +91,9 @@ export default function AgentMode() {
             title: existingSession.title || "Untitled Workspace",
           });
           setWorkspaceTitle(existingSession.title || "Untitled Workspace");
+          
+          // Load existing chat messages for this session
+          await loadChatMessages(existingSession.id);
         } else {
           // Create a new session
           const { data: newSession, error: createError } = await supabase
@@ -106,6 +113,7 @@ export default function AgentMode() {
               progress: 0,
               title: newSession.title || "Untitled Workspace",
             });
+            setMessages([]);
           } else if (createError) {
             console.error("[AgentMode] Failed to create session:", createError);
             toast.error("Failed to initialize workspace");
@@ -121,6 +129,94 @@ export default function AgentMode() {
 
     loadOrCreateSession();
   }, [user]);
+
+  // Load chat messages for a session
+  const loadChatMessages = async (sessionId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("agent_chat_messages")
+        .select("*")
+        .eq("session_id", sessionId)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("[AgentMode] Failed to load messages:", error);
+        return;
+      }
+
+      if (data) {
+        setMessages(data.map(msg => ({
+          id: msg.id,
+          role: msg.role as "user" | "assistant" | "system",
+          content: msg.content,
+          is_streaming: msg.is_streaming || false,
+          created_at: msg.created_at,
+          metadata: msg.metadata,
+        })));
+      }
+    } catch (error) {
+      console.error("[AgentMode] Error loading messages:", error);
+    }
+  };
+
+  // Subscribe to real-time chat message updates
+  useEffect(() => {
+    if (!session?.id) return;
+
+    const channel = supabase
+      .channel(`agent-chat-${session.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "agent_chat_messages",
+          filter: `session_id=eq.${session.id}`,
+        },
+        (payload) => {
+          console.log("[AgentMode] Chat message event:", payload.eventType, payload.new);
+          
+          if (payload.eventType === "INSERT") {
+            const newMsg = payload.new as any;
+            setMessages((prev) => {
+              if (prev.find(m => m.id === newMsg.id)) return prev;
+              return [...prev, {
+                id: newMsg.id,
+                role: newMsg.role,
+                content: newMsg.content,
+                is_streaming: newMsg.is_streaming || false,
+                created_at: newMsg.created_at,
+                metadata: newMsg.metadata,
+              }];
+            });
+          } else if (payload.eventType === "UPDATE") {
+            const updatedMsg = payload.new as any;
+            setMessages((prev) =>
+              prev.map((m) =>
+                m.id === updatedMsg.id
+                  ? {
+                      ...m,
+                      content: updatedMsg.content,
+                      is_streaming: updatedMsg.is_streaming || false,
+                      metadata: updatedMsg.metadata,
+                    }
+                  : m
+              )
+            );
+            
+            // If streaming finished, clear streaming content
+            if (!updatedMsg.is_streaming) {
+              setStreamingContent("");
+            }
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [session?.id]);
 
   // Save title to database with debounce
   const handleTitleChange = useCallback((newTitle: string) => {
@@ -174,6 +270,7 @@ export default function AgentMode() {
         setWorkspaceTitle(newSession.title || "Untitled Workspace");
         setLogs([]);
         setPreviewData(null);
+        setMessages([]);
         toast.success("Workspace duplicated");
       }
     } catch (error) {
@@ -227,6 +324,7 @@ export default function AgentMode() {
         setWorkspaceTitle(newSession.title || "Untitled Workspace");
         setLogs([]);
         setPreviewData(null);
+        setMessages([]);
         toast.success("Workspace deleted");
       }
     } catch (error) {
@@ -332,7 +430,7 @@ export default function AgentMode() {
   }, [user, session]);
 
   const handleStartAgent = async (brandData: any) => {
-    if (!user) return;
+    if (!user || !session?.id) return;
 
     try {
       setIsRunning(true);
@@ -340,7 +438,29 @@ export default function AgentMode() {
       setPreviewData(null);
       setIntermediateData({ extractedAds: [], downloadedVideos: [], videoAnalyses: [] });
       setUserPrompt(brandData.prompt || brandData.competitorQuery || "");
+      setStreamingContent("");
       
+      const userMessageContent = brandData.prompt || brandData.competitorQuery || "";
+      
+      // Insert user message into database
+      const { data: userMsg, error: userMsgError } = await supabase
+        .from("agent_chat_messages")
+        .insert({
+          session_id: session.id,
+          role: "user",
+          content: userMessageContent,
+          metadata: {
+            attachedFiles: brandData.attachedFiles,
+            attachedUrls: brandData.attachedUrls,
+          },
+        })
+        .select()
+        .single();
+
+      if (userMsgError) {
+        console.error("Failed to save user message:", userMsgError);
+      }
+
       toast.info("Starting workflow...");
 
       // Call the agent-workflow edge function
@@ -355,6 +475,7 @@ export default function AgentMode() {
             competitorQuery: brandData.competitorQuery || brandData.prompt || "competitors",
             maxCompetitors: brandData.maxCompetitors || 3,
             userId: user.id,
+            sessionId: session.id,
           },
         },
       });
@@ -363,6 +484,15 @@ export default function AgentMode() {
         console.error("Workflow error:", error);
         const errorMessage = error.message || "Failed to start workflow";
         toast.error(errorMessage);
+        
+        // Insert error message
+        await supabase.from("agent_chat_messages").insert({
+          session_id: session.id,
+          role: "assistant",
+          content: `I encountered an error while processing your request: ${errorMessage}`,
+          metadata: { error: true },
+        });
+        
         setIsRunning(false);
         return;
       }
@@ -384,8 +514,28 @@ export default function AgentMode() {
           setPreviewData(null);
         }
         
-        // Show detailed success message
+        // Insert assistant message with results summary
         const { metadata } = data;
+        const summaryMessage = `I've completed the analysis. Here's what I found:
+
+• **Competitors Found:** ${metadata?.competitorsFound || 0}
+• **Ads Extracted:** ${metadata?.adsExtracted || 0}
+• **Videos Analyzed:** ${metadata?.videosAnalyzed || 0}
+
+Check the results panel on the right for detailed insights, scripts, and recommendations.`;
+
+        await supabase.from("agent_chat_messages").insert({
+          session_id: session.id,
+          role: "assistant",
+          content: summaryMessage,
+          metadata: { 
+            success: true,
+            competitorsFound: metadata?.competitorsFound,
+            adsExtracted: metadata?.adsExtracted,
+            videosAnalyzed: metadata?.videosAnalyzed,
+          },
+        });
+        
         toast.success(
           `Workflow completed! Found ${metadata?.competitorsFound || 0} competitors, ${metadata?.adsExtracted || 0} ads, analyzed ${metadata?.videosAnalyzed || 0} videos.`,
           { duration: 5000 }
@@ -393,6 +543,15 @@ export default function AgentMode() {
       } else {
         const errorMessage = data?.error || "Workflow failed";
         toast.error(errorMessage);
+        
+        // Insert error message
+        await supabase.from("agent_chat_messages").insert({
+          session_id: session.id,
+          role: "assistant",
+          content: `I encountered an issue: ${errorMessage}. Please try again or adjust your query.`,
+          metadata: { error: true },
+        });
+        
         setIsRunning(false);
         return;
       }
@@ -402,6 +561,17 @@ export default function AgentMode() {
       console.error("Error starting workflow:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to start workflow";
       toast.error(errorMessage);
+      
+      // Insert error message
+      if (session?.id) {
+        await supabase.from("agent_chat_messages").insert({
+          session_id: session.id,
+          role: "assistant",
+          content: `Sorry, something went wrong: ${errorMessage}`,
+          metadata: { error: true },
+        });
+      }
+      
       setIsRunning(false);
     }
   };
@@ -471,6 +641,9 @@ export default function AgentMode() {
                 isCollapsed={isLeftPanelCollapsed}
                 onToggleCollapse={handleToggleCollapse}
                 sessionId={session?.id}
+                messages={messages}
+                onMessagesChange={setMessages}
+                streamingContent={streamingContent}
               />
             </div>
           </ResizablePanel>
