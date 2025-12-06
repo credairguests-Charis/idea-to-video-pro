@@ -2,6 +2,7 @@
  * Firecrawl Deep Research MCP - Type Definitions
  * 
  * Model Context Protocol (MCP) JSON-RPC 2.0 types for Klavis Firecrawl integration
+ * Updated for Klavis Strata pattern support
  */
 
 // ============= MCP Protocol Types =============
@@ -53,6 +54,54 @@ export interface MCPResourceReference {
   mimeType?: string;
 }
 
+// ============= Klavis Strata Pattern Types =============
+
+export type StrataDetailLevel = "categories_only" | "categories_and_actions" | "full_details";
+
+export interface StrataDiscoveryRequest {
+  user_query: string;
+  server_names?: string[];
+  detail_level?: StrataDetailLevel;
+}
+
+export interface StrataAction {
+  name: string;
+  description: string;
+  parameters?: Record<string, any>;
+}
+
+export interface StrataCategory {
+  name: string;
+  description: string;
+  actions?: StrataAction[];
+}
+
+export interface StrataServer {
+  name: string;
+  description: string;
+  categories?: StrataCategory[];
+}
+
+export interface StrataDiscoveryResult {
+  servers?: StrataServer[];
+  categories?: StrataCategory[];
+  actions?: StrataAction[];
+}
+
+export interface StrataExecuteRequest {
+  server_name: string;
+  category_name: string;
+  action_name: string;
+  body_schema: string; // JSON stringified parameters
+}
+
+export interface StrataExecuteResult {
+  success: boolean;
+  content?: any;
+  data?: any;
+  error?: string;
+}
+
 // ============= Firecrawl Deep Research Types =============
 
 export interface FirecrawlDeepResearchQuery {
@@ -60,6 +109,9 @@ export interface FirecrawlDeepResearchQuery {
   max_results?: number;
   include_video_urls?: boolean;
   platforms?: ("meta" | "facebook" | "instagram")[];
+  maxDepth?: number;
+  maxUrls?: number;
+  timeLimit?: number;
 }
 
 export interface CompetitorVideoAd {
@@ -87,13 +139,15 @@ export interface FirecrawlDeepResearchResult {
   total_found: number;
   query: string;
   timestamp: string;
+  source?: "klavis_mcp" | "fallback";
+  methods_tried?: string[];
 }
 
 // ============= MCP Client Config =============
 
 export interface MCPClientConfig {
   endpoint: string;
-  bearerToken: string;
+  bearerToken?: string; // Optional - Klavis Streamable HTTP URL contains auth
   timeout?: number;
   maxRetries?: number;
   retryDelay?: number;
