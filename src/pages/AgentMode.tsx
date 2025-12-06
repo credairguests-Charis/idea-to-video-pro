@@ -60,6 +60,99 @@ export default function AgentMode() {
   });
   const leftPanelRef = useRef<any>(null);
   const titleSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const streamAbortRef = useRef<AbortController | null>(null);
+
+  // Stream AI response using SSE
+  const streamAIResponse = async (sessionId: string, prompt: string) => {
+    try {
+      // Abort any existing stream
+      if (streamAbortRef.current) {
+        streamAbortRef.current.abort();
+      }
+      streamAbortRef.current = new AbortController();
+
+      const response = await fetch(
+        `https://kopclhksdjbheypwsvxz.supabase.co/functions/v1/agent-stream`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvcGNsaGtzZGpiaGV5cHdzdnh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwNDgzMDYsImV4cCI6MjA3MzYyNDMwNn0._e_cWqsWbWqtlb3bQlW9G6PgPKW_ibTivdUs1kXxGYo`,
+          },
+          body: JSON.stringify({
+            session_id: sessionId,
+            prompt: prompt,
+          }),
+          signal: streamAbortRef.current.signal,
+        }
+      );
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          toast.error("Rate limit exceeded, please try again later.");
+          return;
+        }
+        if (response.status === 402) {
+          toast.error("Please add credits to continue.");
+          return;
+        }
+        const errorText = await response.text();
+        console.error("Stream error:", response.status, errorText);
+        return;
+      }
+
+      if (!response.body) {
+        console.error("No response body");
+        return;
+      }
+
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let buffer = "";
+      let fullContent = "";
+
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+
+        // Process line by line
+        let newlineIndex: number;
+        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
+          let line = buffer.slice(0, newlineIndex);
+          buffer = buffer.slice(newlineIndex + 1);
+
+          if (line.endsWith("\r")) line = line.slice(0, -1);
+          if (line.startsWith(":") || line.trim() === "") continue;
+          if (!line.startsWith("data: ")) continue;
+
+          const jsonStr = line.slice(6).trim();
+          if (jsonStr === "[DONE]") break;
+
+          try {
+            const parsed = JSON.parse(jsonStr);
+            const content = parsed.choices?.[0]?.delta?.content;
+            if (content) {
+              fullContent += content;
+              setStreamingContent(fullContent);
+            }
+          } catch {
+            // Incomplete JSON, put back and wait
+            buffer = line + "\n" + buffer;
+            break;
+          }
+        }
+      }
+
+      // Clear streaming content after done (message will be in DB)
+      setStreamingContent("");
+    } catch (error: any) {
+      if (error.name !== "AbortError") {
+        console.error("Streaming error:", error);
+      }
+    }
+  };
 
   // Load or create session on mount
   useEffect(() => {
@@ -92,8 +185,11 @@ export default function AgentMode() {
           });
           setWorkspaceTitle(existingSession.title || "Untitled Workspace");
           
-          // Load existing chat messages for this session
-          await loadChatMessages(existingSession.id);
+          // Load existing chat messages and logs for this session
+          await Promise.all([
+            loadChatMessages(existingSession.id),
+            loadExecutionLogs(existingSession.id),
+          ]);
         } else {
           // Create a new session
           const { data: newSession, error: createError } = await supabase
@@ -156,6 +252,28 @@ export default function AgentMode() {
       }
     } catch (error) {
       console.error("[AgentMode] Error loading messages:", error);
+    }
+  };
+
+  // Load execution logs for a session
+  const loadExecutionLogs = async (sessionId: string) => {
+    try {
+      const { data, error } = await supabase
+        .from("agent_execution_logs")
+        .select("*")
+        .eq("session_id", sessionId)
+        .order("created_at", { ascending: true });
+
+      if (error) {
+        console.error("[AgentMode] Failed to load logs:", error);
+        return;
+      }
+
+      if (data) {
+        setLogs(data as AgentLog[]);
+      }
+    } catch (error) {
+      console.error("[AgentMode] Error loading logs:", error);
     }
   };
 
@@ -351,59 +469,71 @@ export default function AgentMode() {
       .on(
         "postgres_changes",
         {
-          event: "INSERT",
+          event: "*",
           schema: "public",
           table: "agent_execution_logs",
           filter: `session_id=eq.${session.id}`,
         },
         (payload) => {
-          const newLog = payload.new as AgentLog;
-          setLogs((prev) => [...prev, newLog]);
+          console.log("[AgentMode] Log event:", payload.eventType, payload.new);
           
-          // Extract intermediate data from logs for real-time preview
-          if (newLog.output_data) {
-            const output = newLog.output_data;
+          if (payload.eventType === "INSERT") {
+            const newLog = payload.new as AgentLog;
+            setLogs((prev) => {
+              if (prev.find(l => l.id === newLog.id)) return prev;
+              return [...prev, newLog];
+            });
             
-            // Update extracted ads
-            if (output.ads && Array.isArray(output.ads)) {
-              setIntermediateData(prev => ({
-                ...prev,
-                extractedAds: [...prev.extractedAds, ...output.ads]
-              }));
+            // Extract intermediate data from logs for real-time preview
+            if (newLog.output_data) {
+              const output = newLog.output_data;
+              
+              // Update extracted ads
+              if (output.ads && Array.isArray(output.ads)) {
+                setIntermediateData(prev => ({
+                  ...prev,
+                  extractedAds: [...prev.extractedAds, ...output.ads]
+                }));
+              }
+              
+              // Update downloaded videos
+              if (output.downloaded_videos && Array.isArray(output.downloaded_videos)) {
+                setIntermediateData(prev => ({
+                  ...prev,
+                  downloadedVideos: [...prev.downloadedVideos, ...output.downloaded_videos]
+                }));
+              }
+              if (output.videos && Array.isArray(output.videos)) {
+                setIntermediateData(prev => ({
+                  ...prev,
+                  downloadedVideos: [...prev.downloadedVideos, ...output.videos]
+                }));
+              }
+              
+              // Update video analyses
+              if (output.analyses && Array.isArray(output.analyses)) {
+                setIntermediateData(prev => ({
+                  ...prev,
+                  videoAnalyses: [...prev.videoAnalyses, ...output.analyses]
+                }));
+              }
+              if (output.video_analyses && Array.isArray(output.video_analyses)) {
+                setIntermediateData(prev => ({
+                  ...prev,
+                  videoAnalyses: [...prev.videoAnalyses, ...output.video_analyses]
+                }));
+              }
+              
+              // Update preview data with latest synthesis
+              if (output.synthesisId || output.suggestedScripts || output.adAnalyses) {
+                setPreviewData(output);
+              }
             }
-            
-            // Update downloaded videos
-            if (output.downloaded_videos && Array.isArray(output.downloaded_videos)) {
-              setIntermediateData(prev => ({
-                ...prev,
-                downloadedVideos: [...prev.downloadedVideos, ...output.downloaded_videos]
-              }));
-            }
-            if (output.videos && Array.isArray(output.videos)) {
-              setIntermediateData(prev => ({
-                ...prev,
-                downloadedVideos: [...prev.downloadedVideos, ...output.videos]
-              }));
-            }
-            
-            // Update video analyses
-            if (output.analyses && Array.isArray(output.analyses)) {
-              setIntermediateData(prev => ({
-                ...prev,
-                videoAnalyses: [...prev.videoAnalyses, ...output.analyses]
-              }));
-            }
-            if (output.video_analyses && Array.isArray(output.video_analyses)) {
-              setIntermediateData(prev => ({
-                ...prev,
-                videoAnalyses: [...prev.videoAnalyses, ...output.video_analyses]
-              }));
-            }
-            
-            // Update preview data with latest synthesis
-            if (output.synthesisId || output.suggestedScripts || output.adAnalyses) {
-              setPreviewData(output);
-            }
+          } else if (payload.eventType === "UPDATE") {
+            const updatedLog = payload.new as AgentLog;
+            setLogs((prev) => 
+              prev.map((l) => l.id === updatedLog.id ? updatedLog : l)
+            );
           }
         }
       )
@@ -461,7 +591,11 @@ export default function AgentMode() {
         console.error("Failed to save user message:", userMsgError);
       }
 
-      toast.info("Starting workflow...");
+      // Stream AI response first for immediate feedback
+      await streamAIResponse(session.id, userMessageContent);
+
+      // Then run the full workflow in background
+      toast.info("Starting analysis workflow...");
 
       // Call the agent-workflow edge function
       const { data, error } = await supabase.functions.invoke("agent-workflow", {
@@ -484,15 +618,6 @@ export default function AgentMode() {
         console.error("Workflow error:", error);
         const errorMessage = error.message || "Failed to start workflow";
         toast.error(errorMessage);
-        
-        // Insert error message
-        await supabase.from("agent_chat_messages").insert({
-          session_id: session.id,
-          role: "assistant",
-          content: `I encountered an error while processing your request: ${errorMessage}`,
-          metadata: { error: true },
-        });
-        
         setIsRunning(false);
         return;
       }

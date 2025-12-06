@@ -54,6 +54,12 @@ enable_confirmations = false
 [functions.agent-workflow]
 verify_jwt = false
 
+[functions.agent-stream]
+verify_jwt = false
+
+[functions.agent-start]
+verify_jwt = false
+
 [functions.mcp-firecrawl-tool]
 verify_jwt = false
 
