@@ -63,14 +63,19 @@ serve(async (req) => {
       supabase = createClient(supabaseUrl, supabaseKey);
     }
 
-    // Helper to log progress
+    // Helper to log progress - ONLY uses valid status values: started, completed, failed, skipped
     const logProgress = async (status: string, message: string, data?: any) => {
       if (session_id && supabase) {
         try {
+          // Map invalid status values to valid ones
+          const validStatus = status === "running" || status === "in_progress" ? "started" :
+                             status === "warning" || status === "error" ? "failed" :
+                             ["started", "completed", "failed", "skipped"].includes(status) ? status : "started";
+          
           await supabase.from("agent_execution_logs").insert({
             session_id,
             step_name: "MCP Deep Research",
-            status,
+            status: validStatus,
             tool_name: "firecrawl",
             input_data: { message, tool_icon: "🔥" },
             output_data: data,
@@ -101,7 +106,7 @@ serve(async (req) => {
       );
     }
 
-    await logProgress("running", "Connecting to MCP Firecrawl service...");
+    await logProgress("started", "Connecting to MCP Firecrawl service...");
 
     // Build MCP request
     const mcpRequestBody = {

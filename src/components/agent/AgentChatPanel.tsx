@@ -172,14 +172,18 @@ export function AgentChatPanel({
   });
 
   const getStatusIcon = (status: string, toolName?: string, inputData?: any) => {
-    if (status === "running" || status === "in_progress") {
+    // Handle all possible status values including "started" which is the valid DB value
+    if (status === "running" || status === "in_progress" || status === "started") {
       return <CharisLoader size="xs" />;
     }
     if (status === "success" || status === "completed") {
       return <Check className="h-3.5 w-3.5 text-green-600" />;
     }
-    if (status === "failed") {
+    if (status === "failed" || status === "error") {
       return <X className="h-3.5 w-3.5 text-red-500" />;
+    }
+    if (status === "skipped") {
+      return <Check className="h-3.5 w-3.5 text-muted-foreground" />;
     }
     return getToolIcon(toolName, inputData);
   };
@@ -259,7 +263,7 @@ export function AgentChatPanel({
                   <div
                     key={task.id}
                     className={`flex items-start gap-2 py-2 px-2 rounded transition-colors ${
-                      task.status === "running" ? "bg-primary/5" : ""
+                      task.status === "running" || task.status === "started" ? "bg-primary/5" : ""
                     }`}
                   >
                     <div className="mt-0.5">
@@ -268,7 +272,7 @@ export function AgentChatPanel({
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
                         <span className={`text-sm truncate ${
-                          task.status === "running" ? "text-foreground font-medium" : "text-muted-foreground"
+                          task.status === "running" || task.status === "started" ? "text-foreground font-medium" : "text-muted-foreground"
                         }`}>
                           {task.text}
                         </span>
@@ -279,8 +283,8 @@ export function AgentChatPanel({
                         )}
                       </div>
                       
-                      {/* Progress bar for running tasks */}
-                      {task.status === "running" && task.progress !== undefined && (
+                      {/* Progress bar for running/started tasks */}
+                      {(task.status === "running" || task.status === "started") && task.progress !== undefined && (
                         <div className="mt-1.5 w-full bg-muted rounded-full h-1">
                           <div 
                             className="bg-primary h-1 rounded-full transition-all duration-500"
@@ -309,7 +313,7 @@ export function AgentChatPanel({
                     </div>
                     
                     {/* Tool badge */}
-                    {task.toolName && task.status !== "running" && (
+                    {task.toolName && task.status !== "running" && task.status !== "started" && (
                       <div className="flex-shrink-0">
                         {getToolIcon(task.toolName, task.inputData)}
                       </div>
