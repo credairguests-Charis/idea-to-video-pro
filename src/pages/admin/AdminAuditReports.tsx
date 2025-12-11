@@ -20,7 +20,7 @@ import {
 } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
 import { format } from "date-fns";
-import { Search, FileText, ExternalLink, RefreshCw, Filter } from "lucide-react";
+import { Search, FileText, ExternalLink, RefreshCw, Filter, Download } from "lucide-react";
 import { CharisLoader } from "@/components/ui/charis-loader";
 import { useToast } from "@/hooks/use-toast";
 
@@ -43,6 +43,7 @@ export default function AdminAuditReports() {
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [exportingId, setExportingId] = useState<string | null>(null);
   const { toast } = useToast();
 
   const fetchReports = async () => {
@@ -139,6 +140,56 @@ export default function AdminAuditReports() {
     const keys = Object.keys(data);
     if (keys.length === 0) return "No data";
     return `${keys.length} sections`;
+  };
+
+  const handleExportPdf = async (report: AuditReport) => {
+    setExportingId(report.id);
+    try {
+      // If report already has a URL, download it directly
+      if (report.report_url) {
+        window.open(report.report_url, "_blank");
+        toast({
+          title: "Opening Report",
+          description: "The report is opening in a new tab",
+        });
+        setExportingId(null);
+        return;
+      }
+
+      // Generate PDF using edge function
+      const { data, error } = await supabase.functions.invoke("pdf-generator", {
+        body: {
+          auditData: report.report_data,
+          brandName: report.brand_name,
+          sessionId: report.session_id || report.id,
+          userId: report.user_id,
+        },
+      });
+
+      if (error) throw error;
+
+      if (data?.reportUrl) {
+        window.open(data.reportUrl, "_blank");
+        toast({
+          title: "PDF Generated",
+          description: "Your report is ready and opening in a new tab",
+        });
+        
+        // Refresh reports to get updated URL
+        fetchReports();
+      } else {
+        throw new Error("No report URL returned");
+      }
+    } catch (error) {
+      console.error("Error exporting PDF:", error);
+      toast({
+        title: "Export Failed",
+        description: "Failed to generate PDF report",
+        variant: "destructive",
+      });
+    } finally {
+      setExportingId(null);
+    }
   };
 
   return (
@@ -246,24 +297,39 @@ export default function AdminAuditReports() {
                           : "-"}
                       </TableCell>
                       <TableCell>
-                        {report.report_url ? (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            asChild
-                          >
-                            <a
-                              href={report.report_url}
-                              target="_blank"
-                              rel="noopener noreferrer"
+                        <div className="flex items-center gap-2">
+                          {report.report_url ? (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              asChild
                             >
-                              <ExternalLink className="h-4 w-4 mr-1" />
-                              View
-                            </a>
+                              <a
+                                href={report.report_url}
+                                target="_blank"
+                                rel="noopener noreferrer"
+                              >
+                                <ExternalLink className="h-4 w-4 mr-1" />
+                                View
+                              </a>
+                            </Button>
+                          ) : null}
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => handleExportPdf(report)}
+                            disabled={exportingId === report.id}
+                          >
+                            {exportingId === report.id ? (
+                              <CharisLoader size="xs" />
+                            ) : (
+                              <>
+                                <Download className="h-4 w-4 mr-1" />
+                                PDF
+                              </>
+                            )}
                           </Button>
-                        ) : (
-                          <span className="text-muted-foreground text-sm">-</span>
-                        )}
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
