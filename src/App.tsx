@@ -32,6 +32,7 @@ import AdminLinks from "./pages/admin/AdminLinks";
 import AdminMarketingLinks from "./pages/admin/AdminMarketingLinks";
 import AdminLogs from "./pages/admin/AdminLogs";
 import AdminUsers from "./pages/admin/AdminUsers";
+import AdminAuditReports from "./pages/admin/AdminAuditReports";
 
 const queryClient = new QueryClient();
 
@@ -109,6 +110,13 @@ const App = () => {
             <AdminGuard>
               <AdminLayout>
                 <AdminMarketingLinks />
+              </AdminLayout>
+            </AdminGuard>
+          } />
+          <Route path="/admin/audit-reports" element={
+            <AdminGuard>
+              <AdminLayout>
+                <AdminAuditReports />
               </AdminLayout>
             </AdminGuard>
           } />
