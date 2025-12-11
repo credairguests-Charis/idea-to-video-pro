@@ -71,6 +71,7 @@ export default function AgentMode() {
       }
       streamAbortRef.current = new AbortController();
 
+      // Use new LangChain agent for streaming
       const response = await fetch(
         `https://kopclhksdjbheypwsvxz.supabase.co/functions/v1/agent-stream`,
         {
@@ -82,6 +83,7 @@ export default function AgentMode() {
           body: JSON.stringify({
             session_id: sessionId,
             prompt: prompt,
+            use_langchain: true, // Flag to use new LangChain agent
           }),
           signal: streamAbortRef.current.signal,
         }

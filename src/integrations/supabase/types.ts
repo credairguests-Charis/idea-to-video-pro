@@ -59,6 +59,94 @@ export type Database = {
         }
         Relationships: []
       }
+      ad_audit_reports: {
+        Row: {
+          brand_name: string
+          completed_at: string | null
+          created_at: string | null
+          id: string
+          report_data: Json
+          report_url: string | null
+          session_id: string | null
+          status: string | null
+          user_id: string
+        }
+        Insert: {
+          brand_name: string
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          report_data?: Json
+          report_url?: string | null
+          session_id?: string | null
+          status?: string | null
+          user_id: string
+        }
+        Update: {
+          brand_name?: string
+          completed_at?: string | null
+          created_at?: string | null
+          id?: string
+          report_data?: Json
+          report_url?: string | null
+          session_id?: string | null
+          status?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_audit_reports_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "agent_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      ad_embeddings: {
+        Row: {
+          ad_type: string | null
+          brand_name: string | null
+          content: string
+          created_at: string | null
+          embedding: string | null
+          id: string
+          metadata: Json | null
+          session_id: string | null
+          user_id: string
+        }
+        Insert: {
+          ad_type?: string | null
+          brand_name?: string | null
+          content: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          user_id: string
+        }
+        Update: {
+          ad_type?: string | null
+          brand_name?: string | null
+          content?: string
+          created_at?: string | null
+          embedding?: string | null
+          id?: string
+          metadata?: Json | null
+          session_id?: string | null
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ad_embeddings_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "agent_sessions"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_alerts: {
         Row: {
           alert_type: string
@@ -399,6 +487,62 @@ export type Database = {
             columns: ["project_id"]
             isOneToOne: false
             referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      competitor_videos: {
+        Row: {
+          ad_copy: string | null
+          advertiser_name: string | null
+          analysis: Json | null
+          created_at: string | null
+          cta_text: string | null
+          embedding: string | null
+          frames: Json | null
+          id: string
+          session_id: string | null
+          storage_path: string | null
+          thumbnail_url: string | null
+          user_id: string
+          video_url: string
+        }
+        Insert: {
+          ad_copy?: string | null
+          advertiser_name?: string | null
+          analysis?: Json | null
+          created_at?: string | null
+          cta_text?: string | null
+          embedding?: string | null
+          frames?: Json | null
+          id?: string
+          session_id?: string | null
+          storage_path?: string | null
+          thumbnail_url?: string | null
+          user_id: string
+          video_url: string
+        }
+        Update: {
+          ad_copy?: string | null
+          advertiser_name?: string | null
+          analysis?: Json | null
+          created_at?: string | null
+          cta_text?: string | null
+          embedding?: string | null
+          frames?: Json | null
+          id?: string
+          session_id?: string | null
+          storage_path?: string | null
+          thumbnail_url?: string | null
+          user_id?: string
+          video_url?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "competitor_videos_session_id_fkey"
+            columns: ["session_id"]
+            isOneToOne: false
+            referencedRelation: "agent_sessions"
             referencedColumns: ["id"]
           },
         ]
@@ -973,6 +1117,33 @@ export type Database = {
           },
         ]
       }
+      scraping_cache: {
+        Row: {
+          created_at: string | null
+          expires_at: string
+          id: string
+          scraped_data: Json
+          url: string
+          url_hash: string
+        }
+        Insert: {
+          created_at?: string | null
+          expires_at: string
+          id?: string
+          scraped_data: Json
+          url: string
+          url_hash: string
+        }
+        Update: {
+          created_at?: string | null
+          expires_at?: string
+          id?: string
+          scraped_data?: Json
+          url?: string
+          url_hash?: string
+        }
+        Relationships: []
+      }
       transaction_logs: {
         Row: {
           created_at: string
@@ -1149,6 +1320,24 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      match_ad_embeddings: {
+        Args: {
+          filter_brand_name?: string
+          filter_user_id?: string
+          match_count?: number
+          match_threshold?: number
+          query_embedding: string
+        }
+        Returns: {
+          ad_type: string
+          brand_name: string
+          content: string
+          id: string
+          metadata: Json
+          similarity: number
+          user_id: string
+        }[]
       }
       match_agent_memory: {
         Args: {
