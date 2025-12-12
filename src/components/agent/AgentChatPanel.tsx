@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, useCallback } from "react";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Search, Image, FileText, X, Globe, ArrowDown, User } from "lucide-react";
 import { CharisLoader } from "@/components/ui/charis-loader";
@@ -6,8 +6,10 @@ import charisLogo from "@/assets/charis-logo-icon.png";
 import { PromptInputBox } from "@/components/ui/ai-prompt-box";
 import { supabase } from "@/integrations/supabase/client";
 import { LogDetailCard } from "./LogDetailCard";
+import { StreamingLogCard } from "./StreamingLogCard";
 import { Button } from "@/components/ui/button";
 import { format, isToday, isYesterday } from "date-fns";
+import { useAgentStream, StreamEvent } from "@/hooks/useAgentStream";
 
 export interface AgentLog {
   id: string;
@@ -58,9 +60,11 @@ interface AgentChatPanelProps {
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
   sessionId?: string;
+  userId?: string;
   messages: ChatMessage[];
   onMessagesChange: (messages: ChatMessage[]) => void;
   streamingContent?: string;
+  onStreamingContentChange?: (content: string) => void;
 }
 
 export function AgentChatPanel({ 
@@ -69,17 +73,55 @@ export function AgentChatPanel({
   userPrompt, 
   onSubmit, 
   sessionId,
+  userId,
   messages,
   onMessagesChange,
   streamingContent,
+  onStreamingContentChange,
 }: AgentChatPanelProps) {
   const [uploadedFiles, setUploadedFiles] = useState<UploadedFile[]>([]);
   const [attachedUrls, setAttachedUrls] = useState<AttachedUrl[]>([]);
   const [realtimeLogs, setRealtimeLogs] = useState<AgentLog[]>([]);
   const [showScrollButton, setShowScrollButton] = useState(false);
   const [isAutoScrollEnabled, setIsAutoScrollEnabled] = useState(true);
+  const [streamEvents, setStreamEvents] = useState<StreamEvent[]>([]);
+  const [localStreamContent, setLocalStreamContent] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
+
+  // LangChain-style streaming hook
+  const {
+    isStreaming,
+    currentStep,
+    progress,
+    streamedContent,
+    events,
+    error,
+    startStream,
+    stopStream,
+  } = useAgentStream({
+    sessionId: sessionId || "",
+    userId: userId || "",
+    streamModes: ["updates", "messages", "custom"],
+    onToken: useCallback((token: string, fullContent: string) => {
+      setLocalStreamContent(fullContent);
+      onStreamingContentChange?.(fullContent);
+    }, [onStreamingContentChange]),
+    onStepStart: useCallback((step: string, data: any) => {
+      console.log("[AgentChatPanel] Step started:", step, data);
+    }, []),
+    onStepEnd: useCallback((step: string, data: any) => {
+      console.log("[AgentChatPanel] Step ended:", step, data);
+    }, []),
+    onError: useCallback((err: string) => {
+      console.error("[AgentChatPanel] Stream error:", err);
+    }, []),
+  });
+
+  // Update stream events when they change
+  useEffect(() => {
+    setStreamEvents(events);
+  }, [events]);
 
   // Combine passed logs with realtime logs - with null safety
   const safeLogs = Array.isArray(logs) ? logs : [];
@@ -309,21 +351,76 @@ export function AgentChatPanel({
             </div>
           ))}
 
-          {/* Current Running State - when there's a prompt but no assistant message yet */}
-          {isRunning && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
+          {/* Current Running State - LangChain-style streaming display */}
+          {(isRunning || isStreaming) && messages.length > 0 && messages[messages.length - 1]?.role === 'user' && (
             <div className="space-y-3">
               <div className="flex items-center gap-2">
                 <img src={charisLogo} alt="Charis" className="w-5 h-5 rounded" />
                 <span className="text-sm font-medium text-foreground">Charis</span>
+                {currentStep && (
+                  <span className="text-xs text-muted-foreground">• {currentStep}</span>
+                )}
               </div>
               
-              <div className="ml-7 text-sm text-foreground leading-relaxed flex items-center gap-2">
-                <CharisLoader size="xs" />
-                <span>Thinking...</span>
-              </div>
+              {/* Streamed content display */}
+              {(localStreamContent || streamedContent) ? (
+                <div className="ml-7 text-sm text-foreground leading-relaxed">
+                  <span className="whitespace-pre-wrap">{localStreamContent || streamedContent}</span>
+                  <span className="inline-block w-2 h-4 bg-primary animate-pulse rounded-sm ml-0.5" />
+                </div>
+              ) : (
+                <div className="ml-7 text-sm text-foreground leading-relaxed flex items-center gap-2">
+                  <CharisLoader size="xs" />
+                  <span>Thinking...</span>
+                </div>
+              )}
 
-              {/* Live Execution Logs */}
-              {allLogs.length > 0 && (
+              {/* Progress bar */}
+              {progress > 0 && progress < 100 && (
+                <div className="ml-7 mt-2">
+                  <div className="flex items-center justify-between text-[10px] text-muted-foreground mb-1">
+                    <span>Progress</span>
+                    <span>{progress}%</span>
+                  </div>
+                  <div className="h-1 bg-muted rounded-full overflow-hidden">
+                    <div 
+                      className="h-full bg-primary transition-all duration-300"
+                      style={{ width: `${progress}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* LangChain-style Live Stream Events */}
+              {streamEvents.length > 0 && (
+                <div className="ml-7 mt-2 bg-[#F9FAFB] rounded-lg p-3 border border-border/30 relative">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-foreground">
+                        Agent Activity
+                      </span>
+                      <span className="text-[10px] text-muted-foreground bg-muted/50 px-1.5 py-0.5 rounded">
+                        {streamEvents.filter(e => e.type === "step_end").length}/{streamEvents.filter(e => e.type === "step_start" || e.type === "step_end").length} steps
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <div className="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+                      <span className="text-[10px] text-green-600 font-medium">Streaming</span>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-1.5 max-h-[250px] overflow-y-auto">
+                    {streamEvents
+                      .filter(e => e.mode === "updates" && e.type !== "token")
+                      .map((event, idx) => (
+                        <StreamingLogCard key={`${event.timestamp}-${idx}`} event={event} />
+                      ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Fallback to traditional logs if no stream events */}
+              {streamEvents.length === 0 && allLogs.length > 0 && (
                 <div className="ml-7 mt-2 bg-[#F9FAFB] rounded-lg p-3 border border-border/30 relative">
                   <div className="flex items-center justify-between mb-2">
                     <div className="flex items-center gap-2">
