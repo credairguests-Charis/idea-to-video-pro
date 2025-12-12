@@ -63,6 +63,12 @@ verify_jwt = false
 [functions.gpt4o-vision-analysis]
 verify_jwt = false
 
+[functions.gemini-vision-analysis]
+verify_jwt = false
+
+[functions.firecrawl-mcp-scraper]
+verify_jwt = false
+
 [functions.pdf-generator]
 verify_jwt = false
 
