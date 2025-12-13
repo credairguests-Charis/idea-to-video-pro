@@ -545,13 +545,22 @@ export function AgentChatPanel({
         <PromptInputBox
           onSend={(message) => {
             if (!message.trim() && uploadedFiles.length === 0 && attachedUrls.length === 0) return;
+
+            const trimmed = message.trim();
+
+            // Start LangChain-style streaming via agent-stream for live logs
+            // This will power the "Agent Activity" panel with StreamingLogCard events
+            startStream(trimmed, "Agent Query");
+
+            // Kick off the full backend workflow (agent-workflow) for deep analysis
             onSubmit({
-              prompt: message.trim(),
+              prompt: trimmed,
               brandName: "Agent Query",
-              competitorQuery: message.trim(),
+              competitorQuery: trimmed,
               attachedFiles: uploadedFiles.map(f => ({ name: f.name, url: f.url, type: f.type })),
               attachedUrls: attachedUrls.map(u => ({ url: u.url, title: u.title })),
             });
+
             setUploadedFiles([]);
             setAttachedUrls([]);
           }}
