@@ -75,7 +75,8 @@ const TOOLS = [
 
 // Lovable AI Gateway configuration
 const LOVABLE_AI_ENDPOINT = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const DEFAULT_MODEL = "google/gemini-3-pro-preview";
+// Using gemini-2.5-flash as it properly supports tool calling without thought_signature issues
+const DEFAULT_MODEL = "google/gemini-2.5-flash";
 
 // Tool icons mapping
 const toolIcons: Record<string, string> = {
