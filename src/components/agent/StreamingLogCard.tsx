@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronRight, CheckCircle2, XCircle, Loader2, Clock } from "lucide-react";
+import { ChevronDown, ChevronRight, CheckCircle2, XCircle, Loader2, Clock, ListChecks } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { StreamEvent } from "@/hooks/useAgentStream";
 
@@ -20,6 +20,8 @@ export function StreamingLogCard({ event, isExpanded: defaultExpanded = false }:
       case "step_error":
       case "error":
         return <XCircle className="h-3.5 w-3.5 text-red-500" />;
+      case "plan_created":
+        return <ListChecks className="h-3.5 w-3.5 text-purple-500" />;
       default:
         return <Clock className="h-3.5 w-3.5 text-muted-foreground" />;
     }
@@ -46,10 +48,22 @@ export function StreamingLogCard({ event, isExpanded: defaultExpanded = false }:
             Error
           </span>
         );
-      case "token":
+      case "plan_created":
         return (
           <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-100 text-purple-700 font-medium">
-            Token
+            Plan
+          </span>
+        );
+      case "session_start":
+        return (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-indigo-100 text-indigo-700 font-medium">
+            Start
+          </span>
+        );
+      case "session_end":
+        return (
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-green-100 text-green-700 font-medium">
+            Complete
           </span>
         );
       default:
@@ -63,15 +77,22 @@ export function StreamingLogCard({ event, isExpanded: defaultExpanded = false }:
 
     switch (event.node) {
       case "model":
+      case "llm":
         return "🧠";
-      case "tools":
-        return "🔧";
-      case "gemini":
-        return "✨";
-      case "firecrawl":
+      case "thinking":
+        return "💭";
+      case "plan_task":
+        return "📋";
+      case "scrape_meta_ads":
         return "🔥";
-      case "mcp":
-        return "🔌";
+      case "download_video":
+        return "⬇️";
+      case "analyze_ad_creative":
+        return "👁️";
+      case "search_web":
+        return "🔎";
+      case "complete_task":
+        return "✅";
       default:
         return "⚙️";
     }
@@ -85,9 +106,77 @@ export function StreamingLogCard({ event, isExpanded: defaultExpanded = false }:
     });
   };
 
+  const getDisplayName = () => {
+    const step = event.step || event.node || event.type;
+    
+    // Make step names more readable
+    if (step?.startsWith("Executing:")) {
+      return step.replace("Executing: ", "");
+    }
+    if (step?.startsWith("Agent Thinking")) {
+      return "Thinking...";
+    }
+    
+    return step;
+  };
+
   // Filter out token events for the main log view (too noisy)
   if (event.type === "token") {
     return null;
+  }
+
+  // Render plan created event specially
+  if (event.type === "plan_created" && event.data?.plan) {
+    return (
+      <div className="bg-purple-50 rounded-md border border-purple-200 overflow-hidden">
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className="w-full flex items-center gap-2 p-2 hover:bg-purple-100/50 transition-colors text-left"
+        >
+          {isExpanded ? (
+            <ChevronDown className="h-3 w-3 text-purple-500 shrink-0" />
+          ) : (
+            <ChevronRight className="h-3 w-3 text-purple-500 shrink-0" />
+          )}
+          
+          <ListChecks className="h-3.5 w-3.5 text-purple-500" />
+          
+          <span className="text-xs font-medium text-purple-700 truncate flex-1">
+            Execution Plan Created
+          </span>
+          
+          <span className="text-[10px] px-1.5 py-0.5 rounded bg-purple-200 text-purple-800 font-medium">
+            {event.data.plan.steps?.length || 0} steps
+          </span>
+        </button>
+
+        {isExpanded && (
+          <div className="px-3 pb-3 pt-1 border-t border-purple-200">
+            {event.data.plan.task_analysis && (
+              <p className="text-xs text-purple-700 mb-2">
+                {event.data.plan.task_analysis}
+              </p>
+            )}
+            
+            {event.data.plan.steps && (
+              <div className="space-y-1">
+                {event.data.plan.steps.map((step: any, idx: number) => (
+                  <div key={idx} className="flex items-start gap-2 text-[11px]">
+                    <span className="text-purple-500 font-medium">{step.step_number || idx + 1}.</span>
+                    <div>
+                      <span className="font-medium text-purple-800">{step.action}</span>
+                      {step.tool_to_use && (
+                        <span className="ml-1 text-purple-600">({step.tool_to_use})</span>
+                      )}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        )}
+      </div>
+    );
   }
 
   return (
@@ -107,7 +196,7 @@ export function StreamingLogCard({ event, isExpanded: defaultExpanded = false }:
         <span className="text-sm shrink-0">{getToolIcon()}</span>
         
         <span className="text-xs font-medium text-foreground truncate flex-1">
-          {event.step || event.node || event.type}
+          {getDisplayName()}
         </span>
         
         {getStatusBadge()}

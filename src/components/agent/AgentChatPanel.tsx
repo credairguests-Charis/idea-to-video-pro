@@ -548,15 +548,18 @@ export function AgentChatPanel({
 
             const trimmed = message.trim();
 
-            // Start LangChain-style streaming via agent-stream for live logs
-            // This will power the "Agent Activity" panel with StreamingLogCard events
-            startStream(trimmed, "Agent Query");
+            // Extract brand name from prompt if possible
+            const brandMatch = trimmed.match(/(?:for|analyze|audit|brand[:\s]+)([A-Za-z0-9\s]+)/i);
+            const extractedBrand = brandMatch ? brandMatch[1].trim() : trimmed.split(' ').slice(0, 2).join(' ');
 
-            // Kick off the full backend workflow (agent-workflow) for deep analysis
+            // Start autonomous agent streaming - this IS the workflow now
+            // The agent-stream function handles everything: planning, tool execution, and response
+            startStream(trimmed, extractedBrand);
+
+            // Add user message to local state immediately for UI feedback
             onSubmit({
               prompt: trimmed,
-              brandName: "Agent Query",
-              competitorQuery: trimmed,
+              brandName: extractedBrand,
               attachedFiles: uploadedFiles.map(f => ({ name: f.name, url: f.url, type: f.type })),
               attachedUrls: attachedUrls.map(u => ({ url: u.url, title: u.title })),
             });
