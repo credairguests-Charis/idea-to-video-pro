@@ -15,7 +15,7 @@ interface VisionAnalysisInput {
 
 // Lovable AI Gateway configuration
 const LOVABLE_AI_ENDPOINT = "https://ai.gateway.lovable.dev/v1/chat/completions";
-const VISION_MODEL = "google/gemini-3-pro-preview";
+const VISION_MODEL = "google/gemini-2.5-flash";
 
 // Structured output schema for ad analysis
 const analysisSchema = {
