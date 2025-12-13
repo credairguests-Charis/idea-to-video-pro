@@ -19,20 +19,6 @@ interface StreamEvent {
   node?: string;
 }
 
-// Tool definitions with rich metadata for UI display
-const TOOL_DEFINITIONS: Record<string, { icon: string; description: string; category: string }> = {
-  scrape_meta_ads: { icon: "🔥", description: "Scraping Meta Ads Library via Firecrawl MCP", category: "data_ingestion" },
-  download_video: { icon: "⬇️", description: "Downloading video to storage", category: "data_ingestion" },
-  extract_frames: { icon: "🎬", description: "Extracting key frames from video", category: "data_ingestion" },
-  analyze_ad_creative: { icon: "👁️", description: "Analyzing ad creative with Gemini 3 Pro Vision", category: "analysis" },
-  search_brand_niche: { icon: "🔎", description: "Searching brand niche context", category: "research" },
-  generate_report: { icon: "📄", description: "Generating PDF audit report", category: "output" },
-  store_embedding: { icon: "🧮", description: "Storing vector embedding", category: "memory" },
-  llm_synthesis: { icon: "🧠", description: "LLM synthesis with Gemini 3 Pro", category: "analysis" },
-  firecrawl_mcp: { icon: "🔌", description: "Firecrawl MCP tool execution", category: "data_ingestion" },
-  model_inference: { icon: "✨", description: "Model inference via Lovable AI", category: "analysis" },
-};
-
 // Lovable AI Gateway configuration
 const LOVABLE_AI_ENDPOINT = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const DEFAULT_MODEL = "google/gemini-3-pro-preview";
@@ -45,7 +31,6 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
-  const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
   
   const supabase = createClient(supabaseUrl, supabaseKey);
 
@@ -78,130 +63,87 @@ serve(async (req) => {
       await writer.write(encoder.encode(sseData));
     };
 
-    // Enhanced helper for tool execution with rich metadata
-    const emitToolEvent = async (
-      toolName: string,
-      eventType: "tool_start" | "tool_end" | "tool_error" | "tool_progress",
-      args: Record<string, any> = {},
-      result: any = null,
-      error: string | null = null,
-      timing: { startTime?: number; endTime?: number; durationMs?: number } = {},
-      progressInfo: { current?: number; total?: number; percent?: number; subStep?: string } = {}
+    // Tool icons mapping
+    const toolIcons: Record<string, string> = {
+      scrape: "🔥", download: "⬇️", frames: "🎬", vision: "👁️",
+      search: "🔎", report: "📄", embed: "🧮", llm: "🧠",
+      firecrawl: "🔥", gemini: "✨", mcp: "🔌", model: "🤖",
+    };
+
+    // Helper for logging with streaming
+    const logAndEmit = async (
+      stepName: string,
+      status: "started" | "completed" | "failed",
+      toolName: string | null,
+      inputData: any = null,
+      outputData: any = null,
+      errorMessage: string | null = null,
+      progressPercent: number | null = null
     ) => {
-      const toolDef = TOOL_DEFINITIONS[toolName] || { icon: "⚙️", description: toolName, category: "unknown" };
-      
-      const eventData: any = {
-        toolName,
-        toolIcon: toolDef.icon,
-        toolDescription: toolDef.description,
-        toolCategory: toolDef.category,
-        args: Object.keys(args).length > 0 ? args : undefined,
-        timing: {
-          ...timing,
-          timestamp: new Date().toISOString(),
+      const logEntry = {
+        session_id,
+        step_name: stepName,
+        status,
+        tool_name: toolName,
+        input_data: {
+          ...inputData,
+          progress_percent: progressPercent,
+          tool_icon: toolName ? toolIcons[toolName] || "⚙️" : null,
         },
+        output_data: outputData,
+        error_message: errorMessage,
+        duration_ms: null,
       };
 
-      if (progressInfo.percent !== undefined || progressInfo.subStep) {
-        eventData.progress = {
-          current: progressInfo.current,
-          total: progressInfo.total,
-          percent: progressInfo.percent,
-          subStep: progressInfo.subStep,
-        };
+      // Insert to database
+      try {
+        await supabase.from("agent_execution_logs").insert(logEntry);
+      } catch (e) {
+        console.error(`[AGENT-STREAM] Log error:`, e);
       }
 
-      if (result !== null) {
-        // Summarize large results for display
-        if (typeof result === "object") {
-          const summary: any = {};
-          if (result.count !== undefined) summary.count = result.count;
-          if (result.adsFound !== undefined) summary.adsFound = result.adsFound;
-          if (result.videosDownloaded !== undefined) summary.videosDownloaded = result.videosDownloaded;
-          if (result.framesExtracted !== undefined) summary.framesExtracted = result.framesExtracted;
-          if (result.hookScore !== undefined) summary.hookScore = result.hookScore;
-          if (result.analysisComplete !== undefined) summary.analysisComplete = result.analysisComplete;
-          if (result.tokensUsed !== undefined) summary.tokensUsed = result.tokensUsed;
-          if (result.urls && Array.isArray(result.urls)) summary.urlCount = result.urls.length;
-          if (result.ads && Array.isArray(result.ads)) summary.adsCount = result.ads.length;
-          eventData.result = Object.keys(summary).length > 0 ? summary : { success: true };
-        } else {
-          eventData.result = result;
-        }
-      }
-
-      if (error) {
-        eventData.error = error;
-      }
-
-      // Emit via updates mode
+      // Emit streaming event based on mode
       if (streamModes.includes("updates")) {
         await emitEvent({
           mode: "updates",
-          type: eventType,
-          step: toolDef.description,
-          node: toolName,
-          data: eventData,
+          type: status === "started" ? "step_start" : status === "completed" ? "step_end" : "step_error",
+          step: stepName,
+          node: toolName || "agent",
+          data: {
+            stepName,
+            status,
+            toolName,
+            toolIcon: toolName ? toolIcons[toolName] || "⚙️" : null,
+            progressPercent,
+            ...(outputData || {}),
+          },
           timestamp: new Date().toISOString(),
         });
       }
 
-      // Also emit detailed data via custom mode
-      if (streamModes.includes("custom")) {
+      if (streamModes.includes("custom") && (inputData || outputData)) {
         await emitEvent({
           mode: "custom",
-          type: eventType,
-          step: toolDef.description,
-          node: toolName,
-          data: {
-            ...eventData,
-            fullArgs: args,
-            fullResult: result,
-          },
+          type: "tool_data",
+          step: stepName,
+          data: { input: inputData, output: outputData, error: errorMessage },
           timestamp: new Date().toISOString(),
         });
-      }
-
-      // Log to database
-      try {
-        await supabase.from("agent_execution_logs").insert({
-          session_id,
-          step_name: toolDef.description,
-          status: eventType === "tool_start" ? "started" : eventType === "tool_end" ? "completed" : "failed",
-          tool_name: toolName,
-          input_data: {
-            args,
-            tool_icon: toolDef.icon,
-            tool_category: toolDef.category,
-            progress_percent: progressInfo.percent,
-            sub_step: progressInfo.subStep,
-          },
-          output_data: result,
-          error_message: error,
-          duration_ms: timing.durationMs,
-        });
-      } catch (e) {
-        console.error(`[AGENT-STREAM] Log error:`, e);
       }
     };
 
     // Process the stream in the background
     (async () => {
       try {
-        const workflowStartTime = Date.now();
-
-        // ===== SESSION START =====
+        // Initial event - session_start
         await emitEvent({
           mode: "updates",
           type: "session_start",
-          data: { 
-            sessionId: session_id, 
-            brandName: brandName || "Brand", 
-            model: DEFAULT_MODEL,
-            capabilities: ["scrape_meta_ads", "analyze_ad_creative", "llm_synthesis"],
-          },
+          data: { sessionId: session_id, brandName: brandName || "Brand", model: DEFAULT_MODEL },
           timestamp: new Date().toISOString(),
         });
+
+        await logAndEmit("Initializing Agent", "started", "gemini", { brandName, model: DEFAULT_MODEL }, null, null, 5);
 
         // Store user message
         await supabase.from("agent_chat_messages").insert({
@@ -220,177 +162,9 @@ serve(async (req) => {
 
         const assistantMsgId = assistantMsg?.id;
 
-        // ===== TOOL 1: scrape_meta_ads (Firecrawl MCP) =====
-        const scrapeStartTime = Date.now();
-        await emitToolEvent(
-          "scrape_meta_ads",
-          "tool_start",
-          { brandName: brandName || "Brand", source: "Meta Ads Library", method: "Firecrawl MCP" },
-          null,
-          null,
-          { startTime: scrapeStartTime },
-          { percent: 5, subStep: "Connecting to Firecrawl MCP..." }
-        );
+        await logAndEmit("Initializing Agent", "completed", "gemini", null, { status: "ready" }, null, 10);
 
-        // Simulate progress updates for scraping
-        await new Promise(r => setTimeout(r, 200));
-        await emitToolEvent(
-          "scrape_meta_ads",
-          "tool_progress",
-          { brandName: brandName || "Brand" },
-          null,
-          null,
-          {},
-          { percent: 10, subStep: "Searching Meta Ads Library..." }
-        );
-
-        await new Promise(r => setTimeout(r, 200));
-        await emitToolEvent(
-          "scrape_meta_ads",
-          "tool_progress",
-          {},
-          null,
-          null,
-          {},
-          { percent: 15, subStep: "Found potential ads, extracting data..." }
-        );
-
-        // Complete scrape step
-        const scrapeEndTime = Date.now();
-        await emitToolEvent(
-          "scrape_meta_ads",
-          "tool_end",
-          { brandName: brandName || "Brand", source: "Meta Ads Library" },
-          { adsFound: 3, urls: ["ad1", "ad2", "ad3"], hasVideoAds: true },
-          null,
-          { startTime: scrapeStartTime, endTime: scrapeEndTime, durationMs: scrapeEndTime - scrapeStartTime },
-          { percent: 20, subStep: "Scraping complete" }
-        );
-
-        // ===== TOOL 2: download_video =====
-        const downloadStartTime = Date.now();
-        await emitToolEvent(
-          "download_video",
-          "tool_start",
-          { videoCount: 3, destination: "Supabase Storage (agent-videos)" },
-          null,
-          null,
-          { startTime: downloadStartTime },
-          { percent: 25, current: 0, total: 3, subStep: "Starting video downloads..." }
-        );
-
-        // Simulate downloading each video
-        for (let i = 1; i <= 3; i++) {
-          await new Promise(r => setTimeout(r, 150));
-          await emitToolEvent(
-            "download_video",
-            "tool_progress",
-            { videoIndex: i },
-            null,
-            null,
-            {},
-            { percent: 25 + (i * 5), current: i, total: 3, subStep: `Downloaded video ${i}/3` }
-          );
-        }
-
-        const downloadEndTime = Date.now();
-        await emitToolEvent(
-          "download_video",
-          "tool_end",
-          { videoCount: 3 },
-          { videosDownloaded: 3, storageBucket: "agent-videos", totalSizeMB: 45.2 },
-          null,
-          { startTime: downloadStartTime, endTime: downloadEndTime, durationMs: downloadEndTime - downloadStartTime },
-          { percent: 40, subStep: "All videos downloaded" }
-        );
-
-        // ===== TOOL 3: extract_frames =====
-        const framesStartTime = Date.now();
-        await emitToolEvent(
-          "extract_frames",
-          "tool_start",
-          { videoCount: 3, framesPerVideo: 5, focusArea: "first 3 seconds (hook)" },
-          null,
-          null,
-          { startTime: framesStartTime },
-          { percent: 45, subStep: "Extracting key frames from videos..." }
-        );
-
-        await new Promise(r => setTimeout(r, 300));
-        const framesEndTime = Date.now();
-        await emitToolEvent(
-          "extract_frames",
-          "tool_end",
-          { videoCount: 3, framesPerVideo: 5 },
-          { framesExtracted: 15, hookFrames: 9 },
-          null,
-          { startTime: framesStartTime, endTime: framesEndTime, durationMs: framesEndTime - framesStartTime },
-          { percent: 55, subStep: "Frame extraction complete" }
-        );
-
-        // ===== TOOL 4: analyze_ad_creative (Gemini 3 Pro Vision) =====
-        const visionStartTime = Date.now();
-        await emitToolEvent(
-          "analyze_ad_creative",
-          "tool_start",
-          { model: "google/gemini-3-pro-preview", analysisType: "multimodal", framesCount: 15 },
-          null,
-          null,
-          { startTime: visionStartTime },
-          { percent: 60, subStep: "Sending frames to Gemini 3 Pro Vision..." }
-        );
-
-        await new Promise(r => setTimeout(r, 200));
-        await emitToolEvent(
-          "analyze_ad_creative",
-          "tool_progress",
-          {},
-          null,
-          null,
-          {},
-          { percent: 65, subStep: "Analyzing hook effectiveness..." }
-        );
-
-        await new Promise(r => setTimeout(r, 200));
-        await emitToolEvent(
-          "analyze_ad_creative",
-          "tool_progress",
-          {},
-          null,
-          null,
-          {},
-          { percent: 70, subStep: "Evaluating script structure..." }
-        );
-
-        const visionEndTime = Date.now();
-        await emitToolEvent(
-          "analyze_ad_creative",
-          "tool_end",
-          { model: "google/gemini-3-pro-preview" },
-          { 
-            hookScore: 8.5, 
-            scriptStructure: "problem→solution→CTA",
-            ctaEffectiveness: "high",
-            analysisComplete: true,
-          },
-          null,
-          { startTime: visionStartTime, endTime: visionEndTime, durationMs: visionEndTime - visionStartTime },
-          { percent: 75, subStep: "Creative analysis complete" }
-        );
-
-        // ===== TOOL 5: llm_synthesis (Generate Response) =====
-        const llmStartTime = Date.now();
-        await emitToolEvent(
-          "llm_synthesis",
-          "tool_start",
-          { model: DEFAULT_MODEL, task: "Generate comprehensive ad audit response", maxTokens: 2048 },
-          null,
-          null,
-          { startTime: llmStartTime },
-          { percent: 80, subStep: "Starting response generation..." }
-        );
-
-        // Actual LLM call with streaming
+        // Stream LLM response
         const systemPrompt = `You are Charis, an expert AI ad auditor powered by Gemini 3 Pro. You help brands understand their Meta Ads performance and provide actionable recommendations.
 
 When analyzing ads, you:
@@ -400,6 +174,8 @@ When analyzing ads, you:
 4. Provide specific, actionable recommendations
 
 Be conversational but professional. Explain your analysis clearly.`;
+
+        await logAndEmit("Model Inference", "started", "model", { model: DEFAULT_MODEL }, null, null, 15);
 
         const response = await fetch(LOVABLE_AI_ENDPOINT, {
           method: "POST",
@@ -430,7 +206,6 @@ Be conversational but professional. Explain your analysis clearly.`;
         let fullContent = "";
         let tokenCount = 0;
         let lastDbUpdate = Date.now();
-        let lastProgressEmit = Date.now();
 
         if (reader) {
           while (true) {
@@ -457,13 +232,13 @@ Be conversational but professional. Explain your analysis clearly.`;
                     await emitEvent({
                       mode: "messages",
                       type: "token",
-                      node: "llm_synthesis",
+                      node: "model",
                       data: {
                         token: delta,
                         tokenIndex: tokenCount,
                         fullContent,
                         metadata: {
-                          langgraph_node: "llm_synthesis",
+                          langgraph_node: "model",
                           model: DEFAULT_MODEL,
                         },
                       },
@@ -471,23 +246,8 @@ Be conversational but professional. Explain your analysis clearly.`;
                     });
                   }
 
-                  // Emit progress updates every 500ms during streaming
-                  const now = Date.now();
-                  if (now - lastProgressEmit > 500) {
-                    const streamProgress = Math.min(80 + (tokenCount / 50), 95);
-                    await emitToolEvent(
-                      "llm_synthesis",
-                      "tool_progress",
-                      {},
-                      null,
-                      null,
-                      {},
-                      { percent: Math.round(streamProgress), subStep: `Generating response (${tokenCount} tokens)...` }
-                    );
-                    lastProgressEmit = now;
-                  }
-
                   // Update assistant message in DB (throttled for performance)
+                  const now = Date.now();
                   if (assistantMsgId && (now - lastDbUpdate > 300)) {
                     await supabase.from("agent_chat_messages").update({
                       content: fullContent,
@@ -512,19 +272,16 @@ Be conversational but professional. Explain your analysis clearly.`;
           }).eq("id", assistantMsgId);
         }
 
-        const llmEndTime = Date.now();
-        await emitToolEvent(
-          "llm_synthesis",
-          "tool_end",
-          { model: DEFAULT_MODEL },
-          { tokensUsed: tokenCount, contentLength: fullContent.length, success: true },
-          null,
-          { startTime: llmStartTime, endTime: llmEndTime, durationMs: llmEndTime - llmStartTime },
-          { percent: 100, subStep: "Response generation complete" }
-        );
+        await logAndEmit("Model Inference", "completed", "model", null, { 
+          tokenCount, 
+          contentLength: fullContent.length 
+        }, null, 95);
 
-        // ===== SESSION END =====
-        const workflowEndTime = Date.now();
+        await logAndEmit("Response Complete", "completed", "llm", null, { 
+          summary: "Analysis completed successfully" 
+        }, null, 100);
+
+        // Final event - session_end
         await emitEvent({
           mode: "updates",
           type: "session_end",
@@ -533,8 +290,6 @@ Be conversational but professional. Explain your analysis clearly.`;
             status: "completed",
             tokenCount,
             model: DEFAULT_MODEL,
-            totalDurationMs: workflowEndTime - workflowStartTime,
-            toolsExecuted: ["scrape_meta_ads", "download_video", "extract_frames", "analyze_ad_creative", "llm_synthesis"],
           },
           timestamp: new Date().toISOString(),
         });
@@ -544,15 +299,8 @@ Be conversational but professional. Explain your analysis clearly.`;
       } catch (error) {
         console.error(`[AGENT-STREAM] Stream error:`, error);
         
-        await emitToolEvent(
-          "error",
-          "tool_error",
-          {},
-          null,
-          error instanceof Error ? error.message : "Unknown error",
-          {},
-          {}
-        );
+        await logAndEmit("Error", "failed", null, null, null, 
+          error instanceof Error ? error.message : "Unknown error", null);
 
         await emitEvent({
           mode: "updates",
