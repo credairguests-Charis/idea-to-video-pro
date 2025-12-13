@@ -81,8 +81,11 @@ export function useAgentStream(options: UseAgentStreamOptions) {
         const { data: { session } } = await supabase.auth.getSession();
         const accessToken = session?.access_token;
 
+        // Use environment variable for Supabase URL
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+
         const response = await fetch(
-          `https://kopclhksdjbheypwsvxz.supabase.co/functions/v1/agent-stream`,
+          `${supabaseUrl}/functions/v1/agent-stream`,
           {
             method: "POST",
             headers: {
