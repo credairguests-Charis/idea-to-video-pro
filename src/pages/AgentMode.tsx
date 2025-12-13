@@ -62,99 +62,10 @@ export default function AgentMode() {
   const titleSaveTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const streamAbortRef = useRef<AbortController | null>(null);
 
-  // Stream AI response using SSE
-  const streamAIResponse = async (sessionId: string, prompt: string) => {
-    try {
-      // Abort any existing stream
-      if (streamAbortRef.current) {
-        streamAbortRef.current.abort();
-      }
-      streamAbortRef.current = new AbortController();
+  // (Legacy manual SSE streaming removed.)
+  // Live streaming is now handled exclusively via useAgentStream inside AgentChatPanel,
+  // which calls the agent-stream edge function and powers the left-panel Agent Activity log.
 
-      // Use new LangChain agent for streaming
-      const response = await fetch(
-        `https://kopclhksdjbheypwsvxz.supabase.co/functions/v1/agent-stream`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "Authorization": `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImtvcGNsaGtzZGpiaGV5cHdzdnh6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NTgwNDgzMDYsImV4cCI6MjA3MzYyNDMwNn0._e_cWqsWbWqtlb3bQlW9G6PgPKW_ibTivdUs1kXxGYo`,
-          },
-          body: JSON.stringify({
-            session_id: sessionId,
-            prompt: prompt,
-            use_langchain: true, // Flag to use new LangChain agent
-          }),
-          signal: streamAbortRef.current.signal,
-        }
-      );
-
-      if (!response.ok) {
-        if (response.status === 429) {
-          toast.error("Rate limit exceeded, please try again later.");
-          return;
-        }
-        if (response.status === 402) {
-          toast.error("Please add credits to continue.");
-          return;
-        }
-        const errorText = await response.text();
-        console.error("Stream error:", response.status, errorText);
-        return;
-      }
-
-      if (!response.body) {
-        console.error("No response body");
-        return;
-      }
-
-      const reader = response.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      let fullContent = "";
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-
-        // Process line by line
-        let newlineIndex: number;
-        while ((newlineIndex = buffer.indexOf("\n")) !== -1) {
-          let line = buffer.slice(0, newlineIndex);
-          buffer = buffer.slice(newlineIndex + 1);
-
-          if (line.endsWith("\r")) line = line.slice(0, -1);
-          if (line.startsWith(":") || line.trim() === "") continue;
-          if (!line.startsWith("data: ")) continue;
-
-          const jsonStr = line.slice(6).trim();
-          if (jsonStr === "[DONE]") break;
-
-          try {
-            const parsed = JSON.parse(jsonStr);
-            const content = parsed.choices?.[0]?.delta?.content;
-            if (content) {
-              fullContent += content;
-              setStreamingContent(fullContent);
-            }
-          } catch {
-            // Incomplete JSON, put back and wait
-            buffer = line + "\n" + buffer;
-            break;
-          }
-        }
-      }
-
-      // Clear streaming content after done (message will be in DB)
-      setStreamingContent("");
-    } catch (error: any) {
-      if (error.name !== "AbortError") {
-        console.error("Streaming error:", error);
-      }
-    }
-  };
 
   // Load or create session on mount
   useEffect(() => {
@@ -593,8 +504,8 @@ export default function AgentMode() {
         console.error("Failed to save user message:", userMsgError);
       }
 
-      // Stream AI response first for immediate feedback
-      await streamAIResponse(session.id, userMessageContent);
+      // Streaming of the assistant response is now handled by useAgentStream
+      // inside AgentChatPanel via the agent-stream edge function.
 
       // Then run the full workflow in background
       toast.info("Starting analysis workflow...");
@@ -768,6 +679,7 @@ Check the results panel on the right for detailed insights, scripts, and recomme
                 isCollapsed={isLeftPanelCollapsed}
                 onToggleCollapse={handleToggleCollapse}
                 sessionId={session?.id}
+                userId={user.id}
                 messages={messages}
                 onMessagesChange={setMessages}
                 streamingContent={streamingContent}
