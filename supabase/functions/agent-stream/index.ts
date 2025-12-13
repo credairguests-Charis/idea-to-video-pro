@@ -19,9 +19,77 @@ interface StreamEvent {
   node?: string;
 }
 
+// Tool definitions for the LangChain-style agent
+const TOOLS = [
+  {
+    name: "scrape_meta_ads",
+    description: "Scrape Meta Ads Library for brand's ad creatives using Firecrawl MCP",
+    parameters: {
+      type: "object",
+      properties: {
+        brandName: { type: "string", description: "The brand name to search for" },
+        maxAds: { type: "number", description: "Maximum number of ads to scrape" },
+      },
+      required: ["brandName"],
+    },
+  },
+  {
+    name: "download_video",
+    description: "Download video assets from URLs to Supabase Storage",
+    parameters: {
+      type: "object",
+      properties: {
+        videoUrls: { type: "array", items: { type: "string" } },
+        sessionId: { type: "string" },
+      },
+      required: ["videoUrls", "sessionId"],
+    },
+  },
+  {
+    name: "analyze_ad_creative",
+    description: "Analyze ad screenshots and frames using Gemini 3 Pro Vision",
+    parameters: {
+      type: "object",
+      properties: {
+        screenshots: { type: "array", items: { type: "string" } },
+        frames: { type: "array", items: { type: "string" } },
+        adCopy: { type: "string" },
+        brandContext: { type: "string" },
+      },
+      required: ["screenshots", "adCopy"],
+    },
+  },
+  {
+    name: "search_brand_niche",
+    description: "Search for brand information and competitor landscape",
+    parameters: {
+      type: "object",
+      properties: {
+        brandName: { type: "string" },
+        category: { type: "string" },
+      },
+      required: ["brandName"],
+    },
+  },
+];
+
 // Lovable AI Gateway configuration
 const LOVABLE_AI_ENDPOINT = "https://ai.gateway.lovable.dev/v1/chat/completions";
 const DEFAULT_MODEL = "google/gemini-3-pro-preview";
+
+// Tool icons mapping
+const toolIcons: Record<string, string> = {
+  scrape_meta_ads: "🔥",
+  download_video: "⬇️",
+  extract_video_frames: "🎬",
+  analyze_ad_creative: "👁️",
+  search_brand_niche: "🔎",
+  generate_audit_report: "📄",
+  model: "🤖",
+  llm: "🧠",
+  gemini: "✨",
+  firecrawl: "🔥",
+};
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -31,46 +99,41 @@ serve(async (req) => {
   const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
   const supabaseKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
   const lovableApiKey = Deno.env.get("LOVABLE_API_KEY")!;
-  
+  const firecrawlApiKey = Deno.env.get("FIRECRAWL_API_KEY");
+
   const supabase = createClient(supabaseUrl, supabaseKey);
+  const startTime = Date.now();
 
   try {
     const body = await req.json();
-    const { sessionId, userId, prompt, brandName, streamModes = ["updates", "messages", "custom"] } = body;
+    const { 
+      sessionId, 
+      userId, 
+      prompt, 
+      brandName,
+      attachedUrls,
+      maxAds = 10,
+      streamModes = ["updates", "messages", "custom"] 
+    } = body;
 
-    // Also support legacy format
-    const session_id = sessionId || body.session_id;
+    const session_id = sessionId || body.session_id || crypto.randomUUID();
     const user_id = userId || body.user_id;
-    const userPrompt = prompt || body.prompt;
+    const userPrompt = prompt || body.prompt || `Analyze ads for ${brandName || "brand"}`;
 
-    if (!session_id) {
-      return new Response(
-        JSON.stringify({ success: false, error: "Missing sessionId" }),
-        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } }
-      );
-    }
+    console.log(`[AGENT-STREAM] Starting LangChain agent for session: ${session_id}, brand: ${brandName}`);
 
-    console.log(`[AGENT-STREAM] Starting LangChain-style stream for session: ${session_id}, modes: ${streamModes.join(",")}`);
-
-    // Create a TransformStream for Server-Sent Events (SSE)
+    // Create SSE stream
     const encoder = new TextEncoder();
     const stream = new TransformStream();
     const writer = stream.writable.getWriter();
 
-    // Helper to emit events in LangChain format
+    // Helper to emit SSE events
     const emitEvent = async (event: StreamEvent) => {
       const sseData = `data: ${JSON.stringify(event)}\n\n`;
       await writer.write(encoder.encode(sseData));
     };
 
-    // Tool icons mapping
-    const toolIcons: Record<string, string> = {
-      scrape: "🔥", download: "⬇️", frames: "🎬", vision: "👁️",
-      search: "🔎", report: "📄", embed: "🧮", llm: "🧠",
-      firecrawl: "🔥", gemini: "✨", mcp: "🔌", model: "🤖",
-    };
-
-    // Helper for logging with streaming
+    // Helper for logging and emitting
     const logAndEmit = async (
       stepName: string,
       status: "started" | "completed" | "failed",
@@ -92,17 +155,15 @@ serve(async (req) => {
         },
         output_data: outputData,
         error_message: errorMessage,
-        duration_ms: null,
+        duration_ms: status !== "started" ? Date.now() - startTime : null,
       };
 
-      // Insert to database
       try {
         await supabase.from("agent_execution_logs").insert(logEntry);
       } catch (e) {
         console.error(`[AGENT-STREAM] Log error:`, e);
       }
 
-      // Emit streaming event based on mode
       if (streamModes.includes("updates")) {
         await emitEvent({
           mode: "updates",
@@ -132,15 +193,26 @@ serve(async (req) => {
       }
     };
 
-    // Process the stream in the background
+    // Process the stream in background
     (async () => {
       try {
-        // Initial event - session_start
+        // Session start event
         await emitEvent({
           mode: "updates",
           type: "session_start",
-          data: { sessionId: session_id, brandName: brandName || "Brand", model: DEFAULT_MODEL },
+          data: { sessionId: session_id, brandName, model: DEFAULT_MODEL },
           timestamp: new Date().toISOString(),
+        });
+
+        // Create/update session
+        await supabase.from("agent_sessions").upsert({
+          id: session_id,
+          user_id,
+          state: "running",
+          progress: 0,
+          current_step: "initializing",
+          title: `Ad Audit: ${brandName || "Brand"}`,
+          metadata: { brandName, model: DEFAULT_MODEL, startedAt: new Date().toISOString() },
         });
 
         await logAndEmit("Initializing Agent", "started", "gemini", { brandName, model: DEFAULT_MODEL }, null, null, 5);
@@ -149,10 +221,11 @@ serve(async (req) => {
         await supabase.from("agent_chat_messages").insert({
           session_id,
           role: "user",
-          content: userPrompt || `Analyze brand`,
+          content: userPrompt,
+          metadata: { attachedUrls },
         });
 
-        // Create assistant placeholder for streaming
+        // Create streaming assistant placeholder
         const { data: assistantMsg } = await supabase.from("agent_chat_messages").insert({
           session_id,
           role: "assistant",
@@ -164,132 +237,324 @@ serve(async (req) => {
 
         await logAndEmit("Initializing Agent", "completed", "gemini", null, { status: "ready" }, null, 10);
 
-        // Stream LLM response
-        const systemPrompt = `You are Charis, an expert AI ad auditor powered by Gemini 3 Pro. You help brands understand their Meta Ads performance and provide actionable recommendations.
+        // Workflow data collection
+        const workflowData = {
+          scrapedAds: [] as any[],
+          downloadedVideos: [] as any[],
+          visualAnalyses: [] as any[],
+          brandResearch: null as any,
+        };
 
-When analyzing ads, you:
-1. Analyze hook effectiveness (first 3 seconds)
-2. Break down script structure (problem → solution → CTA)
-3. Evaluate visual quality and brand consistency
-4. Provide specific, actionable recommendations
+        // ============ TOOL EXECUTION LOOP ============
+        const agentMessages: any[] = [
+          {
+            role: "system",
+            content: `You are Charis, an expert AI ad auditor powered by Gemini 3 Pro. Analyze Meta Ads for "${brandName || "brand"}".
 
-Be conversational but professional. Explain your analysis clearly.`;
+Available tools:
+${TOOLS.map(t => `- ${t.name}: ${t.description}`).join("\n")}
 
-        await logAndEmit("Model Inference", "started", "model", { model: DEFAULT_MODEL }, null, null, 15);
+Workflow:
+1. Use scrape_meta_ads to gather ad creatives from Meta Ads Library
+2. For video ads, use download_video to save them
+3. Use analyze_ad_creative with Gemini Vision to analyze creatives
+4. Use search_brand_niche to understand competitive landscape
+5. Provide actionable recommendations
 
-        const response = await fetch(LOVABLE_AI_ENDPOINT, {
-          method: "POST",
-          headers: {
-            "Authorization": `Bearer ${lovableApiKey}`,
-            "Content-Type": "application/json",
+Be thorough but efficient. Focus on hook effectiveness, script structure, and actionable insights.`,
           },
-          body: JSON.stringify({
-            model: DEFAULT_MODEL,
-            messages: [
-              { role: "system", content: systemPrompt },
-              { role: "user", content: userPrompt || `Analyze ads for ${brandName || "brand"}` },
-            ],
-            stream: true,
-            max_completion_tokens: 2048,
-          }),
-        });
+          {
+            role: "user",
+            content: `Perform a comprehensive ad audit for "${brandName}".\n\n${attachedUrls?.length ? `Also analyze these URLs: ${attachedUrls.map((u: any) => u.url).join(", ")}` : ""}\n\nProvide:\n1. Hook analysis (first 3 seconds)\n2. Script breakdown (problem → solution → CTA)\n3. Visual quality assessment\n4. 2 actionable recommendations`,
+          },
+        ];
 
-        if (!response.ok) {
-          const errorText = await response.text();
-          console.error(`[AGENT-STREAM] LLM error:`, errorText);
-          throw new Error(`LLM API error: ${response.status}`);
-        }
-
-        // Process streaming response
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
+        let iteration = 0;
+        const maxIterations = 8;
+        let isComplete = false;
         let fullContent = "";
-        let tokenCount = 0;
-        let lastDbUpdate = Date.now();
 
-        if (reader) {
-          while (true) {
-            const { done, value } = await reader.read();
-            if (done) break;
+        while (iteration < maxIterations && !isComplete) {
+          iteration++;
+          const progress = Math.min(10 + iteration * 10, 85);
 
-            const chunk = decoder.decode(value, { stream: true });
-            const lines = chunk.split("\n").filter((line) => line.trim().startsWith("data:"));
+          await supabase.from("agent_sessions").update({
+            progress,
+            current_step: `iteration_${iteration}`,
+            updated_at: new Date().toISOString(),
+          }).eq("id", session_id);
 
-            for (const line of lines) {
-              const jsonStr = line.replace("data: ", "").trim();
-              if (jsonStr === "[DONE]") continue;
+          await logAndEmit(`Agent Iteration ${iteration}`, "started", "model", { iteration }, null, null, progress);
 
-              try {
-                const parsed = JSON.parse(jsonStr);
-                const delta = parsed.choices?.[0]?.delta?.content || "";
-                
-                if (delta) {
-                  fullContent += delta;
-                  tokenCount++;
+          // Call Lovable AI with tool definitions
+          const response = await fetch(LOVABLE_AI_ENDPOINT, {
+            method: "POST",
+            headers: {
+              "Authorization": `Bearer ${lovableApiKey}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              model: DEFAULT_MODEL,
+              messages: agentMessages,
+              tools: TOOLS.map(t => ({
+                type: "function",
+                function: { name: t.name, description: t.description, parameters: t.parameters },
+              })),
+              tool_choice: "auto",
+              stream: true,
+              max_completion_tokens: 4096,
+            }),
+          });
 
-                  // Emit token stream event (LangChain messages mode)
-                  if (streamModes.includes("messages")) {
-                    await emitEvent({
-                      mode: "messages",
-                      type: "token",
-                      node: "model",
-                      data: {
-                        token: delta,
-                        tokenIndex: tokenCount,
-                        fullContent,
-                        metadata: {
-                          langgraph_node: "model",
-                          model: DEFAULT_MODEL,
-                        },
-                      },
-                      timestamp: new Date().toISOString(),
-                    });
+          if (!response.ok) {
+            const errorText = await response.text();
+            console.error(`[AGENT-STREAM] LLM error:`, errorText);
+            
+            if (response.status === 429) throw new Error("Rate limits exceeded. Please try again later.");
+            if (response.status === 402) throw new Error("Payment required. Please add funds to Lovable AI.");
+            throw new Error(`LLM API error: ${response.status}`);
+          }
+
+          // Process streaming response
+          const reader = response.body?.getReader();
+          const decoder = new TextDecoder();
+          let assistantMessage: any = { role: "assistant", content: "", tool_calls: [] };
+          let currentToolCall: any = null;
+
+          if (reader) {
+            let buffer = "";
+            
+            while (true) {
+              const { done, value } = await reader.read();
+              if (done) break;
+
+              buffer += decoder.decode(value, { stream: true });
+              const lines = buffer.split("\n");
+              buffer = lines.pop() || "";
+
+              for (const line of lines) {
+                if (!line.startsWith("data:")) continue;
+                const jsonStr = line.slice(5).trim();
+                if (jsonStr === "[DONE]") continue;
+
+                try {
+                  const parsed = JSON.parse(jsonStr);
+                  const delta = parsed.choices?.[0]?.delta;
+                  
+                  if (delta?.content) {
+                    assistantMessage.content += delta.content;
+                    fullContent += delta.content;
+
+                    // Stream token to client
+                    if (streamModes.includes("messages")) {
+                      await emitEvent({
+                        mode: "messages",
+                        type: "token",
+                        node: "model",
+                        data: { token: delta.content, fullContent },
+                        timestamp: new Date().toISOString(),
+                      });
+                    }
+
+                    // Update assistant message in DB (throttled)
+                    if (assistantMsgId && fullContent.length % 50 === 0) {
+                      await supabase.from("agent_chat_messages").update({
+                        content: fullContent,
+                        updated_at: new Date().toISOString(),
+                      }).eq("id", assistantMsgId);
+                    }
                   }
 
-                  // Update assistant message in DB (throttled for performance)
-                  const now = Date.now();
-                  if (assistantMsgId && (now - lastDbUpdate > 300)) {
-                    await supabase.from("agent_chat_messages").update({
-                      content: fullContent,
-                      updated_at: new Date().toISOString(),
-                    }).eq("id", assistantMsgId);
-                    lastDbUpdate = now;
+                  // Handle tool calls in streaming
+                  if (delta?.tool_calls) {
+                    for (const tc of delta.tool_calls) {
+                      if (tc.index !== undefined) {
+                        if (!assistantMessage.tool_calls[tc.index]) {
+                          assistantMessage.tool_calls[tc.index] = { id: tc.id, type: "function", function: { name: "", arguments: "" } };
+                        }
+                        if (tc.function?.name) assistantMessage.tool_calls[tc.index].function.name += tc.function.name;
+                        if (tc.function?.arguments) assistantMessage.tool_calls[tc.index].function.arguments += tc.function.arguments;
+                      }
+                    }
                   }
+                } catch (e) {
+                  // Skip invalid JSON
                 }
-              } catch (e) {
-                // Skip invalid JSON
               }
             }
           }
+
+          agentMessages.push(assistantMessage);
+
+          // Execute tool calls if any
+          if (assistantMessage.tool_calls && assistantMessage.tool_calls.length > 0) {
+            for (const toolCall of assistantMessage.tool_calls) {
+              if (!toolCall?.function?.name) continue;
+              
+              const toolName = toolCall.function.name;
+              let toolArgs: any = {};
+              try {
+                toolArgs = JSON.parse(toolCall.function.arguments || "{}");
+              } catch (e) {
+                console.warn(`[AGENT-STREAM] Invalid tool args for ${toolName}`);
+              }
+
+              console.log(`[AGENT-STREAM] Executing tool: ${toolName}`, toolArgs);
+              await logAndEmit(`Tool: ${toolName}`, "started", toolName, toolArgs, null, null, progress);
+
+              let toolResult: any;
+
+              try {
+                switch (toolName) {
+                  case "scrape_meta_ads": {
+                    const { data, error } = await supabase.functions.invoke("firecrawl-mcp-scraper", {
+                      body: {
+                        brandName: toolArgs.brandName || brandName,
+                        maxAds: toolArgs.maxAds || maxAds,
+                        sessionId: session_id,
+                        userId: user_id,
+                      },
+                    });
+                    if (error) throw error;
+                    workflowData.scrapedAds = data?.ads || [];
+                    toolResult = { success: true, adsFound: workflowData.scrapedAds.length, ads: workflowData.scrapedAds.slice(0, 3) };
+                    break;
+                  }
+
+                  case "download_video": {
+                    const { data, error } = await supabase.functions.invoke("video-download-service", {
+                      body: {
+                        videoUrls: toolArgs.videoUrls,
+                        sessionId: toolArgs.sessionId || session_id,
+                      },
+                    });
+                    if (error) throw error;
+                    workflowData.downloadedVideos = data?.results?.filter((r: any) => r.success) || [];
+                    toolResult = { success: true, downloaded: workflowData.downloadedVideos.length };
+                    break;
+                  }
+
+                  case "analyze_ad_creative": {
+                    const { data, error } = await supabase.functions.invoke("gemini-vision-analysis", {
+                      body: {
+                        screenshots: toolArgs.screenshots || [],
+                        frames: toolArgs.frames || [],
+                        adCopy: toolArgs.adCopy,
+                        brandContext: toolArgs.brandContext || brandName,
+                      },
+                    });
+                    if (error) throw error;
+                    workflowData.visualAnalyses.push(data);
+                    toolResult = { success: true, analysis: data };
+                    break;
+                  }
+
+                  case "search_brand_niche": {
+                    if (firecrawlApiKey) {
+                      try {
+                        const mcpEndpoint = `https://mcp.firecrawl.dev/${firecrawlApiKey}/v2/mcp`;
+                        const searchResponse = await fetch(mcpEndpoint, {
+                          method: "POST",
+                          headers: { "Content-Type": "application/json" },
+                          body: JSON.stringify({
+                            jsonrpc: "2.0",
+                            id: Date.now(),
+                            method: "tools/call",
+                            params: {
+                              name: "firecrawl_search",
+                              arguments: {
+                                query: `${toolArgs.brandName || brandName} ${toolArgs.category || ""} brand competitors market`,
+                                limit: 5,
+                              },
+                            },
+                          }),
+                        });
+
+                        if (searchResponse.ok) {
+                          const searchData = await searchResponse.json();
+                          workflowData.brandResearch = searchData.result?.content || null;
+                          toolResult = { success: true, research: workflowData.brandResearch };
+                        } else {
+                          throw new Error("Search failed");
+                        }
+                      } catch (e) {
+                        console.warn(`[AGENT-STREAM] Search fallback:`, e);
+                        toolResult = { success: false, error: "Search temporarily unavailable" };
+                      }
+                    } else {
+                      toolResult = { success: false, error: "Firecrawl not configured" };
+                    }
+                    break;
+                  }
+
+                  default:
+                    toolResult = { error: `Unknown tool: ${toolName}` };
+                }
+
+                await logAndEmit(`Tool: ${toolName}`, "completed", toolName, toolArgs, toolResult, null, progress + 5);
+              } catch (toolError) {
+                console.error(`[AGENT-STREAM] Tool error:`, toolError);
+                toolResult = { error: toolError instanceof Error ? toolError.message : "Tool failed" };
+                await logAndEmit(`Tool: ${toolName}`, "failed", toolName, toolArgs, null, toolResult.error, progress);
+              }
+
+              agentMessages.push({
+                role: "tool",
+                tool_call_id: toolCall.id,
+                content: JSON.stringify(toolResult),
+              });
+            }
+          } else {
+            // No tool calls - check if done
+            const content = assistantMessage.content || "";
+            if (content.length > 200 || iteration >= maxIterations - 1) {
+              isComplete = true;
+            }
+          }
+
+          await logAndEmit(`Agent Iteration ${iteration}`, "completed", "model", null, { tokensGenerated: fullContent.length }, null, progress + 5);
         }
 
         // Finalize assistant message
         if (assistantMsgId) {
           await supabase.from("agent_chat_messages").update({
-            content: fullContent || "I processed your request.",
+            content: fullContent || "Analysis completed. Check the workspace for detailed results.",
             is_streaming: false,
             updated_at: new Date().toISOString(),
           }).eq("id", assistantMsgId);
         }
 
-        await logAndEmit("Model Inference", "completed", "model", null, { 
-          tokenCount, 
-          contentLength: fullContent.length 
-        }, null, 95);
-
-        await logAndEmit("Response Complete", "completed", "llm", null, { 
-          summary: "Analysis completed successfully" 
+        await logAndEmit("Analysis Complete", "completed", "llm", null, {
+          adsFound: workflowData.scrapedAds.length,
+          videosDownloaded: workflowData.downloadedVideos.length,
+          analysesGenerated: workflowData.visualAnalyses.length,
         }, null, 100);
 
-        // Final event - session_end
+        // Update session as completed
+        await supabase.from("agent_sessions").update({
+          state: "completed",
+          progress: 100,
+          current_step: "completed",
+          completed_at: new Date().toISOString(),
+          metadata: {
+            brandName,
+            model: DEFAULT_MODEL,
+            durationMs: Date.now() - startTime,
+            adsFound: workflowData.scrapedAds.length,
+            videosDownloaded: workflowData.downloadedVideos.length,
+          },
+        }).eq("id", session_id);
+
+        // Session end event
         await emitEvent({
           mode: "updates",
           type: "session_end",
-          data: { 
-            sessionId: session_id, 
+          data: {
+            sessionId: session_id,
             status: "completed",
-            tokenCount,
             model: DEFAULT_MODEL,
+            adsFound: workflowData.scrapedAds.length,
+            durationMs: Date.now() - startTime,
           },
           timestamp: new Date().toISOString(),
         });
@@ -298,7 +563,7 @@ Be conversational but professional. Explain your analysis clearly.`;
         await writer.close();
       } catch (error) {
         console.error(`[AGENT-STREAM] Stream error:`, error);
-        
+
         await logAndEmit("Error", "failed", null, null, null, 
           error instanceof Error ? error.message : "Unknown error", null);
 

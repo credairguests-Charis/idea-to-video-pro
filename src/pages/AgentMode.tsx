@@ -504,97 +504,21 @@ export default function AgentMode() {
         console.error("Failed to save user message:", userMsgError);
       }
 
-      // Streaming of the assistant response is now handled by useAgentStream
-      // inside AgentChatPanel via the agent-stream edge function.
+      // The agent-stream edge function now handles the complete LangChain workflow
+      // with SSE streaming - it scrapes Meta Ads, downloads videos, runs Gemini analysis,
+      // and streams results back via useAgentStream hook in AgentChatPanel.
+      
+      // Real-time updates will come through the Supabase subscription to agent_execution_logs
+      // and agent_chat_messages tables, as well as through the SSE stream.
+      
+      toast.info("Agent is analyzing...");
 
-      // Then run the full workflow in background
-      toast.info("Starting analysis workflow...");
-
-      // Call the agent-workflow edge function
-      const { data, error } = await supabase.functions.invoke("agent-workflow", {
-        body: {
-          input: {
-            brandName: brandData.brandName || "Unknown Brand",
-            productCategory: brandData.productCategory || "SaaS",
-            targetAudience: brandData.targetAudience || "General",
-            brandVoice: brandData.brandVoice || "Professional",
-            keyMessages: brandData.keyMessages || ["Quality", "Innovation"],
-            competitorQuery: brandData.competitorQuery || brandData.prompt || "competitors",
-            maxCompetitors: brandData.maxCompetitors || 3,
-            userId: user.id,
-            sessionId: session.id,
-          },
-        },
-      });
-
-      if (error) {
-        console.error("Workflow error:", error);
-        const errorMessage = error.message || "Failed to start workflow";
-        toast.error(errorMessage);
-        setIsRunning(false);
-        return;
-      }
-
-      if (data?.success) {
-        setSession({
-          id: data.sessionId,
-          state: "completed",
-          progress: 100,
-          metadata: data.metadata,
-        });
-        
-        // Defensive check: only set preview data if it's a valid object
-        const synthesisData = data.synthesis;
-        if (synthesisData && typeof synthesisData === 'object') {
-          setPreviewData(synthesisData);
-        } else {
-          console.warn("[AgentMode] Invalid synthesis data received:", synthesisData);
-          setPreviewData(null);
-        }
-        
-        // Insert assistant message with results summary
-        const { metadata } = data;
-        const summaryMessage = `I've completed the analysis. Here's what I found:
-
-• **Competitors Found:** ${metadata?.competitorsFound || 0}
-• **Ads Extracted:** ${metadata?.adsExtracted || 0}
-• **Videos Analyzed:** ${metadata?.videosAnalyzed || 0}
-
-Check the results panel on the right for detailed insights, scripts, and recommendations.`;
-
-        await supabase.from("agent_chat_messages").insert({
-          session_id: session.id,
-          role: "assistant",
-          content: summaryMessage,
-          metadata: { 
-            success: true,
-            competitorsFound: metadata?.competitorsFound,
-            adsExtracted: metadata?.adsExtracted,
-            videosAnalyzed: metadata?.videosAnalyzed,
-          },
-        });
-        
-        toast.success(
-          `Workflow completed! Found ${metadata?.competitorsFound || 0} competitors, ${metadata?.adsExtracted || 0} ads, analyzed ${metadata?.videosAnalyzed || 0} videos.`,
-          { duration: 5000 }
-        );
-      } else {
-        const errorMessage = data?.error || "Workflow failed";
-        toast.error(errorMessage);
-        
-        // Insert error message
-        await supabase.from("agent_chat_messages").insert({
-          session_id: session.id,
-          role: "assistant",
-          content: `I encountered an issue: ${errorMessage}. Please try again or adjust your query.`,
-          metadata: { error: true },
-        });
-        
-        setIsRunning(false);
-        return;
-      }
-
-      setIsRunning(false);
+      // Note: The actual workflow is triggered by useAgentStream.startStream() 
+      // which is called in AgentChatPanel before onSubmit. The agent-stream edge 
+      // function handles all tool execution with LangChain-style streaming.
+      
+      // We just need to wait for completion via the real-time subscriptions
+      // which will update session state, logs, and messages automatically.
     } catch (error) {
       console.error("Error starting workflow:", error);
       const errorMessage = error instanceof Error ? error.message : "Failed to start workflow";

@@ -50,54 +50,21 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
 
-# LangChain Agent Functions (New)
-[functions.langchain-agent]
-verify_jwt = false
-
-[functions.browserless-scraper]
-verify_jwt = false
-
-[functions.ffmpeg-frames]
-verify_jwt = false
-
-[functions.gpt4o-vision-analysis]
-verify_jwt = false
-
-[functions.gemini-vision-analysis]
-verify_jwt = false
-
-[functions.firecrawl-mcp-scraper]
-verify_jwt = false
-
-[functions.pdf-generator]
-verify_jwt = false
-
-# Legacy Agent Workflow Functions (Kept for compatibility)
-[functions.agent-workflow]
-verify_jwt = false
-
+# LangChain Agent - Unified orchestrator with SSE streaming
 [functions.agent-stream]
 verify_jwt = false
 
-[functions.agent-start]
-verify_jwt = false
-
-[functions.mcp-firecrawl-tool]
-verify_jwt = false
-
-[functions.firecrawl-meta-ads-scraper]
+# Supporting tools called by agent-stream
+[functions.firecrawl-mcp-scraper]
 verify_jwt = false
 
 [functions.video-download-service]
 verify_jwt = false
 
-[functions.azure-video-analyzer]
+[functions.gemini-vision-analysis]
 verify_jwt = false
 
-[functions.llm-synthesis-engine]
-verify_jwt = false
-
-[functions.meta-ads-extractor]
+[functions.pdf-generator]
 verify_jwt = false
 
 # Admin Functions
