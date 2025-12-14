@@ -50,21 +50,8 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
 
-# LangChain Agent - Unified orchestrator with SSE streaming
-[functions.agent-stream]
-verify_jwt = false
-
-# Supporting tools called by agent-stream
-[functions.firecrawl-mcp-scraper]
-verify_jwt = false
-
-[functions.video-download-service]
-verify_jwt = false
-
-[functions.gemini-vision-analysis]
-verify_jwt = false
-
-[functions.pdf-generator]
+# LangChain Agent - Brand research and Meta Ads extraction
+[functions.agent]
 verify_jwt = false
 
 # Admin Functions
