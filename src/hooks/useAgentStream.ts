@@ -1,7 +1,7 @@
-import { useState, useCallback, useRef, useEffect } from "react";
+import { useState, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 
-// LangChain-style streaming modes
+// Types
 export type StreamMode = "updates" | "messages" | "custom";
 
 export interface StreamEvent {
@@ -13,6 +13,31 @@ export interface StreamEvent {
   node?: string;
 }
 
+export interface AgentResult {
+  brand: string;
+  result: {
+    summary?: string;
+    tool_history?: Array<{
+      name: string;
+      args: Record<string, unknown>;
+      result: unknown;
+    }>;
+  };
+  tool_history?: Array<{
+    name: string;
+    args: Record<string, unknown>;
+    result: unknown;
+  }>;
+  cached: boolean;
+  timestamp: string;
+}
+
+export interface AgentState {
+  isLoading: boolean;
+  result: AgentResult | null;
+  error: string | null;
+}
+
 export interface AgentStreamState {
   isStreaming: boolean;
   currentStep: string | null;
@@ -21,6 +46,81 @@ export interface AgentStreamState {
   streamedContent: string;
   events: StreamEvent[];
   error: string | null;
+}
+
+interface UseAgentOptions {
+  onSuccess?: (result: AgentResult) => void;
+  onError?: (error: string) => void;
+}
+
+export function useAgent(options: UseAgentOptions = {}) {
+  const { onSuccess, onError } = options;
+
+  const [state, setState] = useState<AgentState>({
+    isLoading: false,
+    result: null,
+    error: null,
+  });
+
+  const runAgent = useCallback(
+    async (brandName: string, useCache: boolean = true) => {
+      setState({
+        isLoading: true,
+        result: null,
+        error: null,
+      });
+
+      try {
+        const { data, error } = await supabase.functions.invoke("agent", {
+          body: {
+            brand_name: brandName,
+            use_cache: useCache,
+          },
+        });
+
+        if (error) {
+          throw new Error(error.message || "Agent execution failed");
+        }
+
+        const result = data as AgentResult;
+
+        setState({
+          isLoading: false,
+          result,
+          error: null,
+        });
+
+        onSuccess?.(result);
+        return result;
+      } catch (error) {
+        const errorMsg = error instanceof Error ? error.message : "Agent failed";
+        
+        setState({
+          isLoading: false,
+          result: null,
+          error: errorMsg,
+        });
+
+        onError?.(errorMsg);
+        throw error;
+      }
+    },
+    [onSuccess, onError]
+  );
+
+  const reset = useCallback(() => {
+    setState({
+      isLoading: false,
+      result: null,
+      error: null,
+    });
+  }, []);
+
+  return {
+    ...state,
+    runAgent,
+    reset,
+  };
 }
 
 interface UseAgentStreamOptions {
@@ -38,12 +138,8 @@ export function useAgentStream(options: UseAgentStreamOptions) {
   const {
     sessionId,
     userId,
-    streamModes = ["updates", "messages", "custom"],
-    onToken,
-    onStepStart,
-    onStepEnd,
-    onError,
     onComplete,
+    onError,
   } = options;
 
   const [state, setState] = useState<AgentStreamState>({
@@ -56,21 +152,12 @@ export function useAgentStream(options: UseAgentStreamOptions) {
     error: null,
   });
 
-  const abortControllerRef = useRef<AbortController | null>(null);
-
   const startStream = useCallback(
     async (prompt: string, brandName?: string) => {
-      // Cancel any existing stream
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-
-      abortControllerRef.current = new AbortController();
-
       setState({
         isStreaming: true,
-        currentStep: "initializing",
-        progress: 0,
+        currentStep: "researching",
+        progress: 10,
         tokens: [],
         streamedContent: "",
         events: [],
@@ -78,175 +165,86 @@ export function useAgentStream(options: UseAgentStreamOptions) {
       });
 
       try {
-        const { data: { session } } = await supabase.auth.getSession();
-        const accessToken = session?.access_token;
+        // Extract brand name from prompt if not provided
+        const brand = brandName || 
+          prompt.match(/(?:analyze|research|check|look at)\s+(\w+)/i)?.[1] || 
+          prompt.trim();
 
-        // Use environment variable for Supabase URL
-        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+        const { data, error } = await supabase.functions.invoke("agent", {
+          body: {
+            brand_name: brand,
+            use_cache: false,
+          },
+        });
 
-        const response = await fetch(
-          `${supabaseUrl}/functions/v1/agent-stream`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              "Authorization": `Bearer ${accessToken}`,
-            },
-            body: JSON.stringify({
-              sessionId,
-              userId,
-              prompt,
-              brandName: brandName || "Brand",
-              streamModes,
-            }),
-            signal: abortControllerRef.current.signal,
-          }
-        );
-
-        if (!response.ok) {
-          throw new Error(`Stream request failed: ${response.status}`);
+        if (error) {
+          throw new Error(error.message || "Agent execution failed");
         }
 
-        const reader = response.body?.getReader();
-        const decoder = new TextDecoder();
+        // Convert result to events for display
+        const result = data as AgentResult;
+        const events: StreamEvent[] = [];
 
-        if (!reader) {
-          throw new Error("No response body");
+        // Add events from tool history
+        if (result.tool_history) {
+          result.tool_history.forEach((tool, index) => {
+            events.push({
+              mode: "updates",
+              type: "step_end",
+              step: tool.name,
+              data: {
+                tool_name: tool.name,
+                args: tool.args,
+                result: tool.result,
+                progressPercent: Math.round((index + 1) / result.tool_history!.length * 80) + 10,
+              },
+              timestamp: new Date().toISOString(),
+            });
+          });
         }
 
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) break;
+        // Add final message event
+        events.push({
+          mode: "messages",
+          type: "complete",
+          data: {
+            summary: result.result?.summary || "Analysis complete",
+            cached: result.cached,
+          },
+          timestamp: result.timestamp,
+        });
 
-          const chunk = decoder.decode(value, { stream: true });
-          const lines = chunk.split("\n").filter((line) => line.startsWith("data:"));
-
-          for (const line of lines) {
-            const jsonStr = line.replace("data: ", "").trim();
-            if (!jsonStr || jsonStr === "[DONE]") continue;
-
-            try {
-              const event: StreamEvent = JSON.parse(jsonStr);
-              
-              setState((prev) => ({
-                ...prev,
-                events: [...prev.events, event],
-              }));
-
-              // Handle different stream modes (LangChain-style)
-              switch (event.mode) {
-                case "updates":
-                  handleUpdateEvent(event);
-                  break;
-                case "messages":
-                  handleMessageEvent(event);
-                  break;
-                case "custom":
-                  // Custom events are added to events array
-                  break;
-              }
-            } catch (e) {
-              console.warn("[useAgentStream] Failed to parse event:", jsonStr);
-            }
-          }
-        }
-
-        setState((prev) => ({
-          ...prev,
+        setState({
           isStreaming: false,
+          currentStep: null,
           progress: 100,
-        }));
+          tokens: [],
+          streamedContent: result.result?.summary || JSON.stringify(result.result, null, 2),
+          events,
+          error: null,
+        });
 
         onComplete?.();
       } catch (error) {
-        if ((error as Error).name === "AbortError") {
-          console.log("[useAgentStream] Stream aborted");
-          return;
-        }
-
-        const errorMsg = error instanceof Error ? error.message : "Stream failed";
+        const errorMsg = error instanceof Error ? error.message : "Agent failed";
+        
         setState((prev) => ({
           ...prev,
           isStreaming: false,
           error: errorMsg,
         }));
+
         onError?.(errorMsg);
       }
     },
-    [sessionId, userId, streamModes, onToken, onStepStart, onStepEnd, onError, onComplete]
-  );
-
-  const handleUpdateEvent = useCallback(
-    (event: StreamEvent) => {
-      switch (event.type) {
-        case "step_start":
-          setState((prev) => ({
-            ...prev,
-            currentStep: event.step || null,
-            progress: event.data?.progressPercent || prev.progress,
-          }));
-          onStepStart?.(event.step || "", event.data);
-          break;
-
-        case "step_end":
-          setState((prev) => ({
-            ...prev,
-            progress: event.data?.progressPercent || prev.progress,
-          }));
-          onStepEnd?.(event.step || "", event.data);
-          break;
-
-        case "step_error":
-          setState((prev) => ({
-            ...prev,
-            error: event.data?.error || "Step failed",
-          }));
-          break;
-
-        case "session_end":
-          setState((prev) => ({
-            ...prev,
-            isStreaming: false,
-            progress: 100,
-          }));
-          break;
-      }
-    },
-    [onStepStart, onStepEnd]
-  );
-
-  const handleMessageEvent = useCallback(
-    (event: StreamEvent) => {
-      if (event.type === "token" && event.data?.token) {
-        setState((prev) => ({
-          ...prev,
-          tokens: [...prev.tokens, event.data.token],
-          streamedContent: event.data.fullContent || prev.streamedContent + event.data.token,
-        }));
-        onToken?.(event.data.token, event.data.fullContent || "");
-      }
-    },
-    [onToken]
+    [sessionId, userId, onComplete, onError]
   );
 
   const stopStream = useCallback(() => {
-    if (abortControllerRef.current) {
-      abortControllerRef.current.abort();
-      abortControllerRef.current = null;
-    }
     setState((prev) => ({
       ...prev,
       isStreaming: false,
     }));
-  }, []);
-
-  // Cleanup on unmount
-  useEffect(() => {
-    return () => {
-      if (abortControllerRef.current) {
-        abortControllerRef.current.abort();
-      }
-    };
   }, []);
 
   return {
