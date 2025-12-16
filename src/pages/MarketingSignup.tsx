@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
+import { Helmet } from "react-helmet";
 import { supabase } from "@/integrations/supabase/client";
 import { AlertCircle, CheckCircle } from "lucide-react";
 import { CharisLoader } from "@/components/ui/charis-loader";
@@ -16,6 +17,7 @@ interface MarketingLink {
   title?: string;
   initial_credits?: number;
   logos?: Array<{ logo_url: string; display_order: number }>;
+  og_image_url?: string;
 }
 
 const STATIC_SOCIAL_LOGOS = [
@@ -160,8 +162,35 @@ export default function MarketingSignup() {
     );
   }
 
+  const pageUrl = `${window.location.origin}/marketing/${slug}`;
+  const ogImage = linkData.og_image_url || '/charis-logo-marketing.png';
+  const pageTitle = linkData.title ? `${linkData.title} - Get ${linkData.initial_credits} Free Credits` : `Get ${linkData.initial_credits} Free Credits - Charis`;
+  const pageDescription = `Sign up now and receive ${linkData.initial_credits} free credits. No credit card required. Create stunning AI-generated UGC video ads in minutes.`;
+
   return (
     <div className="min-h-screen bg-background flex flex-col overflow-hidden">
+      {/* Open Graph Meta Tags for Social Sharing */}
+      <Helmet>
+        <title>{pageTitle}</title>
+        <meta name="description" content={pageDescription} />
+        
+        {/* Open Graph */}
+        <meta property="og:type" content="website" />
+        <meta property="og:url" content={pageUrl} />
+        <meta property="og:title" content={pageTitle} />
+        <meta property="og:description" content={pageDescription} />
+        <meta property="og:image" content={ogImage} />
+        <meta property="og:image:width" content="1200" />
+        <meta property="og:image:height" content="630" />
+        
+        {/* Twitter Card */}
+        <meta name="twitter:card" content="summary_large_image" />
+        <meta name="twitter:url" content={pageUrl} />
+        <meta name="twitter:title" content={pageTitle} />
+        <meta name="twitter:description" content={pageDescription} />
+        <meta name="twitter:image" content={ogImage} />
+      </Helmet>
+
       {/* Logo Section - Fixed at top */}
       <div className="flex-shrink-0 py-6 px-4 border-b border-border">
         <div className="flex justify-center">

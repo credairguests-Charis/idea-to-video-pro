@@ -41,7 +41,7 @@ serve(async (req) => {
       });
     }
 
-    const { title, expires_at, max_uses, initial_credits } = await req.json();
+    const { title, expires_at, max_uses, initial_credits, og_image_url } = await req.json();
 
     // Generate unique slug
     const slug = crypto.randomUUID().split('-')[0] + '-' + Date.now().toString(36);
@@ -56,6 +56,7 @@ serve(async (req) => {
         max_uses,
         initial_credits: initial_credits || 105,
         created_by: user.id,
+        og_image_url: og_image_url || null,
       })
       .select()
       .single();

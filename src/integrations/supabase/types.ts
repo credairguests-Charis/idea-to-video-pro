@@ -843,6 +843,7 @@ export type Database = {
           initial_credits: number
           is_active: boolean
           max_uses: number | null
+          og_image_url: string | null
           revoked: boolean
           slug: string
           title: string
@@ -856,6 +857,7 @@ export type Database = {
           initial_credits?: number
           is_active?: boolean
           max_uses?: number | null
+          og_image_url?: string | null
           revoked?: boolean
           slug: string
           title: string
@@ -869,6 +871,7 @@ export type Database = {
           initial_credits?: number
           is_active?: boolean
           max_uses?: number | null
+          og_image_url?: string | null
           revoked?: boolean
           slug?: string
           title?: string
