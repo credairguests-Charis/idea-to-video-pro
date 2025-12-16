@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle, SheetTrigger } from "@/components/ui/sheet";
 import { Switch } from "@/components/ui/switch";
-import { Loader2, Plus, Copy, Users, Ban, CheckCircle, XCircle, Clock, Link2, TrendingUp } from "lucide-react";
+import { Loader2, Plus, Copy, Users, Ban, CheckCircle, XCircle, Clock, Link2, TrendingUp, ImagePlus, X } from "lucide-react";
 import { toast } from "sonner";
 import { format } from "date-fns";
 
@@ -24,6 +24,7 @@ interface MarketingLink {
   is_active: boolean;
   revoked: boolean;
   created_at: string;
+  og_image_url?: string;
 }
 
 interface LinkUsage {
@@ -52,6 +53,10 @@ export default function AdminMarketingLinks() {
   const [expiresAt, setExpiresAt] = useState("");
   const [maxUses, setMaxUses] = useState("");
   const [initialCredits, setInitialCredits] = useState("105");
+  const [ogImage, setOgImage] = useState<File | null>(null);
+  const [ogImagePreview, setOgImagePreview] = useState<string | null>(null);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Analytics state
   const [selectedLink, setSelectedLink] = useState<MarketingLink | null>(null);
@@ -80,6 +85,54 @@ export default function AdminMarketingLinks() {
     }
   };
 
+  const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Image must be less than 5MB');
+        return;
+      }
+      setOgImage(file);
+      setOgImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const removeImage = () => {
+    setOgImage(null);
+    setOgImagePreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+  };
+
+  const uploadImage = async (): Promise<string | null> => {
+    if (!ogImage) return null;
+    
+    setUploadingImage(true);
+    try {
+      const fileExt = ogImage.name.split('.').pop();
+      const fileName = `${crypto.randomUUID()}.${fileExt}`;
+      
+      const { error: uploadError } = await supabase.storage
+        .from('marketing-images')
+        .upload(fileName, ogImage);
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from('marketing-images')
+        .getPublicUrl(fileName);
+
+      return publicUrl;
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      toast.error('Failed to upload image');
+      return null;
+    } finally {
+      setUploadingImage(false);
+    }
+  };
+
   const createLink = async () => {
     if (!title || !expiresAt) {
       toast.error('Please fill in all required fields');
@@ -88,12 +141,19 @@ export default function AdminMarketingLinks() {
 
     setCreating(true);
     try {
+      // Upload image first if selected
+      let og_image_url: string | null = null;
+      if (ogImage) {
+        og_image_url = await uploadImage();
+      }
+
       const { data, error } = await supabase.functions.invoke('admin-create-marketing-link', {
         body: {
           title,
           expires_at: new Date(expiresAt).toISOString(),
           max_uses: maxUses ? parseInt(maxUses) : null,
-          initial_credits: parseInt(initialCredits)
+          initial_credits: parseInt(initialCredits),
+          og_image_url
         },
       });
 
@@ -105,6 +165,8 @@ export default function AdminMarketingLinks() {
       setExpiresAt("");
       setMaxUses("");
       setInitialCredits("105");
+      setOgImage(null);
+      setOgImagePreview(null);
       fetchLinks();
     } catch (error: any) {
       console.error('Error creating link:', error);
@@ -285,7 +347,48 @@ export default function AdminMarketingLinks() {
                   placeholder="Leave empty for unlimited"
                 />
               </div>
-              <Button onClick={createLink} disabled={creating} className="w-full">
+              <div className="space-y-2">
+                <Label>Social Share Image (Gift Card Graphic)</Label>
+                <p className="text-xs text-muted-foreground mb-2">
+                  This image will appear when the link is shared on social media
+                </p>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  accept="image/*"
+                  onChange={handleImageSelect}
+                  className="hidden"
+                />
+                {ogImagePreview ? (
+                  <div className="relative border border-border rounded-lg overflow-hidden">
+                    <img 
+                      src={ogImagePreview} 
+                      alt="Preview" 
+                      className="w-full h-32 object-cover"
+                    />
+                    <Button
+                      type="button"
+                      variant="destructive"
+                      size="icon"
+                      className="absolute top-2 right-2 h-6 w-6"
+                      onClick={removeImage}
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full h-24 flex flex-col gap-2"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <ImagePlus className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-sm text-muted-foreground">Upload Gift Card Image</span>
+                  </Button>
+                )}
+              </div>
+              <Button onClick={createLink} disabled={creating || uploadingImage} className="w-full">
                 {creating ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />

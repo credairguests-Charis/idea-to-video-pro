@@ -70,7 +70,8 @@ serve(async (req) => {
         link_id: link.id,
         title: link.title,
         initial_credits: link.initial_credits,
-        logos: link.marketing_link_logos || []
+        logos: link.marketing_link_logos || [],
+        og_image_url: link.og_image_url || null
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
