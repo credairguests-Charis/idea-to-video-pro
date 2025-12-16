@@ -50,11 +50,8 @@ enable_signup = true
 double_confirm_changes = true
 enable_confirmations = false
 
-# LangChain Agent - Brand research and Meta Ads extraction
-[functions.agent]
-verify_jwt = false
-
 # Admin Functions
+
 [functions.admin-create-invite]
 verify_jwt = true
 
