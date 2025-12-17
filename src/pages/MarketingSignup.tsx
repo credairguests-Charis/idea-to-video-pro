@@ -161,28 +161,52 @@ export default function MarketingSignup() {
   }
 
   const pageUrl = `${window.location.origin}/marketing/${slug}`;
-  const ogImage = linkData.og_image_url || '/charis-logo-marketing.png';
+  const ogMedia = linkData.og_image_url || '/charis-logo-marketing.png';
   const hasGiftCard = !!linkData.og_image_url;
   const pageTitle = linkData.title ? `${linkData.title} - Get ${linkData.initial_credits} Free Credits` : `Get ${linkData.initial_credits} Free Credits - Charis`;
   const pageDescription = `Sign up now and receive ${linkData.initial_credits} free credits. No credit card required. Create stunning AI-generated UGC video ads in minutes.`;
+
+  // Detect media type
+  const isVideo = ogMedia && ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v'].some(ext => ogMedia.toLowerCase().includes(ext));
+  const isGif = ogMedia && ogMedia.toLowerCase().includes('.gif');
 
   return (
     <div className="min-h-screen bg-background">
       <Helmet>
         <title>{pageTitle}</title>
         <meta name="description" content={pageDescription} />
-        <meta property="og:type" content="website" />
+        <meta property="og:type" content={isVideo ? "video.other" : "website"} />
         <meta property="og:url" content={pageUrl} />
         <meta property="og:title" content={pageTitle} />
         <meta property="og:description" content={pageDescription} />
-        <meta property="og:image" content={ogImage} />
-        <meta property="og:image:width" content="1200" />
-        <meta property="og:image:height" content="630" />
-        <meta name="twitter:card" content="summary_large_image" />
+        {isVideo ? (
+          <>
+            <meta property="og:video" content={ogMedia} />
+            <meta property="og:video:type" content="video/mp4" />
+            <meta property="og:video:width" content="1200" />
+            <meta property="og:video:height" content="630" />
+            <meta property="og:image" content={ogMedia} />
+          </>
+        ) : (
+          <>
+            <meta property="og:image" content={ogMedia} />
+            <meta property="og:image:width" content="1200" />
+            <meta property="og:image:height" content="630" />
+          </>
+        )}
+        <meta name="twitter:card" content={isVideo ? "player" : "summary_large_image"} />
         <meta name="twitter:url" content={pageUrl} />
         <meta name="twitter:title" content={pageTitle} />
         <meta name="twitter:description" content={pageDescription} />
-        <meta name="twitter:image" content={ogImage} />
+        {isVideo ? (
+          <>
+            <meta name="twitter:player" content={ogMedia} />
+            <meta name="twitter:player:width" content="1200" />
+            <meta name="twitter:player:height" content="630" />
+          </>
+        ) : (
+          <meta name="twitter:image" content={ogMedia} />
+        )}
       </Helmet>
 
       {hasGiftCard ? (
@@ -215,14 +239,26 @@ export default function MarketingSignup() {
                 {/* Glow Effect Behind Card */}
                 <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 rounded-2xl blur-2xl transform group-hover:scale-105 transition-transform duration-500" />
                 
-                {/* Gift Card Image */}
+                {/* Gift Card Media */}
                 <div className="relative bg-card rounded-2xl overflow-hidden shadow-2xl border border-border/50 transform transition-all duration-500 hover:scale-[1.02] hover:shadow-primary/20 hover:shadow-3xl">
-                  <img
-                    src={linkData.og_image_url}
-                    alt={linkData.title || "Your exclusive gift"}
-                    className="w-full h-auto object-cover"
-                    onLoad={() => setImageLoaded(true)}
-                  />
+                  {isVideo ? (
+                    <video
+                      src={linkData.og_image_url}
+                      className="w-full h-auto object-cover"
+                      autoPlay
+                      loop
+                      muted
+                      playsInline
+                      onLoadedData={() => setImageLoaded(true)}
+                    />
+                  ) : (
+                    <img
+                      src={linkData.og_image_url}
+                      alt={linkData.title || "Your exclusive gift"}
+                      className="w-full h-auto object-cover"
+                      onLoad={() => setImageLoaded(true)}
+                    />
+                  )}
                   
                   {/* Shine Effect */}
                   <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />

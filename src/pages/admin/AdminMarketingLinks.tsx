@@ -88,13 +88,22 @@ export default function AdminMarketingLinks() {
   const handleImageSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) {
-        toast.error('Image must be less than 5MB');
+      if (file.size > 50 * 1024 * 1024) {
+        toast.error('File must be less than 50MB');
         return;
       }
       setOgImage(file);
       setOgImagePreview(URL.createObjectURL(file));
     }
+  };
+
+  const isVideoFile = (url: string) => {
+    const videoExtensions = ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v'];
+    return videoExtensions.some(ext => url.toLowerCase().includes(ext));
+  };
+
+  const isGifFile = (url: string) => {
+    return url.toLowerCase().includes('.gif');
   };
 
   const removeImage = () => {
@@ -348,24 +357,35 @@ export default function AdminMarketingLinks() {
                 />
               </div>
               <div className="space-y-2">
-                <Label>Social Share Image (Gift Card Graphic)</Label>
+                <Label>Gift Card Media (Image, GIF, or Video)</Label>
                 <p className="text-xs text-muted-foreground mb-2">
-                  This image will appear when the link is shared on social media
+                  Upload an image, GIF, or video to display on the signup page and social previews
                 </p>
                 <input
                   type="file"
                   ref={fileInputRef}
-                  accept="image/*"
+                  accept="image/*,video/*,.gif,.mp4,.webm,.mov"
                   onChange={handleImageSelect}
                   className="hidden"
                 />
                 {ogImagePreview ? (
                   <div className="relative border border-border rounded-lg overflow-hidden">
-                    <img 
-                      src={ogImagePreview} 
-                      alt="Preview" 
-                      className="w-full h-32 object-cover"
-                    />
+                    {ogImage && ogImage.type.startsWith('video/') ? (
+                      <video 
+                        src={ogImagePreview}
+                        className="w-full h-32 object-cover"
+                        autoPlay
+                        loop
+                        muted
+                        playsInline
+                      />
+                    ) : (
+                      <img 
+                        src={ogImagePreview} 
+                        alt="Preview" 
+                        className="w-full h-32 object-cover"
+                      />
+                    )}
                     <Button
                       type="button"
                       variant="destructive"
@@ -384,7 +404,7 @@ export default function AdminMarketingLinks() {
                     onClick={() => fileInputRef.current?.click()}
                   >
                     <ImagePlus className="h-6 w-6 text-muted-foreground" />
-                    <span className="text-sm text-muted-foreground">Upload Gift Card Image</span>
+                    <span className="text-sm text-muted-foreground">Upload Image, GIF, or Video</span>
                   </Button>
                 )}
               </div>
