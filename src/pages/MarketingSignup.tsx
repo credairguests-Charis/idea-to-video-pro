@@ -18,6 +18,7 @@ interface MarketingLink {
   initial_credits?: number;
   logos?: Array<{ logo_url: string; display_order: number }>;
   og_image_url?: string;
+  og_thumbnail_url?: string;
 }
 
 const STATIC_SOCIAL_LOGOS = [
@@ -169,6 +170,11 @@ export default function MarketingSignup() {
   // Detect media type
   const isVideo = ogMedia && ['.mp4', '.webm', '.mov', '.avi', '.mkv', '.m4v'].some(ext => ogMedia.toLowerCase().includes(ext));
   const isGif = ogMedia && ogMedia.toLowerCase().includes('.gif');
+  
+  // Use thumbnail for social preview if video, otherwise use the media itself
+  const socialPreviewImage = isVideo && linkData.og_thumbnail_url 
+    ? linkData.og_thumbnail_url 
+    : ogMedia;
 
   return (
     <div className="min-h-screen bg-background">
@@ -185,7 +191,10 @@ export default function MarketingSignup() {
             <meta property="og:video:type" content="video/mp4" />
             <meta property="og:video:width" content="1200" />
             <meta property="og:video:height" content="630" />
-            <meta property="og:image" content={ogMedia} />
+            {/* Use thumbnail for og:image fallback */}
+            <meta property="og:image" content={socialPreviewImage} />
+            <meta property="og:image:width" content="1200" />
+            <meta property="og:image:height" content="630" />
           </>
         ) : (
           <>
@@ -203,6 +212,8 @@ export default function MarketingSignup() {
             <meta name="twitter:player" content={ogMedia} />
             <meta name="twitter:player:width" content="1200" />
             <meta name="twitter:player:height" content="630" />
+            {/* Use thumbnail for twitter:image fallback */}
+            <meta name="twitter:image" content={socialPreviewImage} />
           </>
         ) : (
           <meta name="twitter:image" content={ogMedia} />
