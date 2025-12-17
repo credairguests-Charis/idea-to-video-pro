@@ -243,43 +243,48 @@ export default function MarketingSignup() {
                 </div>
               </div>
 
-              {/* Gift Card Container */}
+              {/* Gift Card Container - 9:16 aspect ratio like video gallery */}
               <div 
-                className={`relative group transition-all duration-700 ${imageLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
+                className={`relative group transition-all duration-700 flex justify-center ${imageLoaded ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}
               >
-                {/* Glow Effect Behind Card */}
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 rounded-2xl blur-2xl transform group-hover:scale-105 transition-transform duration-500" />
-                
-                {/* Gift Card Media */}
-                <div className="relative bg-card rounded-2xl overflow-hidden shadow-2xl border border-border/50 transform transition-all duration-500 hover:scale-[1.02] hover:shadow-primary/20 hover:shadow-3xl">
-                  {isVideo ? (
-                    <video
-                      src={linkData.og_image_url}
-                      className="w-full h-auto object-cover"
-                      autoPlay
-                      loop
-                      muted
-                      playsInline
-                      onLoadedData={() => setImageLoaded(true)}
-                    />
-                  ) : (
-                    <img
-                      src={linkData.og_image_url}
-                      alt={linkData.title || "Your exclusive gift"}
-                      className="w-full h-auto object-cover"
-                      onLoad={() => setImageLoaded(true)}
-                    />
-                  )}
+                {/* Card with fixed width for 9:16 aspect ratio */}
+                <div className="relative w-[220px] sm:w-[260px]">
+                  {/* Glow Effect Behind Card */}
+                  <div className="absolute inset-0 bg-gradient-to-r from-primary/20 via-primary/10 to-primary/20 rounded-2xl blur-2xl transform group-hover:scale-105 transition-transform duration-500" />
                   
-                  {/* Shine Effect */}
-                  <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
-                </div>
+                  {/* 9:16 Aspect Ratio Container */}
+                  <div className="relative w-full" style={{ paddingBottom: "177.78%" }}>
+                    <div className="absolute inset-0 bg-card rounded-2xl overflow-hidden shadow-2xl border border-border/50 transform transition-all duration-500 hover:scale-[1.02] hover:shadow-primary/20 hover:shadow-3xl">
+                      {isVideo ? (
+                        <video
+                          src={linkData.og_image_url}
+                          className="w-full h-full object-cover"
+                          autoPlay
+                          loop
+                          muted
+                          playsInline
+                          onLoadedData={() => setImageLoaded(true)}
+                        />
+                      ) : (
+                        <img
+                          src={linkData.og_image_url}
+                          alt={linkData.title || "Your exclusive gift"}
+                          className="w-full h-full object-cover"
+                          onLoad={() => setImageLoaded(true)}
+                        />
+                      )}
+                      
+                      {/* Shine Effect */}
+                      <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none" />
+                    </div>
+                  </div>
 
-                {/* Floating Credit Badge */}
-                <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-6 py-3 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/30 animate-fade-in" style={{ animationDelay: '0.3s' }}>
-                  <div className="flex items-center gap-2">
-                    <Sparkles className="w-5 h-5" />
-                    <span className="font-bold text-lg">{linkData.initial_credits} Free Credits</span>
+                  {/* Floating Credit Badge */}
+                  <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 px-6 py-3 bg-primary text-primary-foreground rounded-full shadow-lg shadow-primary/30 animate-fade-in z-10" style={{ animationDelay: '0.3s' }}>
+                    <div className="flex items-center gap-2">
+                      <Sparkles className="w-5 h-5" />
+                      <span className="font-bold text-lg">{linkData.initial_credits} Free Credits</span>
+                    </div>
                   </div>
                 </div>
               </div>
