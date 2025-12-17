@@ -55,8 +55,11 @@ export default function AdminMarketingLinks() {
   const [initialCredits, setInitialCredits] = useState("105");
   const [ogImage, setOgImage] = useState<File | null>(null);
   const [ogImagePreview, setOgImagePreview] = useState<string | null>(null);
+  const [ogThumbnail, setOgThumbnail] = useState<File | null>(null);
+  const [ogThumbnailPreview, setOgThumbnailPreview] = useState<string | null>(null);
   const [uploadingImage, setUploadingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const thumbnailInputRef = useRef<HTMLInputElement>(null);
 
   // Analytics state
   const [selectedLink, setSelectedLink] = useState<MarketingLink | null>(null);
@@ -106,25 +109,55 @@ export default function AdminMarketingLinks() {
     return url.toLowerCase().includes('.gif');
   };
 
-  const removeImage = () => {
-    setOgImage(null);
-    setOgImagePreview(null);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+  const isSelectedFileVideo = () => {
+    return ogImage && ogImage.type.startsWith('video/');
+  };
+
+  const handleThumbnailSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast.error('Thumbnail must be less than 5MB');
+        return;
+      }
+      if (!file.type.startsWith('image/')) {
+        toast.error('Thumbnail must be an image file');
+        return;
+      }
+      setOgThumbnail(file);
+      setOgThumbnailPreview(URL.createObjectURL(file));
     }
   };
 
-  const uploadImage = async (): Promise<string | null> => {
-    if (!ogImage) return null;
-    
-    setUploadingImage(true);
+  const removeThumbnail = () => {
+    setOgThumbnail(null);
+    setOgThumbnailPreview(null);
+    if (thumbnailInputRef.current) {
+      thumbnailInputRef.current.value = '';
+    }
+  };
+
+  const removeImage = () => {
+    setOgImage(null);
+    setOgImagePreview(null);
+    setOgThumbnail(null);
+    setOgThumbnailPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = '';
+    }
+    if (thumbnailInputRef.current) {
+      thumbnailInputRef.current.value = '';
+    }
+  };
+
+  const uploadFile = async (file: File): Promise<string | null> => {
     try {
-      const fileExt = ogImage.name.split('.').pop();
+      const fileExt = file.name.split('.').pop();
       const fileName = `${crypto.randomUUID()}.${fileExt}`;
       
       const { error: uploadError } = await supabase.storage
         .from('marketing-images')
-        .upload(fileName, ogImage);
+        .upload(fileName, file);
 
       if (uploadError) throw uploadError;
 
@@ -134,11 +167,8 @@ export default function AdminMarketingLinks() {
 
       return publicUrl;
     } catch (error) {
-      console.error('Error uploading image:', error);
-      toast.error('Failed to upload image');
+      console.error('Error uploading file:', error);
       return null;
-    } finally {
-      setUploadingImage(false);
     }
   };
 
@@ -149,11 +179,27 @@ export default function AdminMarketingLinks() {
     }
 
     setCreating(true);
+    setUploadingImage(true);
     try {
-      // Upload image first if selected
+      // Upload media file first if selected
       let og_image_url: string | null = null;
+      let og_thumbnail_url: string | null = null;
+      
       if (ogImage) {
-        og_image_url = await uploadImage();
+        og_image_url = await uploadFile(ogImage);
+        if (!og_image_url) {
+          toast.error('Failed to upload media file');
+          return;
+        }
+      }
+      
+      // Upload thumbnail if video and thumbnail is provided
+      if (ogThumbnail) {
+        og_thumbnail_url = await uploadFile(ogThumbnail);
+        if (!og_thumbnail_url) {
+          toast.error('Failed to upload thumbnail');
+          return;
+        }
       }
 
       const { data, error } = await supabase.functions.invoke('admin-create-marketing-link', {
@@ -162,7 +208,8 @@ export default function AdminMarketingLinks() {
           expires_at: new Date(expiresAt).toISOString(),
           max_uses: maxUses ? parseInt(maxUses) : null,
           initial_credits: parseInt(initialCredits),
-          og_image_url
+          og_image_url,
+          og_thumbnail_url
         },
       });
 
@@ -176,12 +223,15 @@ export default function AdminMarketingLinks() {
       setInitialCredits("105");
       setOgImage(null);
       setOgImagePreview(null);
+      setOgThumbnail(null);
+      setOgThumbnailPreview(null);
       fetchLinks();
     } catch (error: any) {
       console.error('Error creating link:', error);
       toast.error(error.message || 'Failed to create link');
     } finally {
       setCreating(false);
+      setUploadingImage(false);
     }
   };
 
@@ -408,6 +458,51 @@ export default function AdminMarketingLinks() {
                   </Button>
                 )}
               </div>
+              
+              {/* Thumbnail upload - shows when video is selected */}
+              {isSelectedFileVideo() && (
+                <div className="space-y-2">
+                  <Label>Video Thumbnail (for social media preview)</Label>
+                  <p className="text-xs text-muted-foreground mb-2">
+                    Social platforms may not preview videos - this image will be used as fallback
+                  </p>
+                  <input
+                    type="file"
+                    ref={thumbnailInputRef}
+                    accept="image/*"
+                    onChange={handleThumbnailSelect}
+                    className="hidden"
+                  />
+                  {ogThumbnailPreview ? (
+                    <div className="relative border border-border rounded-lg overflow-hidden">
+                      <img 
+                        src={ogThumbnailPreview} 
+                        alt="Thumbnail Preview" 
+                        className="w-full h-24 object-cover"
+                      />
+                      <Button
+                        type="button"
+                        variant="destructive"
+                        size="icon"
+                        className="absolute top-2 right-2 h-6 w-6"
+                        onClick={removeThumbnail}
+                      >
+                        <X className="h-4 w-4" />
+                      </Button>
+                    </div>
+                  ) : (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      className="w-full h-16 flex flex-col gap-1"
+                      onClick={() => thumbnailInputRef.current?.click()}
+                    >
+                      <ImagePlus className="h-4 w-4 text-muted-foreground" />
+                      <span className="text-xs text-muted-foreground">Upload Thumbnail Image</span>
+                    </Button>
+                  )}
+                </div>
+              )}
               <Button onClick={createLink} disabled={creating || uploadingImage} className="w-full">
                 {creating ? (
                   <>
