@@ -52,7 +52,7 @@ export default function AdminMarketingLinks() {
   const [title, setTitle] = useState("");
   const [expiresAt, setExpiresAt] = useState("");
   const [maxUses, setMaxUses] = useState("");
-  const [initialCredits, setInitialCredits] = useState("105");
+  const [initialCredits, setInitialCredits] = useState("210");
   const [ogImage, setOgImage] = useState<File | null>(null);
   const [ogImagePreview, setOgImagePreview] = useState<string | null>(null);
   const [ogThumbnail, setOgThumbnail] = useState<File | null>(null);
@@ -220,7 +220,7 @@ export default function AdminMarketingLinks() {
       setTitle("");
       setExpiresAt("");
       setMaxUses("");
-      setInitialCredits("105");
+      setInitialCredits("210");
       setOgImage(null);
       setOgImagePreview(null);
       setOgThumbnail(null);
@@ -384,7 +384,7 @@ export default function AdminMarketingLinks() {
                   type="number"
                   value={initialCredits}
                   onChange={(e) => setInitialCredits(e.target.value)}
-                  placeholder="105"
+                  placeholder="210"
                 />
               </div>
               <div className="space-y-2">

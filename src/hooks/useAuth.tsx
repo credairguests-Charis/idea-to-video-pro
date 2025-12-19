@@ -56,6 +56,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const createUserProfile = async (user: User) => {
     try {
+      // Check if marketing_link_id is in user metadata (for marketing signups)
+      const marketingLinkId = user.user_metadata?.marketing_link_id;
+      
+      // For marketing signups, credits are already set via MarketingSignup page
+      // For normal signups, use default 210 credits
+      const defaultCredits = marketingLinkId ? undefined : 210;
+      
       // Use UPSERT to handle existing profiles - prevents 409 duplicate key errors
       const { data, error } = await supabase
         .from('profiles')
@@ -64,6 +71,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           email: user.email,
           full_name: user.user_metadata?.full_name || '',
           updated_at: new Date().toISOString(),
+          ...(defaultCredits !== undefined ? { credits: defaultCredits } : {}),
         }, {
           onConflict: 'user_id',
           ignoreDuplicates: false,

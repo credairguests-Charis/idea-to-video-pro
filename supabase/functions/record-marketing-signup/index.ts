@@ -41,13 +41,21 @@ serve(async (req) => {
 
     if (updateError) throw updateError;
 
-    // Grant credits to user
+    // Grant credits to user - UPDATE the profile since it was already created
     const { error: creditsError } = await supabase
       .from('profiles')
       .update({ credits: link.initial_credits })
       .eq('user_id', user_id);
 
-    if (creditsError) throw creditsError;
+    if (creditsError) {
+      console.error('Error updating credits:', creditsError);
+      // If update fails, it might be because profile doesn't exist yet - try insert
+      const { error: insertError } = await supabase
+        .from('profiles')
+        .insert({ user_id, credits: link.initial_credits });
+      
+      if (insertError) throw insertError;
+    }
 
     // Log transaction
     const { error: logError } = await supabase

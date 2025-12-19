@@ -95,6 +95,63 @@ serve(async (req) => {
       );
     }
 
+    // Credit check and deduction
+    const CREDITS_PER_VIDEO = 70;
+
+    // Get current credits
+    const { data: profile, error: profileError } = await supabaseClient
+      .from('profiles')
+      .select('credits')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profileError) {
+      console.error('Failed to fetch user profile:', profileError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to fetch user profile' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    const currentCredits = profile?.credits || 0;
+    if (currentCredits < CREDITS_PER_VIDEO) {
+      console.log(`Insufficient credits: has ${currentCredits}, needs ${CREDITS_PER_VIDEO}`);
+      return new Response(
+        JSON.stringify({ 
+          error: `Insufficient credits. You have ${currentCredits} credits but need ${CREDITS_PER_VIDEO} credits. Each video costs ${CREDITS_PER_VIDEO} credits.`,
+          errorCode: 'INSUFFICIENT_CREDITS',
+          current_credits: currentCredits,
+          required_credits: CREDITS_PER_VIDEO
+        }),
+        { status: 402, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Deduct credits upfront
+    const newCredits = currentCredits - CREDITS_PER_VIDEO;
+    const { error: updateError } = await supabaseClient
+      .from('profiles')
+      .update({ credits: newCredits })
+      .eq('user_id', user.id);
+
+    if (updateError) {
+      console.error('Failed to deduct credits:', updateError);
+      return new Response(
+        JSON.stringify({ error: 'Failed to deduct credits' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
+    }
+
+    // Log transaction
+    await supabaseClient.from('transaction_logs').insert({
+      user_id: user.id,
+      credits_change: -CREDITS_PER_VIDEO,
+      reason: 'video_generation',
+      metadata: { project_id: project_id || null, generation_type: 'sora' }
+    });
+
+    console.log(`Deducted ${CREDITS_PER_VIDEO} credits from user ${user.id}. New balance: ${newCredits}`);
+
     // Support both single image_url and multiple image_urls
     const finalImageUrls = image_urls || (image_url ? [image_url] : []);
 

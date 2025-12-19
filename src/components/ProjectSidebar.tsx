@@ -1,8 +1,9 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut, FolderPlus, PanelLeftClose, PanelLeft } from "lucide-react";
+import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut, FolderPlus, PanelLeftClose, PanelLeft, Coins } from "lucide-react";
 import charisLogo from "@/assets/charis-logo-2.png";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useCredits } from "@/hooks/useCredits";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -28,6 +29,7 @@ export function ProjectSidebar({
     user,
     signOut
   } = useAuth();
+  const { credits, getVideoCount, loading: creditsLoading } = useCredits();
   const {
     folders,
     createFolder,
@@ -394,6 +396,35 @@ export function ProjectSidebar({
 
       {/* Footer with user info and actions */}
       <div className={cn("border-t mt-auto bg-sidebar space-y-2", isCollapsed ? "p-1" : "p-3")}>
+        {/* Credits Display */}
+        {!isCollapsed && (
+          <div className="flex items-center justify-between px-2 py-2 bg-primary/5 rounded-lg border border-primary/10">
+            <div className="flex items-center gap-2">
+              <Coins className="h-4 w-4 text-primary" />
+              <span className="text-sm font-medium text-foreground">
+                {creditsLoading ? '...' : credits}
+              </span>
+              <span className="text-xs text-muted-foreground">credits</span>
+            </div>
+            <span className="text-xs text-muted-foreground">
+              ~{getVideoCount()} videos
+            </span>
+          </div>
+        )}
+        {isCollapsed && (
+          <TooltipProvider delayDuration={300}>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-center py-2 bg-primary/5 rounded-lg border border-primary/10">
+                  <Coins className="h-4 w-4 text-primary" />
+                </div>
+              </TooltipTrigger>
+              <TooltipContent side="right">
+                <p>{creditsLoading ? '...' : credits} credits (~{getVideoCount()} videos)</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
+        )}
         <TooltipProvider delayDuration={300}>
           <Tooltip>
             <TooltipTrigger asChild>

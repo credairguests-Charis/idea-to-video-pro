@@ -1,6 +1,7 @@
 import { useState, useCallback } from "react";
 import { Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
+import { useCredits } from "@/hooks/useCredits";
 import { supabase } from "@/integrations/supabase/client";
 import { VideoCard } from "@/components/VideoCard";
 import { BottomInputPanel } from "@/components/BottomInputPanel";
@@ -44,6 +45,7 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = 'generate
   const [projects, setProjects] = useState<VideoProject[]>([]);
   const [productImage, setProductImage] = useState<ProductImage | null>(null);
   const { toast } = useToast();
+  const { credits, checkSufficientCredits, CREDITS_PER_VIDEO, refetch: refetchCredits } = useCredits();
 
   // Mock project data for display
   const mockProjects: VideoProject[] = [
@@ -66,6 +68,17 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = 'generate
       toast({
         title: "Content Required",
         description: "Please provide a script/prompt",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Check credits before starting
+    const requiredCredits = count * CREDITS_PER_VIDEO;
+    if (!checkSufficientCredits(requiredCredits)) {
+      toast({
+        title: "Insufficient Credits",
+        description: `You need ${requiredCredits} credits (${count} videos × ${CREDITS_PER_VIDEO} credits) but only have ${credits} credits.`,
         variant: "destructive",
       });
       return;
@@ -166,15 +179,29 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = 'generate
       // Execute all generations in parallel
       const results = await Promise.allSettled(generationPromises);
       
-      // Count successes and failures
+      // Count successes and failures, check for credit errors
       const successful = results.filter(r => r.status === 'fulfilled' && r.value.data?.success).length;
       const failed = results.length - successful;
+      const creditError = results.find(r => 
+        r.status === 'fulfilled' && r.value.data?.errorCode === 'INSUFFICIENT_CREDITS'
+      );
+
+      if (creditError) {
+        toast({
+          title: "Insufficient Credits",
+          description: (creditError as any).value.data?.error || "Not enough credits for generation",
+          variant: "destructive",
+        });
+        refetchCredits();
+        return;
+      }
 
       if (successful > 0) {
         toast({
           title: "Bulk Generation Started!",
           description: `${successful} video${successful > 1 ? 's are' : ' is'} being generated with Sora 2. ${failed > 0 ? `(${failed} failed)` : ''}`,
         });
+        refetchCredits();
       } else {
         throw new Error("All bulk generation requests failed");
       }
@@ -193,13 +220,26 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = 'generate
     } finally {
       setIsLoading(false);
     }
-  }, [script, selectedActors, productImage, aspectRatio, toast, projectId]);
+  }, [script, selectedActors, productImage, aspectRatio, toast, projectId, CREDITS_PER_VIDEO, checkSufficientCredits, credits, refetchCredits]);
 
   const handleCreateProject = useCallback(async () => {
     if (!script.trim()) {
       toast({
         title: "Content Required",
         description: "Please provide a script/prompt",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Calculate how many videos will be generated
+    const videoCount = selectedActors.length > 0 ? selectedActors.length : 1;
+    const requiredCredits = videoCount * CREDITS_PER_VIDEO;
+    
+    if (!checkSufficientCredits(requiredCredits)) {
+      toast({
+        title: "Insufficient Credits",
+        description: `You need ${requiredCredits} credits (${videoCount} video${videoCount > 1 ? 's' : ''} × ${CREDITS_PER_VIDEO} credits) but only have ${credits} credits.`,
         variant: "destructive",
       });
       return;
@@ -336,18 +376,23 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = 'generate
       // Reset form (keep product image and aspect ratio for multiple generations)
       setScript("");
       setSelectedActors([]);
+      refetchCredits();
 
-    } catch (error) {
+    } catch (error: any) {
       console.error('Video generation error:', error);
+      const errorMessage = error?.message || "Failed to generate video";
+      const isCreditsError = errorMessage.includes('Insufficient credits') || errorMessage.includes('credits');
+      
       toast({
-        title: "Generation Failed",
-        description: error instanceof Error ? error.message : "Failed to generate video",
+        title: isCreditsError ? "Insufficient Credits" : "Generation Failed",
+        description: errorMessage,
         variant: "destructive",
       });
+      refetchCredits();
     } finally {
       setIsLoading(false);
     }
-  }, [script, selectedActors, productImage, aspectRatio, toast, projectId]);
+  }, [script, selectedActors, productImage, aspectRatio, toast, projectId, CREDITS_PER_VIDEO, checkSufficientCredits, credits, refetchCredits]);
 
   const handleVideoClick = (project: VideoProject) => {
     // Handle video playback/preview
