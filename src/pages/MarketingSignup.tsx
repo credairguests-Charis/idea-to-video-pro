@@ -125,7 +125,7 @@ export default function MarketingSignup() {
         });
 
         toast.success(`Account created! You've received ${linkData.initial_credits} free credits.`);
-        navigate('/');
+        navigate('/app/projects');
       }
     } catch (err: any) {
       console.error('Signup error:', err);
