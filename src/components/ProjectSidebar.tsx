@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut, FolderPlus, PanelLeftClose, PanelLeft, Coins } from "lucide-react";
+import { ChevronRight, ChevronDown, FolderOpen, Folder, Plus, MoreVertical, Edit2, Copy, Trash2, Settings, LogOut, FolderPlus, PanelLeftClose, PanelLeft, Coins, Zap } from "lucide-react";
 import charisLogo from "@/assets/charis-logo-2.png";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
@@ -14,6 +14,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/comp
 import { useFolders } from "@/hooks/useFolders";
 import { useProjects } from "@/hooks/useProjects";
 import { cn } from "@/lib/utils";
+import { TopUpCreditsDialog } from "@/components/TopUpCreditsDialog";
 interface ProjectSidebarProps {
   currentProjectId?: string;
   onProjectSelect: (projectId: string) => void;
@@ -63,6 +64,7 @@ export function ProjectSidebar({
   } | null>(null);
   const [selectedProjectsToMove, setSelectedProjectsToMove] = useState<Set<string>>(new Set());
   const [isCollapsed, setIsCollapsed] = useState(false);
+  const [topUpDialogOpen, setTopUpDialogOpen] = useState(false);
 
   // Auto-expand folder containing current project
   useEffect(() => {
@@ -396,19 +398,41 @@ export function ProjectSidebar({
 
       {/* Footer with user info and actions */}
       <div className={cn("border-t mt-auto bg-sidebar space-y-2", isCollapsed ? "p-1" : "p-3")}>
-        {/* Credits Display */}
+        {/* Credits Display with TopUp Button */}
         {!isCollapsed && (
-          <div className="flex items-center justify-between px-2 py-2 bg-primary/5 rounded-lg border border-primary/10">
-            <div className="flex items-center gap-2">
-              <Coins className="h-4 w-4 text-primary" />
-              <span className="text-sm font-medium text-foreground">
-                {creditsLoading ? '...' : credits}
+          <div className="space-y-2">
+            <div className="flex items-center justify-between px-2 py-2 bg-primary/5 rounded-lg border border-primary/10">
+              <div className="flex items-center gap-2">
+                <Coins className="h-4 w-4 text-primary" />
+                <span className="text-sm font-medium text-foreground">
+                  {creditsLoading ? '...' : credits}
+                </span>
+                <span className="text-xs text-muted-foreground">credits</span>
+              </div>
+              <span className="text-xs text-muted-foreground">
+                ~{getVideoCount()} videos
               </span>
-              <span className="text-xs text-muted-foreground">credits</span>
             </div>
-            <span className="text-xs text-muted-foreground">
-              ~{getVideoCount()} videos
-            </span>
+            <div className="grid grid-cols-2 gap-2">
+              <Button 
+                variant="outline" 
+                size="sm" 
+                className="h-8 text-xs"
+                onClick={() => setTopUpDialogOpen(true)}
+              >
+                <Coins className="h-3 w-3 mr-1" />
+                Top Up
+              </Button>
+              <Button 
+                variant="default" 
+                size="sm" 
+                className="h-8 text-xs"
+                onClick={() => navigate('/upgrade')}
+              >
+                <Zap className="h-3 w-3 mr-1" />
+                Upgrade
+              </Button>
+            </div>
           </div>
         )}
         {isCollapsed && (
@@ -552,5 +576,8 @@ export function ProjectSidebar({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Top Up Credits Dialog */}
+      <TopUpCreditsDialog open={topUpDialogOpen} onOpenChange={setTopUpDialogOpen} />
     </div>;
 }

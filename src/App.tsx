@@ -12,6 +12,7 @@ import Folders from "./pages/Folders";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Pricing from "./pages/Pricing";
+import UpgradePlans from "./pages/UpgradePlans";
 import NotFound from "./pages/NotFound";
 import VideoGenerator from "./pages/VideoGenerator";
 import ProjectWorkspace from "./pages/ProjectWorkspace";
@@ -33,6 +34,7 @@ import AdminMarketingLinks from "./pages/admin/AdminMarketingLinks";
 import AdminLogs from "./pages/admin/AdminLogs";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAuditReports from "./pages/admin/AdminAuditReports";
+import AdminCredits from "./pages/admin/AdminCredits";
 
 const queryClient = new QueryClient();
 
@@ -134,9 +136,19 @@ const App = () => {
               </AdminLayout>
             </AdminGuard>
           } />
+          <Route path="/admin/credits" element={
+            <AdminGuard>
+              <AdminLayout>
+                <AdminCredits />
+              </AdminLayout>
+            </AdminGuard>
+          } />
           
           {/* Pricing Page (Accessible without auth) */}
           <Route path="/pricing" element={<Pricing />} />
+          
+          {/* Upgrade Plans Page */}
+          <Route path="/upgrade" element={<UpgradePlans />} />
 
           {/* User Routes - Protected by Auth + Subscription */}
           <Route path="/app/*" element={
