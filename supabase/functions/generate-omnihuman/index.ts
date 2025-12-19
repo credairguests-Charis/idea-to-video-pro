@@ -63,6 +63,53 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
+    // Credit check and deduction
+    const CREDITS_PER_VIDEO = 70;
+    const totalCreditsRequired = actorIds.length * CREDITS_PER_VIDEO;
+
+    // Get current credits
+    const { data: profile, error: profileError } = await supabase
+      .from('profiles')
+      .select('credits')
+      .eq('user_id', user.id)
+      .single();
+
+    if (profileError) throw new Error('Failed to fetch user profile');
+
+    const currentCredits = profile?.credits || 0;
+    if (currentCredits < totalCreditsRequired) {
+      console.log(`Insufficient credits: has ${currentCredits}, needs ${totalCreditsRequired}`);
+      return new Response(JSON.stringify({ 
+        success: false, 
+        error: `Insufficient credits. You have ${currentCredits} credits but need ${totalCreditsRequired} credits for ${actorIds.length} video(s). Each video costs ${CREDITS_PER_VIDEO} credits.`,
+        errorCode: 'INSUFFICIENT_CREDITS',
+        current_credits: currentCredits,
+        required_credits: totalCreditsRequired
+      }), {
+        status: 402,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    // Deduct credits upfront
+    const newCredits = currentCredits - totalCreditsRequired;
+    const { error: updateError } = await supabase
+      .from('profiles')
+      .update({ credits: newCredits })
+      .eq('user_id', user.id);
+
+    if (updateError) throw new Error('Failed to deduct credits');
+
+    // Log transaction
+    await supabase.from('transaction_logs').insert({
+      user_id: user.id,
+      credits_change: -totalCreditsRequired,
+      reason: 'video_generation',
+      metadata: { project_id: projectId, actor_count: actorIds.length, cost_per_video: CREDITS_PER_VIDEO }
+    });
+
+    console.log(`Deducted ${totalCreditsRequired} credits from user ${user.id}. New balance: ${newCredits}`);
+
     const generations = [];
     let fatalError: { code: number; message: string } | null = null;
 

@@ -106,11 +106,12 @@ export default function MarketingSignup() {
       if (signUpError) throw signUpError;
 
       if (authData.user) {
+        // Create profile with credits from marketing link
         await supabase.from('profiles').insert({
           user_id: authData.user.id,
           full_name: fullName,
           email: email,
-          credits: 0,
+          credits: linkData.initial_credits || 210,
         });
 
         await supabase.functions.invoke('record-marketing-signup', {
