@@ -3,6 +3,7 @@ import { ProjectCard } from "@/components/ProjectCard"
 import { Card, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
+import { LowCreditWarning } from "@/components/LowCreditWarning"
 
 export default function Projects() {
   const { projects, loading, deleteProject } = useProjects()
@@ -62,6 +63,9 @@ export default function Projects() {
           </div>
         )}
       </div>
+      
+      {/* Low credit warning notification */}
+      <LowCreditWarning />
     </div>
   )
 }
