@@ -99,7 +99,7 @@ export default function MarketingSignup() {
             full_name: fullName,
             marketing_link_id: linkData.link_id,
           },
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/app/projects`,
         },
       });
 
