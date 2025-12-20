@@ -6,9 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { RefreshCw, Search, Coins, TrendingUp, TrendingDown, Users, Video } from "lucide-react";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { RefreshCw, Search, Coins, TrendingUp, TrendingDown, Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-import { format } from "date-fns";
+import { format, subDays, startOfDay, eachDayOfInterval, eachWeekOfInterval, startOfWeek, endOfWeek } from "date-fns";
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar, Legend } from "recharts";
 
 interface TransactionLog {
   id: string;
@@ -28,22 +30,33 @@ interface CreditStats {
   topUpRevenue: number;
 }
 
+interface DailyData {
+  date: string;
+  issued: number;
+  used: number;
+  net: number;
+}
+
 export default function AdminCredits() {
   const [transactions, setTransactions] = useState<TransactionLog[]>([]);
   const [stats, setStats] = useState<CreditStats | null>(null);
+  const [dailyData, setDailyData] = useState<DailyData[]>([]);
+  const [weeklyData, setWeeklyData] = useState<DailyData[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState("");
+  const [chartPeriod, setChartPeriod] = useState<"daily" | "weekly">("daily");
   const { toast } = useToast();
 
   const fetchData = async () => {
     setLoading(true);
     try {
-      // Fetch transaction logs
+      // Fetch transaction logs (last 90 days for chart data)
+      const ninetyDaysAgo = subDays(new Date(), 90).toISOString();
       const { data: transactionData, error: transactionError } = await supabase
         .from("transaction_logs")
         .select("*")
-        .order("created_at", { ascending: false })
-        .limit(100);
+        .gte("created_at", ninetyDaysAgo)
+        .order("created_at", { ascending: false });
 
       if (transactionError) throw transactionError;
 
@@ -63,6 +76,68 @@ export default function AdminCredits() {
 
       setTransactions(enrichedTransactions);
 
+      // Calculate daily data for chart (last 30 days)
+      const thirtyDaysAgo = subDays(new Date(), 30);
+      const days = eachDayOfInterval({ start: thirtyDaysAgo, end: new Date() });
+      
+      const dailyChartData = days.map(day => {
+        const dayStart = startOfDay(day);
+        const dayEnd = new Date(dayStart);
+        dayEnd.setDate(dayEnd.getDate() + 1);
+        
+        const dayTransactions = transactionData?.filter(t => {
+          const txDate = new Date(t.created_at);
+          return txDate >= dayStart && txDate < dayEnd;
+        }) || [];
+        
+        const issued = dayTransactions
+          .filter(t => t.credits_change > 0)
+          .reduce((sum, t) => sum + t.credits_change, 0);
+        
+        const used = dayTransactions
+          .filter(t => t.credits_change < 0)
+          .reduce((sum, t) => sum + Math.abs(t.credits_change), 0);
+        
+        return {
+          date: format(day, "MMM d"),
+          issued,
+          used,
+          net: issued - used,
+        };
+      });
+      
+      setDailyData(dailyChartData);
+
+      // Calculate weekly data for chart (last 12 weeks)
+      const twelveWeeksAgo = subDays(new Date(), 84);
+      const weeks = eachWeekOfInterval({ start: twelveWeeksAgo, end: new Date() });
+      
+      const weeklyChartData = weeks.map(weekStart => {
+        const weekEnd = endOfWeek(weekStart);
+        
+        const weekTransactions = transactionData?.filter(t => {
+          const txDate = new Date(t.created_at);
+          return txDate >= weekStart && txDate <= weekEnd;
+        }) || [];
+        
+        const issued = weekTransactions
+          .filter(t => t.credits_change > 0)
+          .reduce((sum, t) => sum + t.credits_change, 0);
+        
+        const used = weekTransactions
+          .filter(t => t.credits_change < 0)
+          .reduce((sum, t) => sum + Math.abs(t.credits_change), 0);
+        
+        return {
+          date: format(weekStart, "MMM d"),
+          issued,
+          used,
+          net: issued - used,
+        };
+      });
+      
+      setWeeklyData(weeklyChartData);
+
       // Calculate stats
       const { data: allProfiles } = await supabase
         .from("profiles")
@@ -80,7 +155,7 @@ export default function AdminCredits() {
         .reduce((sum, t) => sum + Math.abs(t.credits_change), 0) || 0;
 
       const topUpTransactions = transactionData?.filter(t => 
-        t.reason.includes("top-up") || t.reason.includes("topup")
+        t.reason.includes("top-up") || t.reason.includes("topup") || t.reason.includes("credit_topup")
       ) || [];
       
       const topUpRevenue = topUpTransactions.reduce((sum, t) => {
@@ -117,7 +192,9 @@ export default function AdminCredits() {
     t.user_email?.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.reason.toLowerCase().includes(searchQuery.toLowerCase()) ||
     t.user_id.toLowerCase().includes(searchQuery.toLowerCase())
-  );
+  ).slice(0, 100);
+
+  const chartData = chartPeriod === "daily" ? dailyData : weeklyData;
 
   return (
     <div className="space-y-6 w-full">
@@ -178,6 +255,107 @@ export default function AdminCredits() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Credit Usage Chart */}
+      <Card>
+        <CardHeader>
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+            <div>
+              <CardTitle>Credit Usage Trends</CardTitle>
+              <CardDescription>Credits issued vs consumed over time</CardDescription>
+            </div>
+            <Tabs value={chartPeriod} onValueChange={(v) => setChartPeriod(v as "daily" | "weekly")}>
+              <TabsList>
+                <TabsTrigger value="daily">Daily</TabsTrigger>
+                <TabsTrigger value="weekly">Weekly</TabsTrigger>
+              </TabsList>
+            </Tabs>
+          </div>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[350px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="date" 
+                  className="text-xs" 
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis 
+                  className="text-xs" 
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    color: 'hsl(var(--foreground))'
+                  }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                />
+                <Legend />
+                <Bar 
+                  dataKey="issued" 
+                  name="Credits Issued" 
+                  fill="hsl(142, 76%, 36%)" 
+                  radius={[4, 4, 0, 0]}
+                />
+                <Bar 
+                  dataKey="used" 
+                  name="Credits Used" 
+                  fill="hsl(0, 84%, 60%)" 
+                  radius={[4, 4, 0, 0]}
+                />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Net Credit Flow Chart */}
+      <Card>
+        <CardHeader>
+          <CardTitle>Net Credit Flow</CardTitle>
+          <CardDescription>Net change in credits (issued - used)</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={chartData} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="date" 
+                  className="text-xs" 
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <YAxis 
+                  className="text-xs" 
+                  tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                />
+                <Tooltip 
+                  contentStyle={{ 
+                    backgroundColor: 'hsl(var(--card))', 
+                    border: '1px solid hsl(var(--border))',
+                    borderRadius: '8px',
+                    color: 'hsl(var(--foreground))'
+                  }}
+                  labelStyle={{ color: 'hsl(var(--foreground))' }}
+                />
+                <Area 
+                  type="monotone" 
+                  dataKey="net" 
+                  name="Net Credits"
+                  stroke="hsl(var(--primary))" 
+                  fill="hsl(var(--primary) / 0.2)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </CardContent>
+      </Card>
 
       {/* Transaction Logs */}
       <Card>

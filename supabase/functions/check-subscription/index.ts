@@ -43,12 +43,41 @@ serve(async (req) => {
     if (!user?.email) throw new Error("User not authenticated or email not available");
     logStep("User authenticated", { userId: user.id, email: user.email });
 
+    // Check if user has credits in their profile
+    const { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("credits")
+      .eq("user_id", user.id)
+      .single();
+    
+    const userCredits = profile?.credits || 0;
+    logStep("User credits checked", { credits: userCredits });
+
+    // If user has credits, they are considered "subscribed" (have access)
+    if (userCredits > 0) {
+      logStep("User has credits, granting access");
+      return new Response(JSON.stringify({ 
+        subscribed: true, 
+        has_credits: true,
+        credits: userCredits,
+        product_id: null,
+        subscription_end: null
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+        status: 200,
+      });
+    }
+
     const stripe = new Stripe(stripeKey, { apiVersion: "2025-08-27.basil" });
     const customers = await stripe.customers.list({ email: user.email, limit: 1 });
     
     if (customers.data.length === 0) {
-      logStep("No customer found, updating unsubscribed state");
-      return new Response(JSON.stringify({ subscribed: false }), {
+      logStep("No customer found and no credits, user unsubscribed");
+      return new Response(JSON.stringify({ 
+        subscribed: false, 
+        has_credits: false,
+        credits: 0 
+      }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
         status: 200,
       });
@@ -82,6 +111,8 @@ serve(async (req) => {
 
     return new Response(JSON.stringify({
       subscribed: hasActiveSub,
+      has_credits: false,
+      credits: 0,
       product_id: productId,
       subscription_end: subscriptionEnd
     }), {

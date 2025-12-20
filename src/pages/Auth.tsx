@@ -26,20 +26,14 @@ export default function Auth() {
   // Check subscription status when user is authenticated
   useEffect(() => {
     if (user) {
-      checkSubscription().then(() => {
-        // Navigate based on subscription status will be handled by SubscriptionGuard
-        navigate("/app");
-      });
+      // Always redirect authenticated users to the app - SubscriptionGuard will handle access
+      navigate("/app/projects");
     }
-  }, [user, checkSubscription, navigate]);
+  }, [user, navigate]);
 
   // Redirect if already authenticated
-  if (user && subscriptionStatus) {
-    if (subscriptionStatus.subscribed) {
-      return <Navigate to="/app" replace />;
-    } else {
-      return <Navigate to="/pricing" replace />;
-    }
+  if (user) {
+    return <Navigate to="/app/projects" replace />;
   }
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
