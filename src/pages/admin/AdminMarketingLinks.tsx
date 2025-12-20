@@ -360,7 +360,7 @@ export default function AdminMarketingLinks() {
               Create Marketing Link
             </Button>
           </DialogTrigger>
-          <DialogContent>
+          <DialogContent className="max-h-[85vh] overflow-y-auto">
             <DialogHeader>
               <DialogTitle>Create Marketing Link</DialogTitle>
               <DialogDescription>
