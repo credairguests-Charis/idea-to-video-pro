@@ -69,7 +69,7 @@ export default function InviteSignup() {
             invite_id: inviteId,
             bypass_paywall: true,
           },
-          emailRedirectTo: `${window.location.origin}/`,
+          emailRedirectTo: `${window.location.origin}/app`,
         },
       });
 
@@ -92,7 +92,7 @@ export default function InviteSignup() {
         });
 
         toast.success('Account created successfully!');
-        navigate('/');
+        navigate('/app');
       }
     } catch (err: any) {
       console.error('Signup error:', err);

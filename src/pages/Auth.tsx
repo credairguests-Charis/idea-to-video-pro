@@ -27,13 +27,13 @@ export default function Auth() {
   useEffect(() => {
     if (user) {
       // Always redirect authenticated users to the app - SubscriptionGuard will handle access
-      navigate("/app/projects");
+      navigate("/app");
     }
   }, [user, navigate]);
 
   // Redirect if already authenticated
   if (user) {
-    return <Navigate to="/app/projects" replace />;
+    return <Navigate to="/app" replace />;
   }
   const handleSignUp = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -52,7 +52,7 @@ export default function Auth() {
         email,
         password,
         options: {
-          emailRedirectTo: `${window.location.origin}/app/projects`,
+          emailRedirectTo: `${window.location.origin}/app`,
           data: {
             full_name: fullName
           }
