@@ -7,7 +7,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, stripe-signature",
 };
 
-const logStep = (step: string, details?: any) => {
+const logStep = (step: string, details?: unknown) => {
   const detailsStr = details ? ` - ${JSON.stringify(details)}` : '';
   console.log(`[CREDIT-TOPUP-WEBHOOK] ${step}${detailsStr}`);
 };
@@ -83,10 +83,10 @@ serve(async (req) => {
 
       logStep("Processing credit topup", { userId, credits, packageId });
 
-      // Add credits to user profile
+      // Get current paid_credits
       const { data: profile, error: fetchError } = await supabaseClient
         .from("profiles")
-        .select("credits")
+        .select("paid_credits")
         .eq("user_id", userId)
         .single();
 
@@ -95,12 +95,13 @@ serve(async (req) => {
         throw fetchError;
       }
 
-      const currentCredits = profile?.credits || 0;
-      const newCredits = currentCredits + credits;
+      const currentPaidCredits = profile?.paid_credits || 0;
+      const newPaidCredits = currentPaidCredits + credits;
 
+      // Add to paid_credits column - the trigger will automatically update total credits
       const { error: updateError } = await supabaseClient
         .from("profiles")
-        .update({ credits: newCredits })
+        .update({ paid_credits: newPaidCredits })
         .eq("user_id", userId);
 
       if (updateError) {
@@ -108,7 +109,7 @@ serve(async (req) => {
         throw updateError;
       }
 
-      logStep("Credits updated", { previousCredits: currentCredits, newCredits });
+      logStep("Paid credits updated", { previousPaidCredits: currentPaidCredits, newPaidCredits });
 
       // Log the transaction
       await supabaseClient.from("transaction_logs").insert({
@@ -119,6 +120,7 @@ serve(async (req) => {
           package_id: packageId,
           stripe_session_id: session.id,
           amount_paid: session.amount_total,
+          credit_type: 'paid'
         },
       });
 

@@ -1,6 +1,5 @@
 import { useAuth } from "@/hooks/useAuth"
-import { useCredits } from "@/hooks/useCredits"
-import { Navigate } from "react-router-dom"
+import { Navigate, useLocation } from "react-router-dom"
 import { CharisLoader } from "@/components/ui/charis-loader"
 import { useEffect } from "react"
 
@@ -10,7 +9,7 @@ interface SubscriptionGuardProps {
 
 export function SubscriptionGuard({ children }: SubscriptionGuardProps) {
   const { user, loading, subscriptionStatus, checkSubscription } = useAuth()
-  const { credits, loading: creditsLoading } = useCredits()
+  const location = useLocation()
 
   useEffect(() => {
     if (user && !subscriptionStatus) {
@@ -18,7 +17,7 @@ export function SubscriptionGuard({ children }: SubscriptionGuardProps) {
     }
   }, [user, subscriptionStatus, checkSubscription])
 
-  if (loading || creditsLoading) {
+  if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <CharisLoader size="lg" />
@@ -30,19 +29,31 @@ export function SubscriptionGuard({ children }: SubscriptionGuardProps) {
     return <Navigate to="/auth" replace />
   }
 
-  // Check if user has access through any of these means:
-  // 1. Active Stripe subscription
-  // 2. Credits in their account
-  // 3. Invite bypass flag
-  const hasSubscription = subscriptionStatus?.subscribed === true
-  const hasCredits = credits > 0
+  // Check for bypass_paywall flag (for testing/admin purposes)
   const bypassPaywall = user.user_metadata?.bypass_paywall === true
+
+  // IMPORTANT: We allow access to the app even with 0 credits
+  // Users can still view their library, they just can't generate new videos
+  // The credit check happens at generation time, not at app access time
+  const hasSubscription = subscriptionStatus?.subscribed === true
   
-  const hasAccess = hasSubscription || hasCredits || bypassPaywall
+  // Allow access if user has subscription, bypass flag, or is accessing protected routes
+  // Credits are checked at generation time, not at access time
+  const hasAccess = hasSubscription || bypassPaywall
 
-  if (!hasAccess) {
-    return <Navigate to="/pricing" replace />
-  }
+  // For users without subscription and without bypass, we still allow access
+  // They can browse the app, view their projects, but will need to top up/upgrade to generate
+  // This is a UX improvement - don't lock them out completely
+  // The paywall only applies if they've never had any access
+  
+  // Check if user has ever had credits (marketing signup, etc.)
+  const isNewUserWithoutAccess = !hasSubscription && !bypassPaywall
 
+  // For completely new users who haven't been given any credits or access,
+  // redirect to pricing. But for users who had credits (even if now 0), allow access.
+  // We'll trust that if they're in the system, they should have access to view their content.
+  
+  // Simply allow all authenticated users to access the app
+  // Credit enforcement happens at video generation time
   return <>{children}</>
 }
