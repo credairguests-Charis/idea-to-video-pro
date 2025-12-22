@@ -63,14 +63,14 @@ serve(async (req) => {
       throw new Error('Unauthorized');
     }
 
-    // Credit check and deduction
+    // Credit check (but NO deduction - credits are deducted on success via webhook)
     const CREDITS_PER_VIDEO = 70;
     const totalCreditsRequired = actorIds.length * CREDITS_PER_VIDEO;
 
     // Get current credits
     const { data: profile, error: profileError } = await supabase
       .from('profiles')
-      .select('credits')
+      .select('credits, free_credits, paid_credits')
       .eq('user_id', user.id)
       .single();
 
@@ -91,24 +91,9 @@ serve(async (req) => {
       });
     }
 
-    // Deduct credits upfront
-    const newCredits = currentCredits - totalCreditsRequired;
-    const { error: updateError } = await supabase
-      .from('profiles')
-      .update({ credits: newCredits })
-      .eq('user_id', user.id);
-
-    if (updateError) throw new Error('Failed to deduct credits');
-
-    // Log transaction
-    await supabase.from('transaction_logs').insert({
-      user_id: user.id,
-      credits_change: -totalCreditsRequired,
-      reason: 'video_generation',
-      metadata: { project_id: projectId, actor_count: actorIds.length, cost_per_video: CREDITS_PER_VIDEO }
-    });
-
-    console.log(`Deducted ${totalCreditsRequired} credits from user ${user.id}. New balance: ${newCredits}`);
+    // NOTE: Credits are NOT deducted here anymore
+    // They will be deducted in the omnihuman-webhook when video generation succeeds
+    console.log(`User ${user.id} has ${currentCredits} credits, needs ${totalCreditsRequired}. Credits will be deducted on success.`);
 
     const generations = [];
     let fatalError: { code: number; message: string } | null = null;
@@ -354,7 +339,7 @@ serve(async (req) => {
     return new Response(JSON.stringify({ 
       success: true, 
       generations,
-      message: `Started generation for ${generations.length} actor(s)`
+      message: `Started generation for ${generations.length} actor(s). Credits will be deducted upon successful completion.`
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

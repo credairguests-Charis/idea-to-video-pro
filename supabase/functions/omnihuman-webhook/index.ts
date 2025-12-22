@@ -11,6 +11,8 @@ const supabase = createClient(
   Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!
 );
 
+const CREDITS_PER_VIDEO = 70;
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -44,9 +46,29 @@ serve(async (req) => {
       throw new Error('No taskId in webhook payload');
     }
 
+    // Get the generation record to find the project and user
+    const { data: generation, error: fetchError } = await supabase
+      .from('omnihuman_generations')
+      .select('id, project_id, actor_id, status')
+      .eq('task_id', taskId)
+      .single();
+
+    if (fetchError || !generation) {
+      console.error('Failed to find generation for task:', taskId, fetchError);
+      throw new Error('Generation not found');
+    }
+
+    // Only process if this is a new state change (avoid double processing)
+    if (generation.status === state) {
+      console.log(`Task ${taskId} already in state ${state}, skipping`);
+      return new Response(JSON.stringify({ received: true, skipped: true }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     // Update generation status
-    const updateData: any = {
-      status: state,  // Use 'state' from API response
+    const updateData: Record<string, unknown> = {
+      status: state,
       completed_at: new Date().toISOString()
     };
 
@@ -72,16 +94,96 @@ serve(async (req) => {
       updateData.video_url = video_url;
     }
 
-    const { data: generation, error } = await supabase
+    const { error: updateError } = await supabase
       .from('omnihuman_generations')
       .update(updateData)
-      .eq('task_id', taskId)
-      .select('project_id')
-      .single();
+      .eq('task_id', taskId);
 
-    if (error) {
-      console.error('Failed to update generation:', error);
+    if (updateError) {
+      console.error('Failed to update generation:', updateError);
       throw new Error('Failed to update generation status');
+    }
+
+    // CREDIT DEDUCTION ON SUCCESS ONLY
+    // Only deduct credits when video generation is successful
+    if (state === 'success' && video_url) {
+      console.log(`Video generation successful for task ${taskId}, deducting credits...`);
+      
+      // Get the project to find the user_id
+      const { data: project, error: projectError } = await supabase
+        .from('projects')
+        .select('user_id')
+        .eq('id', generation.project_id)
+        .single();
+
+      if (projectError || !project) {
+        console.error('Failed to find project for credit deduction:', projectError);
+      } else {
+        // Get current user credits
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('free_credits, paid_credits')
+          .eq('user_id', project.user_id)
+          .single();
+
+        if (profileError || !profile) {
+          console.error('Failed to get user profile for credit deduction:', profileError);
+        } else {
+          // Deduct from free credits first, then paid credits
+          let freeCredits = profile.free_credits || 0;
+          let paidCredits = profile.paid_credits || 0;
+          let creditsToDeduct = CREDITS_PER_VIDEO;
+          let freeUsed = 0;
+          let paidUsed = 0;
+
+          // Deduct from free credits first
+          if (freeCredits >= creditsToDeduct) {
+            freeUsed = creditsToDeduct;
+            freeCredits -= creditsToDeduct;
+            creditsToDeduct = 0;
+          } else {
+            freeUsed = freeCredits;
+            creditsToDeduct -= freeCredits;
+            freeCredits = 0;
+          }
+
+          // If still need to deduct, use paid credits
+          if (creditsToDeduct > 0) {
+            paidUsed = Math.min(paidCredits, creditsToDeduct);
+            paidCredits -= paidUsed;
+          }
+
+          // Update the profile with new credit values
+          const { error: creditUpdateError } = await supabase
+            .from('profiles')
+            .update({
+              free_credits: freeCredits,
+              paid_credits: paidCredits
+            })
+            .eq('user_id', project.user_id);
+
+          if (creditUpdateError) {
+            console.error('Failed to update credits:', creditUpdateError);
+          } else {
+            console.log(`Deducted ${CREDITS_PER_VIDEO} credits (${freeUsed} free, ${paidUsed} paid) from user ${project.user_id}`);
+
+            // Log the transaction
+            await supabase.from('transaction_logs').insert({
+              user_id: project.user_id,
+              credits_change: -CREDITS_PER_VIDEO,
+              reason: 'video_generation_success',
+              metadata: {
+                project_id: generation.project_id,
+                generation_id: generation.id,
+                actor_id: generation.actor_id,
+                task_id: taskId,
+                free_credits_used: freeUsed,
+                paid_credits_used: paidUsed
+              }
+            });
+          }
+        }
+      }
     }
 
     if (generation?.project_id) {
@@ -153,7 +255,7 @@ async function updateProjectProgress(projectId: string) {
     }
 
     // Update project
-    const updateData: any = {
+    const updateData: Record<string, unknown> = {
       generation_progress: progress,
       generation_status: status
     };

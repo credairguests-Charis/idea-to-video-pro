@@ -1,7 +1,8 @@
-import { Home, FolderOpen, Video, Settings, User, LogOut, Wand2, Brain } from "lucide-react"
+import { Home, FolderOpen, Video, Settings, LogOut, Wand2, Brain } from "lucide-react"
 import { NavLink, useLocation } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
+import { CreditBar } from "@/components/CreditBar"
 
 import {
   Sidebar,
@@ -64,6 +65,14 @@ export function AppSidebar() {
                 </SidebarMenuItem>
               ))}
             </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        {/* Credit Bar Section */}
+        <SidebarGroup>
+          <SidebarGroupLabel>Credits</SidebarGroupLabel>
+          <SidebarGroupContent className="px-2">
+            <CreditBar compact />
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

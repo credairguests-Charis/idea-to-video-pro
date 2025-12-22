@@ -41,10 +41,11 @@ serve(async (req) => {
 
     if (updateError) throw updateError;
 
-    // Grant credits to user - UPDATE the profile since it was already created
+    // Grant credits to user as FREE credits (marketing signups get free credits)
+    // Using free_credits column - the trigger will auto-calculate total credits
     const { error: creditsError } = await supabase
       .from('profiles')
-      .update({ credits: link.initial_credits })
+      .update({ free_credits: link.initial_credits })
       .eq('user_id', user_id);
 
     if (creditsError) {
@@ -52,7 +53,11 @@ serve(async (req) => {
       // If update fails, it might be because profile doesn't exist yet - try insert
       const { error: insertError } = await supabase
         .from('profiles')
-        .insert({ user_id, credits: link.initial_credits });
+        .insert({ 
+          user_id, 
+          free_credits: link.initial_credits,
+          paid_credits: 0
+        });
       
       if (insertError) throw insertError;
     }
@@ -64,7 +69,11 @@ serve(async (req) => {
         user_id,
         credits_change: link.initial_credits,
         reason: 'marketing_signup',
-        metadata: { link_id, link_title: link.title }
+        metadata: { 
+          link_id, 
+          link_title: link.title,
+          credit_type: 'free'
+        }
       });
 
     if (logError) throw logError;
@@ -90,7 +99,7 @@ serve(async (req) => {
   } catch (error) {
     console.error('Error recording marketing signup:', error);
     return new Response(
-      JSON.stringify({ error: error.message }),
+      JSON.stringify({ error: error instanceof Error ? error.message : 'Unknown error' }),
       { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   }

@@ -4,6 +4,8 @@ import { useAuth } from "./useAuth";
 
 interface CreditsData {
   credits: number;
+  freeCredits: number;
+  paidCredits: number;
   loading: boolean;
   error: string | null;
 }
@@ -12,20 +14,22 @@ export function useCredits() {
   const { user } = useAuth();
   const [data, setData] = useState<CreditsData>({
     credits: 0,
+    freeCredits: 0,
+    paidCredits: 0,
     loading: true,
     error: null,
   });
 
   const fetchCredits = useCallback(async () => {
     if (!user) {
-      setData({ credits: 0, loading: false, error: null });
+      setData({ credits: 0, freeCredits: 0, paidCredits: 0, loading: false, error: null });
       return;
     }
 
     try {
       const { data: profile, error } = await supabase
         .from("profiles")
-        .select("credits")
+        .select("credits, free_credits, paid_credits")
         .eq("user_id", user.id)
         .single();
 
@@ -33,6 +37,8 @@ export function useCredits() {
 
       setData({
         credits: profile?.credits || 0,
+        freeCredits: profile?.free_credits || 0,
+        paidCredits: profile?.paid_credits || 0,
         loading: false,
         error: null,
       });
@@ -62,10 +68,17 @@ export function useCredits() {
             filter: `user_id=eq.${user.id}`,
           },
           (payload) => {
-            if (payload.new && typeof payload.new.credits === "number") {
+            if (payload.new) {
+              const newData = payload.new as {
+                credits?: number;
+                free_credits?: number;
+                paid_credits?: number;
+              };
               setData((prev) => ({
                 ...prev,
-                credits: payload.new.credits,
+                credits: typeof newData.credits === "number" ? newData.credits : prev.credits,
+                freeCredits: typeof newData.free_credits === "number" ? newData.free_credits : prev.freeCredits,
+                paidCredits: typeof newData.paid_credits === "number" ? newData.paid_credits : prev.paidCredits,
               }));
             }
           }
@@ -92,6 +105,8 @@ export function useCredits() {
 
   return {
     credits: data.credits,
+    freeCredits: data.freeCredits,
+    paidCredits: data.paidCredits,
     loading: data.loading,
     error: data.error,
     refetch: fetchCredits,
