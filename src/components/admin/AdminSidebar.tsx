@@ -1,4 +1,4 @@
-import { LayoutDashboard, Activity, Tag, Link2, FileText, Users, LogOut, Sun, Moon, BarChart3, ClipboardList, Coins } from "lucide-react";
+import { LayoutDashboard, Activity, Tag, Link2, FileText, Users, LogOut, Sun, Moon, BarChart3, ClipboardList, Coins, Crown } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import {
   Sidebar,
@@ -24,6 +24,7 @@ const menuItems = [
   { title: "Overview", url: "/admin", icon: LayoutDashboard, end: true },
   { title: "Analytics", url: "/admin/analytics", icon: BarChart3 },
   { title: "Credits", url: "/admin/credits", icon: Coins },
+  { title: "Unlimited Access", url: "/admin/unlimited-access", icon: Crown },
   { title: "Health", url: "/admin/health", icon: Activity },
   { title: "Promotions", url: "/admin/promos", icon: Tag },
   { title: "Invite Links", url: "/admin/links", icon: Link2 },

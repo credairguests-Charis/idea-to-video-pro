@@ -21,6 +21,7 @@ import InviteSignup from "./pages/InviteSignup";
 import MarketingSignup from "./pages/MarketingSignup";
 import { ArcadsLayout } from "./components/ArcadsLayout";
 import { AuthProvider } from "./hooks/useAuth";
+import { OnboardingProvider } from "./hooks/useOnboarding";
 import { AuthGuard } from "./components/AuthGuard";
 import { SubscriptionGuard } from "./components/SubscriptionGuard";
 import { AdminGuard } from "./components/admin/AdminGuard";
@@ -35,6 +36,7 @@ import AdminLogs from "./pages/admin/AdminLogs";
 import AdminUsers from "./pages/admin/AdminUsers";
 import AdminAuditReports from "./pages/admin/AdminAuditReports";
 import AdminCredits from "./pages/admin/AdminCredits";
+import AdminUnlimitedAccess from "./pages/admin/AdminUnlimitedAccess";
 
 const queryClient = new QueryClient();
 
@@ -46,6 +48,7 @@ const App = () => {
     <ErrorBoundary>
       <QueryClientProvider client={queryClient}>
         <AuthProvider>
+          <OnboardingProvider>
           <Toaster />
           <Sonner />
           <BrowserRouter>
@@ -143,6 +146,13 @@ const App = () => {
               </AdminLayout>
             </AdminGuard>
           } />
+          <Route path="/admin/unlimited-access" element={
+            <AdminGuard>
+              <AdminLayout>
+                <AdminUnlimitedAccess />
+              </AdminLayout>
+            </AdminGuard>
+          } />
           
           {/* Pricing Page (Accessible without auth) */}
           <Route path="/pricing" element={<Pricing />} />
@@ -170,6 +180,7 @@ const App = () => {
             )}
           </Routes>
         </BrowserRouter>
+        </OnboardingProvider>
       </AuthProvider>
     </QueryClientProvider>
   </ErrorBoundary>

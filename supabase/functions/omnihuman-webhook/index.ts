@@ -107,7 +107,7 @@ serve(async (req) => {
     // CREDIT DEDUCTION ON SUCCESS ONLY
     // Only deduct credits when video generation is successful
     if (state === 'success' && video_url) {
-      console.log(`Video generation successful for task ${taskId}, deducting credits...`);
+      console.log(`Video generation successful for task ${taskId}, checking for credit deduction...`);
       
       // Get the project to find the user_id
       const { data: project, error: projectError } = await supabase
@@ -119,68 +119,87 @@ serve(async (req) => {
       if (projectError || !project) {
         console.error('Failed to find project for credit deduction:', projectError);
       } else {
-        // Get current user credits
+        // Get current user credits and unlimited access status
         const { data: profile, error: profileError } = await supabase
           .from('profiles')
-          .select('free_credits, paid_credits')
+          .select('free_credits, paid_credits, has_unlimited_access')
           .eq('user_id', project.user_id)
           .single();
 
         if (profileError || !profile) {
           console.error('Failed to get user profile for credit deduction:', profileError);
         } else {
-          // Deduct from free credits first, then paid credits
-          let freeCredits = profile.free_credits || 0;
-          let paidCredits = profile.paid_credits || 0;
-          let creditsToDeduct = CREDITS_PER_VIDEO;
-          let freeUsed = 0;
-          let paidUsed = 0;
-
-          // Deduct from free credits first
-          if (freeCredits >= creditsToDeduct) {
-            freeUsed = creditsToDeduct;
-            freeCredits -= creditsToDeduct;
-            creditsToDeduct = 0;
-          } else {
-            freeUsed = freeCredits;
-            creditsToDeduct -= freeCredits;
-            freeCredits = 0;
-          }
-
-          // If still need to deduct, use paid credits
-          if (creditsToDeduct > 0) {
-            paidUsed = Math.min(paidCredits, creditsToDeduct);
-            paidCredits -= paidUsed;
-          }
-
-          // Update the profile with new credit values
-          const { error: creditUpdateError } = await supabase
-            .from('profiles')
-            .update({
-              free_credits: freeCredits,
-              paid_credits: paidCredits
-            })
-            .eq('user_id', project.user_id);
-
-          if (creditUpdateError) {
-            console.error('Failed to update credits:', creditUpdateError);
-          } else {
-            console.log(`Deducted ${CREDITS_PER_VIDEO} credits (${freeUsed} free, ${paidUsed} paid) from user ${project.user_id}`);
-
-            // Log the transaction
+          // Check if user has unlimited access - skip credit deduction
+          if (profile.has_unlimited_access === true) {
+            console.log(`User ${project.user_id} has unlimited access, skipping credit deduction`);
+            
+            // Log the transaction for tracking (with 0 credits deducted)
             await supabase.from('transaction_logs').insert({
               user_id: project.user_id,
-              credits_change: -CREDITS_PER_VIDEO,
-              reason: 'video_generation_success',
+              credits_change: 0,
+              reason: 'video_generation_success_unlimited',
               metadata: {
                 project_id: generation.project_id,
                 generation_id: generation.id,
                 actor_id: generation.actor_id,
                 task_id: taskId,
-                free_credits_used: freeUsed,
-                paid_credits_used: paidUsed
+                unlimited_access: true
               }
             });
+          } else {
+            // Deduct from free credits first, then paid credits
+            let freeCredits = profile.free_credits || 0;
+            let paidCredits = profile.paid_credits || 0;
+            let creditsToDeduct = CREDITS_PER_VIDEO;
+            let freeUsed = 0;
+            let paidUsed = 0;
+
+            // Deduct from free credits first
+            if (freeCredits >= creditsToDeduct) {
+              freeUsed = creditsToDeduct;
+              freeCredits -= creditsToDeduct;
+              creditsToDeduct = 0;
+            } else {
+              freeUsed = freeCredits;
+              creditsToDeduct -= freeCredits;
+              freeCredits = 0;
+            }
+
+            // If still need to deduct, use paid credits
+            if (creditsToDeduct > 0) {
+              paidUsed = Math.min(paidCredits, creditsToDeduct);
+              paidCredits -= paidUsed;
+            }
+
+            // Update the profile with new credit values
+            const { error: creditUpdateError } = await supabase
+              .from('profiles')
+              .update({
+                free_credits: freeCredits,
+                paid_credits: paidCredits
+              })
+              .eq('user_id', project.user_id);
+
+            if (creditUpdateError) {
+              console.error('Failed to update credits:', creditUpdateError);
+            } else {
+              console.log(`Deducted ${CREDITS_PER_VIDEO} credits (${freeUsed} free, ${paidUsed} paid) from user ${project.user_id}`);
+
+              // Log the transaction
+              await supabase.from('transaction_logs').insert({
+                user_id: project.user_id,
+                credits_change: -CREDITS_PER_VIDEO,
+                reason: 'video_generation_success',
+                metadata: {
+                  project_id: generation.project_id,
+                  generation_id: generation.id,
+                  actor_id: generation.actor_id,
+                  task_id: taskId,
+                  free_credits_used: freeUsed,
+                  paid_credits_used: paidUsed
+                }
+              });
+            }
           }
         }
       }

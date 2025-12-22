@@ -4,6 +4,7 @@ import { ProjectSidebar } from "@/components/ProjectSidebar"
 import { VideoLibrary } from "@/components/VideoLibrary"
 import { NewProjectArcads } from "@/components/NewProjectArcads"
 import { VideoGenerationTracker } from "@/components/VideoGenerationTracker"
+import { WelcomeDialog } from "@/components/onboarding/WelcomeDialog"
 import { useProjects } from "@/hooks/useProjects"
 import { Button } from "@/components/ui/button"
 import { Sheet, SheetContent, SheetTrigger } from "@/components/ui/sheet"
@@ -124,6 +125,9 @@ export default function ProjectWorkspace({ settingsMode = false }: ProjectWorksp
 
       {/* Global Video Generation Tracker */}
       <VideoGenerationTracker />
+      
+      {/* Onboarding Welcome Dialog */}
+      <WelcomeDialog />
     </div>
   )
 }
