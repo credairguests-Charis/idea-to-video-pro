@@ -17,13 +17,13 @@ interface CreditBarProps {
 }
 
 export function CreditBar({ compact = false }: CreditBarProps) {
-  const { credits, freeCredits, paidCredits, loading } = useCredits();
+  const { credits, freeCredits, paidCredits, hasUnlimitedAccess, loading } = useCredits();
   const { subscriptionStatus } = useAuth();
   const [topUpOpen, setTopUpOpen] = useState(false);
   const navigate = useNavigate();
 
   const isProPlan = subscriptionStatus?.subscribed === true;
-  const hasCredits = credits > 0;
+  const hasCredits = credits > 0 || hasUnlimitedAccess;
 
   // Calculate bar percentages - use a baseline max for display
   // This creates a visual representation relative to a sensible max
@@ -43,8 +43,26 @@ export function CreditBar({ compact = false }: CreditBarProps) {
   }
 
   // Determine which buttons to show based on plan and credits
-  const showTopUp = true; // Always show top up
-  const showUpgrade = !isProPlan; // Only show upgrade if not on pro plan
+  const showTopUp = !hasUnlimitedAccess; // Hide top up for unlimited access users
+  const showUpgrade = !isProPlan && !hasUnlimitedAccess; // Hide upgrade for pro or unlimited
+
+  // For unlimited access users, show special display
+  if (hasUnlimitedAccess) {
+    return (
+      <div className={`flex flex-col gap-2 ${compact ? "w-full" : "min-w-[200px]"}`}>
+        <div className="flex items-center justify-between">
+          <span className="text-sm text-muted-foreground">Credits</span>
+          <span className="text-sm font-medium flex items-center gap-1 text-amber-500">
+            ∞ Unlimited
+          </span>
+        </div>
+        <div className="h-2 w-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full" />
+        <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
+          <span className="text-amber-500">✦</span> Unlimited access granted
+        </p>
+      </div>
+    );
+  }
 
   return (
     <>

@@ -943,9 +943,12 @@ export type Database = {
           email: string | null
           free_credits: number
           full_name: string | null
+          has_unlimited_access: boolean | null
           id: string
           paid_credits: number
           paused: boolean | null
+          unlimited_access_granted_at: string | null
+          unlimited_access_granted_by: string | null
           updated_at: string
           user_id: string
         }
@@ -956,9 +959,12 @@ export type Database = {
           email?: string | null
           free_credits?: number
           full_name?: string | null
+          has_unlimited_access?: boolean | null
           id?: string
           paid_credits?: number
           paused?: boolean | null
+          unlimited_access_granted_at?: string | null
+          unlimited_access_granted_by?: string | null
           updated_at?: string
           user_id: string
         }
@@ -969,9 +975,12 @@ export type Database = {
           email?: string | null
           free_credits?: number
           full_name?: string | null
+          has_unlimited_access?: boolean | null
           id?: string
           paid_credits?: number
           paused?: boolean | null
+          unlimited_access_granted_at?: string | null
+          unlimited_access_granted_by?: string | null
           updated_at?: string
           user_id?: string
         }

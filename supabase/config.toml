@@ -73,6 +73,9 @@ verify_jwt = true
 [functions.admin-health-check]
 verify_jwt = false
 
+[functions.admin-grant-unlimited-access]
+verify_jwt = true
+
 # Public Functions
 [functions.validate-invite]
 verify_jwt = false
