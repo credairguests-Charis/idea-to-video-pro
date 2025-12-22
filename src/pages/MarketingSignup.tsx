@@ -99,7 +99,7 @@ export default function MarketingSignup() {
             full_name: fullName,
             marketing_link_id: linkData.link_id,
           },
-          emailRedirectTo: `${window.location.origin}/app/projects`,
+          emailRedirectTo: `${window.location.origin}/app`,
         },
       });
 
@@ -125,7 +125,7 @@ export default function MarketingSignup() {
         });
 
         toast.success(`Account created! You've received ${linkData.initial_credits} free credits.`);
-        navigate('/app/projects');
+        navigate('/app');
       }
     } catch (err: any) {
       console.error('Signup error:', err);
