@@ -37,7 +37,7 @@ const steps = [
 ];
 
 export function WelcomeDialog() {
-  const { showWelcomeDialog, setShowWelcomeDialog, markTooltipSeen } = useOnboarding();
+  const { showWelcomeDialog, setShowWelcomeDialog, markTooltipSeen, completeOnboarding } = useOnboarding();
   const [currentStep, setCurrentStep] = useState(0);
 
   const handleNext = () => {
@@ -54,6 +54,7 @@ export function WelcomeDialog() {
 
   const handleClose = () => {
     markTooltipSeen('hasSeenWelcome');
+    completeOnboarding();
     setShowWelcomeDialog(false);
     setCurrentStep(0);
   };

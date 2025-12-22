@@ -945,12 +945,16 @@ export type Database = {
           full_name: string | null
           has_unlimited_access: boolean | null
           id: string
+          onboarding_completed: boolean | null
+          onboarding_completed_at: string | null
           paid_credits: number
           paused: boolean | null
+          subscription_email_sent: boolean | null
           unlimited_access_granted_at: string | null
           unlimited_access_granted_by: string | null
           updated_at: string
           user_id: string
+          welcome_email_sent: boolean | null
         }
         Insert: {
           avatar_url?: string | null
@@ -961,12 +965,16 @@ export type Database = {
           full_name?: string | null
           has_unlimited_access?: boolean | null
           id?: string
+          onboarding_completed?: boolean | null
+          onboarding_completed_at?: string | null
           paid_credits?: number
           paused?: boolean | null
+          subscription_email_sent?: boolean | null
           unlimited_access_granted_at?: string | null
           unlimited_access_granted_by?: string | null
           updated_at?: string
           user_id: string
+          welcome_email_sent?: boolean | null
         }
         Update: {
           avatar_url?: string | null
@@ -977,12 +985,16 @@ export type Database = {
           full_name?: string | null
           has_unlimited_access?: boolean | null
           id?: string
+          onboarding_completed?: boolean | null
+          onboarding_completed_at?: string | null
           paid_credits?: number
           paused?: boolean | null
+          subscription_email_sent?: boolean | null
           unlimited_access_granted_at?: string | null
           unlimited_access_granted_by?: string | null
           updated_at?: string
           user_id?: string
+          welcome_email_sent?: boolean | null
         }
         Relationships: []
       }

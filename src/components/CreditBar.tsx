@@ -1,6 +1,6 @@
 import { useCredits } from "@/hooks/useCredits";
 import { useAuth } from "@/hooks/useAuth";
-import { ChevronRight, Coins, Sparkles } from "lucide-react";
+import { ChevronRight, Sparkles } from "lucide-react";
 import { useState } from "react";
 import { TopUpCreditsDialog } from "./TopUpCreditsDialog";
 import { useNavigate } from "react-router-dom";
@@ -16,6 +16,13 @@ interface CreditBarProps {
   compact?: boolean;
 }
 
+// Get next reset date (1st of next month)
+function getNextResetDate(): string {
+  const now = new Date();
+  const nextMonth = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+  return nextMonth.toLocaleDateString('en-US', { day: '2-digit', month: 'short' });
+}
+
 export function CreditBar({ compact = false }: CreditBarProps) {
   const { credits, freeCredits, paidCredits, hasUnlimitedAccess, loading } = useCredits();
   const { subscriptionStatus } = useAuth();
@@ -25,40 +32,34 @@ export function CreditBar({ compact = false }: CreditBarProps) {
   const isProPlan = subscriptionStatus?.subscribed === true;
   const hasCredits = credits > 0 || hasUnlimitedAccess;
 
-  // Calculate bar percentages - use a baseline max for display
-  // This creates a visual representation relative to a sensible max
-  const maxDisplayCredits = Math.max(credits, 100); // At least 100 for visual purposes
-  const totalPercentage = maxDisplayCredits > 0 ? Math.min((credits / maxDisplayCredits) * 100, 100) : 0;
-  
-  // When we have credits, show the proportional split between free and paid
-  const freePercentage = credits > 0 ? (freeCredits / credits) * totalPercentage : 0;
-  const paidPercentage = credits > 0 ? (paidCredits / credits) * totalPercentage : 0;
+  // Calculate fill percentage - use a baseline max for display
+  // The max is either 100 or the current credits (whichever is higher for nice visuals)
+  const maxCredits = Math.max(credits, 100);
+  const fillPercentage = credits > 0 ? Math.min((credits / maxCredits) * 100, 100) : 0;
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 animate-pulse">
-        <div className="h-4 w-20 bg-muted rounded" />
+      <div className="flex flex-col gap-2 animate-pulse">
+        <div className="h-4 w-24 bg-muted rounded" />
+        <div className="h-2 w-full bg-muted rounded-full" />
       </div>
     );
   }
-
-  // Determine which buttons to show based on plan and credits
-  const showTopUp = !hasUnlimitedAccess; // Hide top up for unlimited access users
-  const showUpgrade = !isProPlan && !hasUnlimitedAccess; // Hide upgrade for pro or unlimited
 
   // For unlimited access users, show special display
   if (hasUnlimitedAccess) {
     return (
       <div className={`flex flex-col gap-2 ${compact ? "w-full" : "min-w-[200px]"}`}>
         <div className="flex items-center justify-between">
-          <span className="text-sm text-muted-foreground">Credits</span>
-          <span className="text-sm font-medium flex items-center gap-1 text-amber-500">
+          <span className="text-sm font-medium text-foreground">Credits</span>
+          <span className="text-sm font-semibold flex items-center gap-1 text-amber-500">
             ∞ Unlimited
+            <ChevronRight className="h-3 w-3" />
           </span>
         </div>
         <div className="h-2 w-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full" />
-        <p className="text-xs text-amber-600 mt-1 flex items-center gap-1">
-          <span className="text-amber-500">✦</span> Unlimited access granted
+        <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+          <span className="text-amber-500">●</span> Unlimited access granted
         </p>
       </div>
     );
@@ -71,14 +72,14 @@ export function CreditBar({ compact = false }: CreditBarProps) {
           <Tooltip>
             <TooltipTrigger asChild>
               <div className="flex items-center justify-between cursor-pointer group">
-                <span className="text-sm text-muted-foreground">Credits</span>
-                <span className="text-sm font-medium flex items-center gap-1 group-hover:text-primary transition-colors">
+                <span className="text-sm font-medium text-foreground">Credits</span>
+                <span className="text-sm font-semibold flex items-center gap-1 text-foreground group-hover:text-primary transition-colors">
                   {credits} left
                   <ChevronRight className="h-3 w-3" />
                 </span>
               </div>
             </TooltipTrigger>
-            <TooltipContent side="bottom" className="max-w-[220px]">
+            <TooltipContent side="right" className="max-w-[220px]">
               <div className="space-y-1.5 text-xs">
                 <div className="flex justify-between gap-4">
                   <span className="text-muted-foreground flex items-center gap-1.5">
@@ -98,72 +99,53 @@ export function CreditBar({ compact = false }: CreditBarProps) {
                   <span className="text-muted-foreground">Total:</span>
                   <span className="font-semibold">{credits}</span>
                 </div>
-                {isProPlan && (
-                  <div className="text-muted-foreground pt-1 text-[10px]">
-                    ● Pro subscription active
-                  </div>
-                )}
               </div>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>
 
-        {/* Progress bar with empty grey background when no credits */}
-        <div className="h-2 w-full bg-muted rounded-full overflow-hidden flex">
+        {/* Progress bar - Lovable style */}
+        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
           {hasCredits ? (
-            <>
-              {/* Free credits segment - violet/purple */}
-              {freeCredits > 0 && (
-                <div
-                  className="h-full bg-violet-500 transition-all duration-500 ease-out"
-                  style={{ width: `${freePercentage}%` }}
-                />
-              )}
-              {/* Paid credits segment - primary blue */}
-              {paidCredits > 0 && (
-                <div
-                  className="h-full bg-primary transition-all duration-500 ease-out"
-                  style={{ width: `${paidPercentage}%` }}
-                />
-              )}
-            </>
-          ) : (
-            /* Empty state - fully grey bar (bg-muted already shows) */
-            null
-          )}
+            <div
+              className="h-full bg-gradient-to-r from-violet-500 to-primary rounded-full transition-all duration-500 ease-out"
+              style={{ width: `${fillPercentage}%` }}
+            />
+          ) : null}
         </div>
 
-        {/* Action buttons based on plan and credits */}
-        <div className="flex items-center gap-2 mt-1">
-          {showTopUp && (
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 h-7 text-xs"
-              onClick={() => setTopUpOpen(true)}
-            >
-              <Coins className="h-3 w-3 mr-1" />
-              Top Up
-            </Button>
-          )}
-          {showUpgrade && (
-            <Button
-              size="sm"
-              variant="default"
-              className="flex-1 h-7 text-xs"
-              onClick={() => navigate("/upgrade")}
-            >
-              <Sparkles className="h-3 w-3 mr-1" />
-              Upgrade
-            </Button>
-          )}
-        </div>
-
-        {/* Zero credits warning */}
-        {!hasCredits && (
-          <p className="text-xs text-amber-500 mt-1">
-            No credits remaining. Top up to generate videos.
+        {/* Reset info or low credit warning */}
+        {hasCredits ? (
+          <p className="text-xs text-muted-foreground mt-0.5">
+            <span className="text-muted-foreground">●</span> Free credits reset on {getNextResetDate()}
           </p>
+        ) : (
+          <p className="text-xs text-amber-500 mt-0.5">
+            Low on credits?
+          </p>
+        )}
+
+        {/* Action button */}
+        <Button
+          size="sm"
+          variant={hasCredits ? "outline" : "default"}
+          className="w-full h-8 text-xs mt-1"
+          onClick={() => setTopUpOpen(true)}
+        >
+          <Sparkles className="h-3 w-3 mr-1.5" />
+          Add credits
+        </Button>
+
+        {/* Upgrade button for non-pro users */}
+        {!isProPlan && (
+          <Button
+            size="sm"
+            variant="ghost"
+            className="w-full h-7 text-xs text-muted-foreground hover:text-foreground"
+            onClick={() => navigate("/pricing")}
+          >
+            Upgrade to Pro
+          </Button>
         )}
       </div>
 

@@ -1,5 +1,6 @@
-import { useState, useEffect, createContext, useContext } from "react";
+import { useState, useEffect, createContext, useContext, useCallback } from "react";
 import { useAuth } from "./useAuth";
+import { supabase } from "@/integrations/supabase/client";
 
 interface OnboardingState {
   hasSeenWelcome: boolean;
@@ -17,6 +18,7 @@ interface OnboardingContextType {
   setShowWelcomeDialog: (show: boolean) => void;
   markStepComplete: (step: string) => void;
   markTooltipSeen: (tooltip: keyof Omit<OnboardingState, 'completedSteps'>) => void;
+  completeOnboarding: () => Promise<void>;
   resetOnboarding: () => void;
   currentTooltipStep: number;
   shouldShowTooltip: (tooltip: keyof Omit<OnboardingState, 'completedSteps'>) => boolean;
@@ -38,38 +40,90 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   const [onboardingState, setOnboardingState] = useState<OnboardingState>(defaultState);
   const [showWelcomeDialog, setShowWelcomeDialog] = useState(false);
   const [isNewUser, setIsNewUser] = useState(false);
+  const [checkedDatabase, setCheckedDatabase] = useState(false);
 
-  // Load onboarding state from localStorage
+  // Check database for onboarding status - this is the source of truth
   useEffect(() => {
-    if (user) {
-      const storageKey = `onboarding_state_${user.id}`;
-      const savedState = localStorage.getItem(storageKey);
-      
-      if (savedState) {
-        try {
-          const parsed = JSON.parse(savedState);
-          setOnboardingState(parsed);
-          setIsNewUser(false);
-        } catch {
-          // Invalid state, treat as new user
+    if (!user) {
+      setOnboardingState(defaultState);
+      setIsNewUser(false);
+      setShowWelcomeDialog(false);
+      setCheckedDatabase(false);
+      return;
+    }
+
+    const checkOnboardingStatus = async () => {
+      try {
+        const { data: profile, error } = await supabase
+          .from("profiles")
+          .select("onboarding_completed, created_at")
+          .eq("user_id", user.id)
+          .single();
+
+        if (error) {
+          console.error("Error fetching onboarding status:", error);
+          setCheckedDatabase(true);
+          return;
+        }
+
+        // Check if user is new (created within last 30 seconds and hasn't completed onboarding)
+        const createdAt = new Date(profile?.created_at || 0);
+        const now = new Date();
+        const isRecentlyCreated = (now.getTime() - createdAt.getTime()) < 30000; // 30 seconds
+        const hasCompletedOnboarding = profile?.onboarding_completed === true;
+
+        // User is new if they haven't completed onboarding AND profile was recently created
+        // OR if they have a localStorage flag indicating they're in onboarding
+        const storageKey = `onboarding_in_progress_${user.id}`;
+        const isInProgress = localStorage.getItem(storageKey) === 'true';
+
+        if (!hasCompletedOnboarding && (isRecentlyCreated || isInProgress)) {
           setIsNewUser(true);
           setShowWelcomeDialog(true);
+          // Mark as in progress so returning within session continues onboarding
+          localStorage.setItem(storageKey, 'true');
+        } else {
+          setIsNewUser(false);
+          setShowWelcomeDialog(false);
+          // Clean up the in-progress flag
+          localStorage.removeItem(storageKey);
         }
-      } else {
-        // First time user
-        setIsNewUser(true);
-        setShowWelcomeDialog(true);
+
+        setCheckedDatabase(true);
+      } catch (err) {
+        console.error("Error checking onboarding:", err);
+        setCheckedDatabase(true);
       }
-    }
+    };
+
+    checkOnboardingStatus();
   }, [user]);
 
-  // Save state to localStorage whenever it changes
-  useEffect(() => {
-    if (user && (onboardingState.hasSeenWelcome || onboardingState.completedSteps.length > 0)) {
-      const storageKey = `onboarding_state_${user.id}`;
-      localStorage.setItem(storageKey, JSON.stringify(onboardingState));
+  // Complete onboarding in the database
+  const completeOnboarding = useCallback(async () => {
+    if (!user) return;
+
+    try {
+      await supabase
+        .from("profiles")
+        .update({ 
+          onboarding_completed: true,
+          onboarding_completed_at: new Date().toISOString()
+        })
+        .eq("user_id", user.id);
+
+      // Clean up localStorage
+      localStorage.removeItem(`onboarding_in_progress_${user.id}`);
+      
+      setIsNewUser(false);
+      setOnboardingState(prev => ({
+        ...prev,
+        hasSeenWelcome: true,
+      }));
+    } catch (err) {
+      console.error("Error completing onboarding:", err);
     }
-  }, [onboardingState, user]);
+  }, [user]);
 
   const markStepComplete = (step: string) => {
     setOnboardingState(prev => ({
@@ -89,8 +143,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
 
   const resetOnboarding = () => {
     if (user) {
-      const storageKey = `onboarding_state_${user.id}`;
-      localStorage.removeItem(storageKey);
+      localStorage.setItem(`onboarding_in_progress_${user.id}`, 'true');
       setOnboardingState(defaultState);
       setIsNewUser(true);
       setShowWelcomeDialog(true);
@@ -107,7 +160,8 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
   ].filter(Boolean).length;
 
   const shouldShowTooltip = (tooltip: keyof Omit<OnboardingState, 'completedSteps'>) => {
-    if (!isNewUser && onboardingState.hasSeenWelcome) return false;
+    // Only show tooltips for new users who haven't completed onboarding
+    if (!isNewUser || !checkedDatabase) return false;
     
     // Show tooltips in sequence
     const tooltipOrder: (keyof Omit<OnboardingState, 'completedSteps'>)[] = [
@@ -139,6 +193,7 @@ export function OnboardingProvider({ children }: { children: React.ReactNode }) 
         setShowWelcomeDialog,
         markStepComplete,
         markTooltipSeen,
+        completeOnboarding,
         resetOnboarding,
         currentTooltipStep,
         shouldShowTooltip,
