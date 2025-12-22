@@ -25,7 +25,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true)
   const [subscriptionStatus, setSubscriptionStatus] = useState<SubscriptionStatus | null>(null)
   const prevSubscribedRef = useRef<boolean | null>(null)
-  const emailSentThisSessionRef = useRef(false)
 
   useEffect(() => {
     // Set up auth state listener FIRST
@@ -35,8 +34,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setUser(session?.user ?? null)
         setLoading(false)
 
-        // Handle profile creation for new users
-        if (event === 'SIGNED_IN' && session?.user && !user) {
+        // Handle profile creation for new users only on SIGNED_UP event
+        if (event === 'SIGNED_IN' && session?.user) {
           setTimeout(() => {
             createUserProfile(session.user)
           }, 0)
@@ -63,33 +62,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // For normal signups, use default 210 credits
       const defaultCredits = marketingLinkId ? undefined : 210;
       
-      // Use UPSERT to handle existing profiles - prevents 409 duplicate key errors
-      const { data, error } = await supabase
+      // First check if profile already exists
+      const { data: existingProfile } = await supabase
         .from('profiles')
-        .upsert({
+        .select('id, welcome_email_sent, created_at')
+        .eq('user_id', user.id)
+        .single()
+
+      if (existingProfile) {
+        // Profile exists - only send welcome email if not sent yet
+        if (!existingProfile.welcome_email_sent) {
+          sendWelcomeEmail(user)
+          // Mark email as sent
+          await supabase
+            .from('profiles')
+            .update({ welcome_email_sent: true })
+            .eq('user_id', user.id)
+        }
+        return
+      }
+
+      // Create new profile for new user
+      const { error } = await supabase
+        .from('profiles')
+        .insert({
           user_id: user.id,
           email: user.email,
           full_name: user.user_metadata?.full_name || '',
-          updated_at: new Date().toISOString(),
-          ...(defaultCredits !== undefined ? { credits: defaultCredits } : {}),
-        }, {
-          onConflict: 'user_id',
-          ignoreDuplicates: false,
+          welcome_email_sent: true, // Will send below
+          onboarding_completed: false, // New user needs onboarding
+          ...(defaultCredits !== undefined ? { credits: defaultCredits, free_credits: defaultCredits } : {}),
         })
-        .select()
-        .single()
       
-      // Check if this was a new profile (created_at equals updated_at approximately)
-      if (!error && data) {
-        const createdAt = new Date(data.created_at).getTime()
-        const updatedAt = new Date(data.updated_at).getTime()
-        // If created within last 5 seconds, it's a new user
-        if (Math.abs(updatedAt - createdAt) < 5000) {
-          console.log('New user detected, sending welcome email')
-          sendWelcomeEmail(user)
-        }
-      } else if (error) {
-        console.error('Error upserting profile:', error)
+      if (!error) {
+        // Send welcome email for new user
+        sendWelcomeEmail(user)
+      } else {
+        console.error('Error creating profile:', error)
       }
     } catch (err) {
       console.error('Error creating profile:', err)
@@ -113,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       })
       
-      console.log('Welcome email sent to new Google OAuth user')
+      console.log('Welcome email sent to new user')
     } catch (err) {
       console.error('Failed to send welcome email:', err)
     }
@@ -121,12 +130,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const sendSubscriptionWelcomeEmail = async () => {
     if (!user?.email) return
+    
     try {
+      // Check if subscription email was already sent
       const { data: profile } = await supabase
         .from('profiles')
-        .select('full_name')
+        .select('full_name, subscription_email_sent')
         .eq('user_id', user.id)
         .single()
+
+      // Don't send if already sent
+      if (profile?.subscription_email_sent) {
+        console.log('Subscription email already sent, skipping')
+        return
+      }
 
       const fullName =
         (profile?.full_name && profile.full_name.trim()) ||
@@ -134,14 +151,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         (user.email?.split('@')[0]) ||
         'there'
 
-      const { data, error } = await supabase.functions.invoke('send-subscription-success-email', {
+      const { error } = await supabase.functions.invoke('send-subscription-success-email', {
         body: { email: user.email, fullName }
       })
 
-      if (error) {
-        console.error('Failed to send subscription welcome email:', error)
+      if (!error) {
+        // Mark subscription email as sent in database
+        await supabase
+          .from('profiles')
+          .update({ subscription_email_sent: true })
+          .eq('user_id', user.id)
+        console.log('Subscription welcome email sent')
       } else {
-        console.log('Subscription welcome email sent:', data)
+        console.error('Failed to send subscription welcome email:', error)
       }
     } catch (err) {
       console.error('Exception sending subscription welcome email:', err)
@@ -186,17 +208,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (!user) return
 
-    const storageKey = `welcome_email_sent_v1_${user.id}`
-    const alreadySent = localStorage.getItem(storageKey) === 'true'
-
     const justBecameSubscribed =
       subscriptionStatus?.subscribed === true && prevSubscribedRef.current !== true
 
-    if (justBecameSubscribed && !alreadySent && !emailSentThisSessionRef.current) {
-      emailSentThisSessionRef.current = true
-      sendSubscriptionWelcomeEmail().finally(() => {
-        try { localStorage.setItem(storageKey, 'true') } catch {}
-      })
+    if (justBecameSubscribed) {
+      sendSubscriptionWelcomeEmail()
     }
 
     // Track latest value for next runs

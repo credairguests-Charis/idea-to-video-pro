@@ -69,22 +69,7 @@ export default function Auth() {
         }
       } else {
         setMessage("Check your email for a confirmation link!");
-        
-        // Send welcome email (non-blocking)
-        if (data.user) {
-          try {
-            await supabase.functions.invoke("send-welcome-email", {
-              body: {
-                email,
-                fullName,
-                userId: data.user.id
-              }
-            });
-          } catch (emailError) {
-            console.error("Failed to send welcome email:", emailError);
-            // Don't show error to user, just log it
-          }
-        }
+        // Welcome email is now handled in useAuth.tsx when profile is created
       }
     } catch (err) {
       console.error("Unexpected sign up error:", err);
