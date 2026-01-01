@@ -230,27 +230,18 @@ export function ProjectSidebar({
         </div>
       </div>
 
-      <ScrollArea className="flex-1" onScrollCapture={handleScroll}>
-        <div className={cn("space-y-0.5", isCollapsed ? "p-1" : "p-3")} ref={scrollRef}>
+      <ScrollArea className="flex-1 overflow-hidden" onScrollCapture={handleScroll}>
+        <div className={cn("space-y-0.5 overflow-hidden", isCollapsed ? "p-1" : "p-3")} ref={scrollRef}>
           {/* Folders */}
           {!isCollapsed && folders.map(folder => {
           const folderProjects = projects.filter(p => p.folder_id === folder.id);
           const isExpanded = expandedFolders.has(folder.id);
-          return <div key={folder.id} className="space-y-0.5">
-                <div className="relative group flex items-center rounded-lg mx-0 my-0.5 hover:bg-accent/50 transition-colors">
-                  <Button variant="ghost" size="sm" className="flex-1 justify-start px-4 h-10 hover:bg-transparent" onClick={() => toggleFolder(folder.id)}>
+          return <div key={folder.id} className="space-y-0.5 overflow-hidden">
+                <div className="relative group flex items-center min-w-0 overflow-hidden rounded-lg mx-0 my-0.5 hover:bg-accent/50 transition-colors">
+                  <Button variant="ghost" size="sm" className="flex-1 min-w-0 overflow-hidden justify-start px-4 h-10 hover:bg-transparent" onClick={() => toggleFolder(folder.id)}>
                     {isExpanded ? <ChevronDown className="h-4 w-4 mr-1.5 shrink-0 text-muted-foreground" /> : <ChevronRight className="h-4 w-4 mr-1.5 shrink-0 text-muted-foreground" />}
                     {isExpanded ? <FolderOpen className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" /> : <Folder className="h-4 w-4 mr-2 shrink-0 text-muted-foreground" />}
-                    <TooltipProvider delayDuration={300}>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                          <span className="truncate text-sm font-medium" title={folder.name}>{folder.name}</span>
-                        </TooltipTrigger>
-                        <TooltipContent side="right" align="start" className="max-w-xs break-words">
-                          {folder.name}
-                        </TooltipContent>
-                      </Tooltip>
-                    </TooltipProvider>
+                    <span className="truncate text-sm font-medium" title={folder.name}>{folder.name}</span>
                   </Button>
 
                   <DropdownMenu>
@@ -289,9 +280,9 @@ export function ProjectSidebar({
                   </DropdownMenu>
                 </div>
 
-                {isExpanded && <div className="ml-8 space-y-0.5">
-                    {folderProjects.map(project => <div key={project.id} className="group flex items-center min-w-0 w-full rounded-lg hover:bg-accent/50 transition-colors my-0.5">
-                        <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 justify-start px-4 h-10 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
+                {isExpanded && <div className="ml-8 space-y-0.5 overflow-hidden">
+                    {folderProjects.map(project => <div key={project.id} className="group flex items-center min-w-0 overflow-hidden rounded-lg hover:bg-accent/50 transition-colors my-0.5">
+                        <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 overflow-hidden justify-start px-4 h-10 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
                           <span className="block truncate text-sm" title={project.title}>{project.title}</span>
                         </Button>
 
@@ -333,7 +324,7 @@ export function ProjectSidebar({
         })}
 
           {/* Standalone Projects */}
-          {standaloneProjects.map(project => <div key={project.id} className="group flex items-center min-w-0 w-full rounded-lg hover:bg-accent/50 transition-colors my-0.5">
+          {standaloneProjects.map(project => <div key={project.id} className="group flex items-center min-w-0 overflow-hidden rounded-lg hover:bg-accent/50 transition-colors my-0.5">
               {isCollapsed ? (
                 <TooltipProvider delayDuration={300}>
                   <Tooltip>
@@ -349,7 +340,7 @@ export function ProjectSidebar({
                 </TooltipProvider>
               ) : (
                 <>
-                  <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 justify-start h-10 px-3 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
+                  <Button variant="ghost" size="sm" className={cn("flex-1 min-w-0 overflow-hidden justify-start h-10 px-3 hover:bg-transparent", currentProjectId === project.id && "bg-muted hover:bg-muted")} onClick={() => onProjectSelect(project.id)}>
                     <span className="block truncate text-sm" title={project.title}>{project.title}</span>
                   </Button>
 
