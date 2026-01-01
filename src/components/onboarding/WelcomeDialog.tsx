@@ -53,8 +53,9 @@ export function WelcomeDialog() {
   };
 
   const handleClose = () => {
+    // Mark welcome as seen but DON'T complete onboarding yet
+    // The sequential tooltips will continue the onboarding flow
     markTooltipSeen('hasSeenWelcome');
-    completeOnboarding();
     setShowWelcomeDialog(false);
     setCurrentStep(0);
   };

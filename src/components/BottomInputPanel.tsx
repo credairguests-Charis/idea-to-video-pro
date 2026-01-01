@@ -10,6 +10,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
+import { OnboardingSpotlight } from "@/components/onboarding/OnboardingSpotlight";
 
 interface SelectedActor {
   id: string;
@@ -166,24 +167,33 @@ export function BottomInputPanel({
         </div>
 
         {/* Main content area */}
-        <div className="px-3 md:px-4">
-          <Textarea
-            ref={textareaRef}
-            value={script}
-            onChange={(e) => {
-              if (e.target.value.length <= maxChars) {
-                onScriptChange(e.target.value);
-              }
-            }}
-            placeholder="Write script..."
-            className={cn(
-              "min-h-[60px] max-h-[200px] w-full resize-none border-0 bg-transparent",
-              "focus-visible:ring-0 focus-visible:ring-offset-0 text-sm",
-              "placeholder:text-gray-400"
-            )}
-            disabled={isLoading}
-          />
-        </div>
+        <OnboardingSpotlight
+          tooltipKey="hasSeenScriptTooltip"
+          title="Write Your Script"
+          description="Enter the script or prompt for your video. Be descriptive about what you want the actor to say or do."
+          position="top"
+          step={2}
+          totalSteps={4}
+        >
+          <div className="px-3 md:px-4">
+            <Textarea
+              ref={textareaRef}
+              value={script}
+              onChange={(e) => {
+                if (e.target.value.length <= maxChars) {
+                  onScriptChange(e.target.value);
+                }
+              }}
+              placeholder="Write script..."
+              className={cn(
+                "min-h-[60px] max-h-[200px] w-full resize-none border-0 bg-transparent",
+                "focus-visible:ring-0 focus-visible:ring-offset-0 text-sm",
+                "placeholder:text-gray-400"
+              )}
+              disabled={isLoading}
+            />
+          </div>
+        </OnboardingSpotlight>
 
         {/* Selected actors and product image */}
         {(selectedActors.length > 0 || productImage) && (
@@ -260,16 +270,25 @@ export function BottomInputPanel({
               </div>
             )}
             
-            <Button
-              variant="ghost"
-              size="sm"
-              onClick={onOpenActorSelector}
-              className="h-6 md:h-7 text-[10px] md:text-xs text-gray-700 hover:bg-accent hover:text-accent-foreground px-2 md:px-3"
-              disabled={isLoading}
+            <OnboardingSpotlight
+              tooltipKey="hasSeenActorTooltip"
+              title="Select Your Actors"
+              description="Choose from our diverse library of AI actors to feature in your video. You can select multiple actors for bulk generation."
+              position="top"
+              step={1}
+              totalSteps={4}
             >
-              <Users className="h-3 w-3 md:h-3.5 md:w-3.5" />
-              <span className="hidden sm:inline ml-1">Add actors</span>
-            </Button>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={onOpenActorSelector}
+                className="h-6 md:h-7 text-[10px] md:text-xs text-gray-700 hover:bg-accent hover:text-accent-foreground px-2 md:px-3"
+                disabled={isLoading}
+              >
+                <Users className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                <span className="hidden sm:inline ml-1">Add actors</span>
+              </Button>
+            </OnboardingSpotlight>
 
             {onBulkGenerate && (
               <DropdownMenu>
@@ -325,13 +344,22 @@ export function BottomInputPanel({
               <span className="hidden sm:inline ml-1">Product</span>
             </Button>
 
-            <Button
-              onClick={onSubmit}
-              disabled={isLoading || !script.trim() || productImage?.isUploading}
-              className="h-8 w-8 md:h-9 md:w-9 rounded-full p-0 bg-[#0f1729] hover:bg-[#0f1729]/90"
+            <OnboardingSpotlight
+              tooltipKey="hasSeenGenerateTooltip"
+              title="Generate Your Video"
+              description="Once you've written your script and selected actors, click here to start generating your video with AI."
+              position="top"
+              step={3}
+              totalSteps={4}
             >
-              <ArrowUp className="h-3.5 w-3.5 md:h-4 md:w-4 text-white" />
-            </Button>
+              <Button
+                onClick={onSubmit}
+                disabled={isLoading || !script.trim() || productImage?.isUploading}
+                className="h-8 w-8 md:h-9 md:w-9 rounded-full p-0 bg-[#0f1729] hover:bg-[#0f1729]/90"
+              >
+                <ArrowUp className="h-3.5 w-3.5 md:h-4 md:w-4 text-white" />
+              </Button>
+            </OnboardingSpotlight>
           </div>
         </div>
       </div>

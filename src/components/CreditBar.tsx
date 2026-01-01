@@ -5,6 +5,7 @@ import { useState } from "react";
 import { TopUpCreditsDialog } from "./TopUpCreditsDialog";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
+import { OnboardingSpotlight } from "@/components/onboarding/OnboardingSpotlight";
 import {
   Tooltip,
   TooltipContent,
@@ -67,87 +68,96 @@ export function CreditBar({ compact = false }: CreditBarProps) {
 
   return (
     <>
-      <div className={`flex flex-col gap-2 ${compact ? "w-full" : "min-w-[200px]"}`}>
-        <TooltipProvider>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <div className="flex items-center justify-between cursor-pointer group">
-                <span className="text-sm font-medium text-foreground">Credits</span>
-                <span className="text-sm font-semibold flex items-center gap-1 text-foreground group-hover:text-primary transition-colors">
-                  {credits} left
-                  <ChevronRight className="h-3 w-3" />
-                </span>
-              </div>
-            </TooltipTrigger>
-            <TooltipContent side="right" className="max-w-[220px]">
-              <div className="space-y-1.5 text-xs">
-                <div className="flex justify-between gap-4">
-                  <span className="text-muted-foreground flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-violet-500" />
-                    Free credits:
+      <OnboardingSpotlight
+        tooltipKey="hasSeenCreditsTooltip"
+        title="Track Your Credits"
+        description="Monitor your available credits here. Free credits reset monthly, and you can always add more when needed."
+        position="right"
+        step={4}
+        totalSteps={4}
+      >
+        <div className={`flex flex-col gap-2 ${compact ? "w-full" : "min-w-[200px]"}`}>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div className="flex items-center justify-between cursor-pointer group">
+                  <span className="text-sm font-medium text-foreground">Credits</span>
+                  <span className="text-sm font-semibold flex items-center gap-1 text-foreground group-hover:text-primary transition-colors">
+                    {credits} left
+                    <ChevronRight className="h-3 w-3" />
                   </span>
-                  <span className="font-medium">{freeCredits}</span>
                 </div>
-                <div className="flex justify-between gap-4">
-                  <span className="text-muted-foreground flex items-center gap-1.5">
-                    <span className="w-2 h-2 rounded-full bg-primary" />
-                    Paid credits:
-                  </span>
-                  <span className="font-medium">{paidCredits}</span>
+              </TooltipTrigger>
+              <TooltipContent side="right" className="max-w-[220px]">
+                <div className="space-y-1.5 text-xs">
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-violet-500" />
+                      Free credits:
+                    </span>
+                    <span className="font-medium">{freeCredits}</span>
+                  </div>
+                  <div className="flex justify-between gap-4">
+                    <span className="text-muted-foreground flex items-center gap-1.5">
+                      <span className="w-2 h-2 rounded-full bg-primary" />
+                      Paid credits:
+                    </span>
+                    <span className="font-medium">{paidCredits}</span>
+                  </div>
+                  <div className="border-t border-border pt-1.5 mt-1.5 flex justify-between gap-4">
+                    <span className="text-muted-foreground">Total:</span>
+                    <span className="font-semibold">{credits}</span>
+                  </div>
                 </div>
-                <div className="border-t border-border pt-1.5 mt-1.5 flex justify-between gap-4">
-                  <span className="text-muted-foreground">Total:</span>
-                  <span className="font-semibold">{credits}</span>
-                </div>
-              </div>
-            </TooltipContent>
-          </Tooltip>
-        </TooltipProvider>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
-        {/* Progress bar - Lovable style */}
-        <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+          {/* Progress bar - Lovable style */}
+          <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
+            {hasCredits ? (
+              <div
+                className="h-full bg-gradient-to-r from-violet-500 to-primary rounded-full transition-all duration-500 ease-out"
+                style={{ width: `${fillPercentage}%` }}
+              />
+            ) : null}
+          </div>
+
+          {/* Reset info or low credit warning */}
           {hasCredits ? (
-            <div
-              className="h-full bg-gradient-to-r from-violet-500 to-primary rounded-full transition-all duration-500 ease-out"
-              style={{ width: `${fillPercentage}%` }}
-            />
-          ) : null}
-        </div>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              <span className="text-muted-foreground">●</span> Free credits reset on {getNextResetDate()}
+            </p>
+          ) : (
+            <p className="text-xs text-amber-500 mt-0.5">
+              Low on credits?
+            </p>
+          )}
 
-        {/* Reset info or low credit warning */}
-        {hasCredits ? (
-          <p className="text-xs text-muted-foreground mt-0.5">
-            <span className="text-muted-foreground">●</span> Free credits reset on {getNextResetDate()}
-          </p>
-        ) : (
-          <p className="text-xs text-amber-500 mt-0.5">
-            Low on credits?
-          </p>
-        )}
-
-        {/* Action button */}
-        <Button
-          size="sm"
-          variant={hasCredits ? "outline" : "default"}
-          className="w-full h-8 text-xs mt-1"
-          onClick={() => setTopUpOpen(true)}
-        >
-          <Sparkles className="h-3 w-3 mr-1.5" />
-          Add credits
-        </Button>
-
-        {/* Upgrade button for non-pro users */}
-        {!isProPlan && (
+          {/* Action button */}
           <Button
             size="sm"
-            variant="ghost"
-            className="w-full h-7 text-xs text-muted-foreground hover:text-foreground"
-            onClick={() => navigate("/pricing")}
+            variant={hasCredits ? "outline" : "default"}
+            className="w-full h-8 text-xs mt-1"
+            onClick={() => setTopUpOpen(true)}
           >
-            Upgrade to Pro
+            <Sparkles className="h-3 w-3 mr-1.5" />
+            Add credits
           </Button>
-        )}
-      </div>
+
+          {/* Upgrade button for non-pro users */}
+          {!isProPlan && (
+            <Button
+              size="sm"
+              variant="ghost"
+              className="w-full h-7 text-xs text-muted-foreground hover:text-foreground"
+              onClick={() => navigate("/pricing")}
+            >
+              Upgrade to Pro
+            </Button>
+          )}
+        </div>
+      </OnboardingSpotlight>
 
       <TopUpCreditsDialog open={topUpOpen} onOpenChange={setTopUpOpen} />
     </>
