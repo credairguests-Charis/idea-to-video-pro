@@ -31,12 +31,12 @@ export function CreditBar({ compact = false }: CreditBarProps) {
   const navigate = useNavigate();
 
   const isProPlan = subscriptionStatus?.subscribed === true;
-  const hasCredits = credits > 0 || hasUnlimitedAccess;
 
-  // Calculate fill percentage - use a baseline max for display
-  // The max is either 100 or the current credits (whichever is higher for nice visuals)
-  const maxCredits = Math.max(credits, 100);
-  const fillPercentage = credits > 0 ? Math.min((credits / maxCredits) * 100, 100) : 0;
+  // Calculate percentages for the stacked bar
+  // Use a reasonable max for display purposes (e.g., 350 credits = 5 videos worth)
+  const maxDisplayCredits = Math.max(credits, 350);
+  const freePercentage = credits > 0 ? (freeCredits / maxDisplayCredits) * 100 : 0;
+  const paidPercentage = credits > 0 ? (paidCredits / maxDisplayCredits) * 100 : 0;
 
   if (loading) {
     return (
@@ -113,31 +113,31 @@ export function CreditBar({ compact = false }: CreditBarProps) {
             </Tooltip>
           </TooltipProvider>
 
-          {/* Progress bar - Lovable style */}
-          <div className="h-2 w-full bg-muted rounded-full overflow-hidden">
-            {hasCredits ? (
+          {/* Stacked Progress Bar - Free (violet) + Paid (primary blue) */}
+          <div className="h-2 w-full bg-muted rounded-full overflow-hidden flex">
+            {freeCredits > 0 && (
               <div
-                className="h-full bg-gradient-to-r from-violet-500 to-primary rounded-full transition-all duration-500 ease-out"
-                style={{ width: `${fillPercentage}%` }}
+                className="h-full bg-violet-500 transition-all duration-500 ease-out"
+                style={{ width: `${freePercentage}%` }}
               />
-            ) : null}
+            )}
+            {paidCredits > 0 && (
+              <div
+                className="h-full bg-primary transition-all duration-500 ease-out"
+                style={{ width: `${paidPercentage}%` }}
+              />
+            )}
           </div>
 
-          {/* Reset info or low credit warning */}
-          {hasCredits ? (
-            <p className="text-xs text-muted-foreground mt-0.5">
-              <span className="text-muted-foreground">●</span> Free credits reset on {getNextResetDate()}
-            </p>
-          ) : (
-            <p className="text-xs text-amber-500 mt-0.5">
-              Low on credits?
-            </p>
-          )}
+          {/* Reset info */}
+          <p className="text-xs text-muted-foreground mt-0.5 flex items-center gap-1">
+            <span className="text-violet-500">●</span> Free credits reset on {getNextResetDate()}
+          </p>
 
           {/* Action button */}
           <Button
             size="sm"
-            variant={hasCredits ? "outline" : "default"}
+            variant={credits > 0 ? "outline" : "default"}
             className="w-full h-8 text-xs mt-1"
             onClick={() => setTopUpOpen(true)}
           >
