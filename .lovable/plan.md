@@ -1,121 +1,59 @@
 
 
-# Production-Grade Onboarding Redesign
+# Two-Part Fix: Sidebar Overflow + Admin Credit Usage Charts
 
-## Current Problems
+## Part 1: Fix Project Title Sidebar Overflow (Root Cause)
 
-1. **Welcome Dialog feels generic** -- icon-in-a-circle with bullet points looks templated and AI-generated, not branded
-2. **OnboardingSpotlight tooltip** uses a flat primary-colored box with CSS border-arrow -- looks dated
-3. **Two redundant tooltip components** exist (`OnboardingTooltip.tsx` and `OnboardingSpotlight.tsx`) creating confusion
-4. **No visual hierarchy or delight** -- no illustrations, no micro-interactions, no personality
-5. **Flow feels mechanical** -- click next, next, next with no sense of progression or reward
+The root cause (confirmed by CSS-Tricks and the CSS spec) is that flex children have a default `min-width: auto`, which prevents them from shrinking below their content size. Even though `truncate` and `overflow-hidden` are on inner elements, the outermost sidebar container lacks a hard constraint preventing horizontal growth.
 
----
+### Changes to `src/components/ProjectSidebar.tsx`
 
-## Design Philosophy
+1. **Add `overflow-hidden` to the root sidebar div** (line 178) -- this creates the hard boundary that prevents any child from pushing the sidebar wider than `w-64`:
+   - Change: `"flex flex-col h-full bg-sidebar border-r ..."` to include `overflow-hidden`
 
-Inspired by onboarding from Notion, Linear, and Figma:
-- **Minimal chrome, maximum clarity** -- one message at a time, generous whitespace
-- **Branded visuals** -- use the Charis logo/brand colors, not generic Lucide icons
-- **Subtle motion** -- spring animations, not slideshows
-- **Contextual, not instructional** -- spotlight tooltips that feel like gentle nudges, not manuals
-- **Completion reward** -- a satisfying end-state, not just the dialog closing
+2. **Add `w-full` to the wrapper divs** for standalone projects (line 327) and folder projects (line 284) -- ensures the `group flex` row is constrained to parent width:
+   - The `group flex items-center min-w-0 overflow-hidden` row containers need `w-full` added
+
+3. **Add `max-w-full` to Button elements** for project titles -- belt-and-suspenders to prevent the button's intrinsic width from exceeding the container
+
+This is a 3-line CSS-only fix with no layout or feature changes.
 
 ---
 
-## Redesigned Flow
+## Part 2: Per-User and All-Users Credit Usage Charts
 
-```text
-  [Sign Up] --> [Welcome Dialog (single screen)] --> [Close]
-       |
-       v
-  [Spotlight 1: Actor Selection] --> [Spotlight 2: Script Input]
-       |                                      |
-       v                                      v
-  [Spotlight 3: Generate Button] --> [Spotlight 4: Credits]
-       |
-       v
-  [Completion confetti / "You're all set!" toast]
-```
+### Overview
 
----
+Enhance the existing Admin Credits page (`src/pages/admin/AdminCredits.tsx`) with:
+- A **user selector** dropdown to filter charts by individual user
+- An **"All Users"** default view showing aggregate consumption
+- The existing daily/weekly toggle remains and applies to both views
 
-## Changes
+### Changes to `src/pages/admin/AdminCredits.tsx`
 
-### 1. WelcomeDialog.tsx -- Complete Redesign
+1. **Add a user selector** (combobox/select) next to the daily/weekly toggle in the Credit Usage Trends card header:
+   - Default option: "All Users"
+   - Populated from the unique user emails already fetched from the profiles table
+   - Selecting a user filters the chart data to that user's transactions only
 
-Replace the 4-step slideshow with a single, elegant welcome screen:
+2. **Modify `fetchData` logic**:
+   - Store the raw transaction data in state (already done as `transactions`)
+   - Add a `selectedUserId` state variable (default: `null` meaning all users)
+   - Create a `useMemo`-derived `filteredChartData` that recalculates daily/weekly aggregations based on `selectedUserId`
+   - When a user is selected, the bar chart and area chart only show that user's issued vs. used credits
 
-- **Remove** the multi-step carousel (users skip multi-step dialogs)
-- **Single screen** with the Charis logo at top, a warm headline ("Welcome to Charis"), a brief one-liner subtitle, and 3 concise value props as a clean list with subtle check icons
-- **Two actions**: "Take a quick tour" (primary) and "Skip" (ghost, bottom-left)
-- **Visual polish**: soft radial gradient background behind the logo area, slightly larger dialog (`sm:max-w-[440px]`), rounded corners
-- **Animation**: fade-in with a gentle scale spring on mount, staggered list items
+3. **Add a per-user summary row** below the user selector showing:
+   - Total issued to this user
+   - Total used by this user
+   - Current balance (from profiles)
 
-### 2. OnboardingSpotlight.tsx -- Visual Upgrade
+4. **Update KPI cards** to reflect the selected filter:
+   - When a specific user is selected, the "Credits Issued" and "Credits Used" cards update to show that user's totals
+   - "All Users" shows the aggregate (current behavior)
 
-Redesign the spotlight tooltip to look hand-crafted:
+### No database changes needed
+The existing `transaction_logs` table has `user_id` and `credits_change` fields, which is all that's needed.
 
-- **Tooltip card**: replace the flat `bg-primary` box with a white card (`bg-white`) with a subtle shadow (`shadow-xl`), dark text, and a thin left-border accent line in brand color
-- **Arrow**: replace CSS border-hack arrow with an SVG arrow for crisp rendering at any angle
-- **Progress**: replace dot indicators with a minimal text label ("1 of 4") and a thin progress bar underneath the content
-- **Typography**: title in `font-semibold text-sm text-foreground`, description in `text-xs text-muted-foreground`
-- **Actions**: "Next" as a small solid primary button, "Skip tour" as an underlined text link (not a second button)
-- **Backdrop**: reduce overlay opacity from 60% to 40% for a lighter feel, add a subtle `backdrop-blur-sm`
-- **Spotlight ring**: add a soft pulsing glow ring around the highlighted element (2px primary-colored ring with animation)
-- **Transition**: tooltip enters with `spring` physics (`stiffness: 300, damping: 24`) instead of linear easing
-
-### 3. Remove OnboardingTooltip.tsx
-
-Delete the unused `OnboardingTooltip.tsx` component -- `OnboardingSpotlight.tsx` fully replaces it.
-
-### 4. Completion State
-
-When the last spotlight is dismissed:
-
-- Show a brief success toast via `sonner`: "You're all set! Start creating." with a checkmark icon
-- This replaces silently closing and gives the user a sense of accomplishment
-
-### 5. Spotlight Content Refinement
-
-Update the copy in `BottomInputPanel.tsx` and `CreditBar.tsx` spotlight wrappers to be shorter and more conversational:
-
-| Step | Title | Description |
-|------|-------|-------------|
-| 1 - Actors | "Pick your actors" | "Choose who appears in your video. Select one or several for A/B testing." |
-| 2 - Script | "Write your script" | "Type what your actor will say. Keep it 30-60 seconds for best results." |
-| 3 - Generate | "Hit generate" | "When you're ready, tap here to create your video." |
-| 4 - Credits | "Your credits" | "Each video costs credits. You can see your balance and buy more here." |
-
-### 6. CSS Additions (index.css)
-
-Add a subtle pulsing spotlight ring animation:
-
-```css
-@keyframes spotlight-pulse {
-  0%, 100% { box-shadow: 0 0 0 2px hsl(var(--primary) / 0.4); }
-  50% { box-shadow: 0 0 0 6px hsl(var(--primary) / 0.1); }
-}
-```
-
----
-
-## Technical Details
-
-### Files Modified
-- `src/components/onboarding/WelcomeDialog.tsx` -- rewrite to single-screen design
-- `src/components/onboarding/OnboardingSpotlight.tsx` -- redesign tooltip visuals and animations
-- `src/components/BottomInputPanel.tsx` -- update spotlight copy for steps 1-3
-- `src/components/CreditBar.tsx` -- update spotlight copy for step 4
-- `src/index.css` -- add spotlight-pulse keyframes
-
-### Files Deleted
-- `src/components/onboarding/OnboardingTooltip.tsx` -- redundant, unused
-
-### Files Unchanged
-- `src/hooks/useOnboarding.tsx` -- the hook logic and flow sequencing remain identical
-- No database changes needed
-
-### Dependencies
-- No new packages -- uses existing `framer-motion`, `sonner`, `lucide-react`, and Radix primitives
+### No new dependencies
+Uses existing `recharts`, `date-fns`, and Radix Select components already in the project.
 
