@@ -3,6 +3,7 @@ import { NavLink, useLocation } from "react-router-dom"
 import { useAuth } from "@/hooks/useAuth"
 import { Button } from "@/components/ui/button"
 import { CreditBar } from "@/components/CreditBar"
+import { OnboardingSpotlight } from "@/components/onboarding/OnboardingSpotlight"
 
 import {
   Sidebar,
@@ -72,7 +73,16 @@ export function AppSidebar() {
         <SidebarGroup>
           <SidebarGroupLabel>Credits</SidebarGroupLabel>
           <SidebarGroupContent className="px-2">
-            <CreditBar compact />
+            <OnboardingSpotlight
+              tooltipKey="hasSeenCreditsTooltip"
+              title="Your credits"
+              description="Each video costs credits. You can see your balance and buy more here."
+              position="right"
+              step={4}
+              totalSteps={4}
+            >
+              <CreditBar compact />
+            </OnboardingSpotlight>
           </SidebarGroupContent>
         </SidebarGroup>
       </SidebarContent>

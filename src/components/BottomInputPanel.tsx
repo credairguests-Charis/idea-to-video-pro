@@ -169,8 +169,8 @@ export function BottomInputPanel({
         {/* Main content area */}
         <OnboardingSpotlight
           tooltipKey="hasSeenScriptTooltip"
-          title="Write Your Script"
-          description="Enter the script or prompt for your video. Be descriptive about what you want the actor to say or do."
+          title="Write your script"
+          description="Type what your actor will say. Keep it 30–60 seconds for best results."
           position="top"
           step={2}
           totalSteps={4}
@@ -272,8 +272,8 @@ export function BottomInputPanel({
             
             <OnboardingSpotlight
               tooltipKey="hasSeenActorTooltip"
-              title="Select Your Actors"
-              description="Choose from our diverse library of AI actors to feature in your video. You can select multiple actors for bulk generation."
+              title="Pick your actors"
+              description="Choose who appears in your video. Select one or several for A/B testing."
               position="top"
               step={1}
               totalSteps={4}
@@ -346,8 +346,8 @@ export function BottomInputPanel({
 
             <OnboardingSpotlight
               tooltipKey="hasSeenGenerateTooltip"
-              title="Generate Your Video"
-              description="Once you've written your script and selected actors, click here to start generating your video with AI."
+              title="Hit generate"
+              description="When you're ready, tap here to create your video."
               position="top"
               step={3}
               totalSteps={4}
