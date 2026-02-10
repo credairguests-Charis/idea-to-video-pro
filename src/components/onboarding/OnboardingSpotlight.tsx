@@ -1,9 +1,10 @@
 import { ReactNode, useEffect, useState, useRef } from "react";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { X, ChevronRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { createPortal } from "react-dom";
+import { toast } from "sonner";
 
 interface OnboardingSpotlightProps {
   children: ReactNode;
@@ -16,10 +17,47 @@ interface OnboardingSpotlightProps {
   spotlightPadding?: number;
 }
 
-interface TooltipPosition {
+interface TooltipPos {
   top: number;
   left: number;
-  arrowPosition: 'top' | 'bottom' | 'left' | 'right';
+  arrowSide: 'top' | 'bottom' | 'left' | 'right';
+}
+
+function SvgArrow({ side }: { side: 'top' | 'bottom' | 'left' | 'right' }) {
+  const style: React.CSSProperties = { position: 'absolute' };
+  const size = 10;
+
+  if (side === 'top') {
+    Object.assign(style, { top: -size, left: '50%', transform: 'translateX(-50%)' });
+    return (
+      <svg style={style} width={size * 2} height={size} viewBox={`0 0 ${size * 2} ${size}`}>
+        <path d={`M0 ${size} L${size} 0 L${size * 2} ${size}`} fill="white" />
+      </svg>
+    );
+  }
+  if (side === 'bottom') {
+    Object.assign(style, { bottom: -size, left: '50%', transform: 'translateX(-50%)' });
+    return (
+      <svg style={style} width={size * 2} height={size} viewBox={`0 0 ${size * 2} ${size}`}>
+        <path d={`M0 0 L${size} ${size} L${size * 2} 0`} fill="white" />
+      </svg>
+    );
+  }
+  if (side === 'left') {
+    Object.assign(style, { left: -size, top: '50%', transform: 'translateY(-50%)' });
+    return (
+      <svg style={style} width={size} height={size * 2} viewBox={`0 0 ${size} ${size * 2}`}>
+        <path d={`M${size} 0 L0 ${size} L${size} ${size * 2}`} fill="white" />
+      </svg>
+    );
+  }
+  // right
+  Object.assign(style, { right: -size, top: '50%', transform: 'translateY(-50%)' });
+  return (
+    <svg style={style} width={size} height={size * 2} viewBox={`0 0 ${size} ${size * 2}`}>
+      <path d={`M0 0 L${size} ${size} L0 ${size * 2}`} fill="white" />
+    </svg>
+  );
 }
 
 export function OnboardingSpotlight({
@@ -34,92 +72,58 @@ export function OnboardingSpotlight({
 }: OnboardingSpotlightProps) {
   const { shouldShowTooltip, markTooltipSeen, completeOnboarding } = useOnboarding();
   const [isVisible, setIsVisible] = useState(false);
-  const [tooltipPosition, setTooltipPosition] = useState<TooltipPosition | null>(null);
+  const [tooltipPos, setTooltipPos] = useState<TooltipPos | null>(null);
   const [elementRect, setElementRect] = useState<DOMRect | null>(null);
   const elementRef = useRef<HTMLDivElement>(null);
-  const tooltipRef = useRef<HTMLDivElement>(null);
 
-  // Calculate position after a delay to ensure DOM is ready
   useEffect(() => {
-    const timer = setTimeout(() => {
-      const shouldShow = shouldShowTooltip(tooltipKey);
-      setIsVisible(shouldShow);
-    }, 300);
-
+    const timer = setTimeout(() => setIsVisible(shouldShowTooltip(tooltipKey)), 300);
     return () => clearTimeout(timer);
   }, [shouldShowTooltip, tooltipKey]);
 
-  // Calculate tooltip position based on target element
   useEffect(() => {
     if (!isVisible || !elementRef.current) return;
 
-    const calculatePosition = () => {
-      const element = elementRef.current;
-      if (!element) return;
-
-      const rect = element.getBoundingClientRect();
+    const calculate = () => {
+      const el = elementRef.current;
+      if (!el) return;
+      const rect = el.getBoundingClientRect();
       setElementRect(rect);
 
-      const tooltipWidth = 320;
-      const tooltipHeight = 180;
-      const gap = 16;
-      const viewportWidth = window.innerWidth;
-      const viewportHeight = window.innerHeight;
+      const tw = 300, th = 160, gap = 14;
+      const vw = window.innerWidth, vh = window.innerHeight;
 
-      let top = 0;
-      let left = 0;
-      let arrowPosition: 'top' | 'bottom' | 'left' | 'right' = position;
+      let top = 0, left = 0;
+      let arrowSide: TooltipPos['arrowSide'] = position;
 
-      // Calculate position based on preferred direction
       switch (position) {
-        case 'bottom':
-          top = rect.bottom + gap;
-          left = rect.left + rect.width / 2 - tooltipWidth / 2;
-          arrowPosition = 'top';
-          break;
-        case 'top':
-          top = rect.top - tooltipHeight - gap;
-          left = rect.left + rect.width / 2 - tooltipWidth / 2;
-          arrowPosition = 'bottom';
-          break;
-        case 'left':
-          top = rect.top + rect.height / 2 - tooltipHeight / 2;
-          left = rect.left - tooltipWidth - gap;
-          arrowPosition = 'right';
-          break;
-        case 'right':
-          top = rect.top + rect.height / 2 - tooltipHeight / 2;
-          left = rect.right + gap;
-          arrowPosition = 'left';
-          break;
+        case 'bottom': top = rect.bottom + gap; left = rect.left + rect.width / 2 - tw / 2; arrowSide = 'top'; break;
+        case 'top': top = rect.top - th - gap; left = rect.left + rect.width / 2 - tw / 2; arrowSide = 'bottom'; break;
+        case 'left': top = rect.top + rect.height / 2 - th / 2; left = rect.left - tw - gap; arrowSide = 'right'; break;
+        case 'right': top = rect.top + rect.height / 2 - th / 2; left = rect.right + gap; arrowSide = 'left'; break;
       }
 
-      // Keep tooltip within viewport
-      if (left < 16) left = 16;
-      if (left + tooltipWidth > viewportWidth - 16) left = viewportWidth - tooltipWidth - 16;
-      if (top < 16) top = 16;
-      if (top + tooltipHeight > viewportHeight - 16) top = viewportHeight - tooltipHeight - 16;
+      left = Math.max(12, Math.min(left, vw - tw - 12));
+      top = Math.max(12, Math.min(top, vh - th - 12));
 
-      setTooltipPosition({ top, left, arrowPosition });
+      setTooltipPos({ top, left, arrowSide });
     };
 
-    calculatePosition();
-    window.addEventListener('resize', calculatePosition);
-    window.addEventListener('scroll', calculatePosition);
-
-    return () => {
-      window.removeEventListener('resize', calculatePosition);
-      window.removeEventListener('scroll', calculatePosition);
-    };
+    calculate();
+    window.addEventListener('resize', calculate);
+    window.addEventListener('scroll', calculate);
+    return () => { window.removeEventListener('resize', calculate); window.removeEventListener('scroll', calculate); };
   }, [isVisible, position]);
 
   const handleNext = () => {
     setIsVisible(false);
     markTooltipSeen(tooltipKey);
-    
-    // If this is the last step, complete onboarding
     if (step === totalSteps) {
       completeOnboarding();
+      toast.success("You're all set! Start creating.", {
+        duration: 3000,
+        icon: "✨",
+      });
     }
   };
 
@@ -129,12 +133,7 @@ export function OnboardingSpotlight({
     completeOnboarding();
   };
 
-  const arrowStyles = {
-    top: 'bottom-full left-1/2 -translate-x-1/2 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-primary',
-    bottom: 'top-full left-1/2 -translate-x-1/2 border-l-8 border-r-8 border-t-8 border-l-transparent border-r-transparent border-t-primary',
-    left: 'right-full top-1/2 -translate-y-1/2 border-t-8 border-b-8 border-r-8 border-t-transparent border-b-transparent border-r-primary',
-    right: 'left-full top-1/2 -translate-y-1/2 border-t-8 border-b-8 border-l-8 border-t-transparent border-b-transparent border-l-primary',
-  };
+  const progressPercent = (step / totalSteps) * 100;
 
   return (
     <>
@@ -144,37 +143,37 @@ export function OnboardingSpotlight({
 
       {isVisible && createPortal(
         <AnimatePresence>
-          {/* Overlay backdrop */}
+          {/* Backdrop — lighter with blur */}
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-[9998] bg-black/60"
+            className="fixed inset-0 z-[9998] bg-black/40 backdrop-blur-[2px]"
             onClick={handleSkip}
           />
 
-          {/* Spotlight cutout */}
+          {/* Spotlight cutout with pulsing ring */}
           {elementRect && (
             <motion.div
               initial={{ opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
-              className="fixed z-[9999] pointer-events-none"
+              className="fixed z-[9999] pointer-events-none rounded-xl"
               style={{
                 top: elementRect.top - spotlightPadding,
                 left: elementRect.left - spotlightPadding,
                 width: elementRect.width + spotlightPadding * 2,
                 height: elementRect.height + spotlightPadding * 2,
-                borderRadius: 12,
-                boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.6)',
+                boxShadow: '0 0 0 9999px rgba(0, 0, 0, 0.4)',
+                animation: 'spotlight-pulse 2s ease-in-out infinite',
               }}
             />
           )}
 
-          {/* Allow interaction with spotlight element */}
+          {/* Interactive passthrough */}
           {elementRect && (
             <div
-              className="fixed z-[10000]"
+              className="fixed z-[10000] rounded-xl"
               style={{
                 top: elementRect.top - spotlightPadding,
                 left: elementRect.left - spotlightPadding,
@@ -184,74 +183,59 @@ export function OnboardingSpotlight({
             />
           )}
 
-          {/* Tooltip */}
-          {tooltipPosition && (
+          {/* Tooltip card */}
+          {tooltipPos && (
             <motion.div
-              ref={tooltipRef}
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
+              initial={{ opacity: 0, scale: 0.96, y: 6 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
-              exit={{ opacity: 0, scale: 0.95, y: 10 }}
-              transition={{ duration: 0.2, ease: 'easeOut' }}
+              exit={{ opacity: 0, scale: 0.96, y: 6 }}
+              transition={{ type: "spring", stiffness: 300, damping: 24 }}
               className="fixed z-[10001]"
-              style={{
-                top: tooltipPosition.top,
-                left: tooltipPosition.left,
-              }}
+              style={{ top: tooltipPos.top, left: tooltipPos.left }}
             >
-              <div className="relative bg-primary text-primary-foreground rounded-xl shadow-2xl p-5 w-[320px]">
-                {/* Arrow */}
-                <div className={`absolute w-0 h-0 ${arrowStyles[tooltipPosition.arrowPosition]}`} />
+              <div className="relative bg-white rounded-xl shadow-xl border border-border/40 w-[300px] overflow-hidden">
+                {/* SVG Arrow */}
+                <SvgArrow side={tooltipPos.arrowSide} />
 
-                {/* Skip button */}
-                <button
-                  onClick={handleSkip}
-                  className="absolute top-3 right-3 p-1.5 rounded-full hover:bg-primary-foreground/20 transition-colors"
-                  aria-label="Skip tour"
-                >
-                  <X className="h-4 w-4" />
-                </button>
+                {/* Left accent line */}
+                <div className="absolute left-0 top-0 bottom-0 w-[3px] bg-primary rounded-l-xl" />
 
-                {/* Progress indicator */}
-                <div className="flex items-center gap-1.5 mb-3">
-                  {Array.from({ length: totalSteps }).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`h-1.5 rounded-full transition-all duration-300 ${
-                        i + 1 <= step
-                          ? 'bg-primary-foreground w-6'
-                          : 'bg-primary-foreground/30 w-1.5'
-                      }`}
-                    />
-                  ))}
-                  <span className="ml-2 text-xs text-primary-foreground/70">
-                    {step} of {totalSteps}
+                <div className="p-4 pl-5">
+                  {/* Step label */}
+                  <span className="text-[10px] font-medium text-muted-foreground uppercase tracking-wider">
+                    Step {step} of {totalSteps}
                   </span>
+
+                  <h4 className="font-semibold text-sm text-foreground mt-1.5 mb-1">{title}</h4>
+                  <p className="text-xs text-muted-foreground leading-relaxed">{description}</p>
+
+                  {/* Actions */}
+                  <div className="flex items-center justify-between mt-4">
+                    <button
+                      onClick={handleSkip}
+                      className="text-xs text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 decoration-muted-foreground/40"
+                    >
+                      Skip tour
+                    </button>
+                    <Button
+                      size="sm"
+                      onClick={handleNext}
+                      className="h-7 text-xs px-3 gap-1"
+                    >
+                      {step === totalSteps ? 'Get Started' : 'Next'}
+                      {step !== totalSteps && <ChevronRight className="h-3 w-3" />}
+                    </Button>
+                  </div>
                 </div>
 
-                {/* Content */}
-                <div className="pr-6">
-                  <h4 className="font-semibold text-base mb-2">{title}</h4>
-                  <p className="text-sm text-primary-foreground/90 leading-relaxed">
-                    {description}
-                  </p>
-                </div>
-
-                {/* Actions */}
-                <div className="flex items-center justify-between mt-4">
-                  <button
-                    onClick={handleSkip}
-                    className="text-xs text-primary-foreground/70 hover:text-primary-foreground transition-colors"
-                  >
-                    Skip tour
-                  </button>
-                  <Button
-                    size="sm"
-                    onClick={handleNext}
-                    className="bg-primary-foreground text-primary hover:bg-primary-foreground/90 gap-1"
-                  >
-                    {step === totalSteps ? 'Get Started' : 'Next'}
-                    {step !== totalSteps && <ChevronRight className="h-3 w-3" />}
-                  </Button>
+                {/* Progress bar at bottom */}
+                <div className="h-[3px] bg-muted">
+                  <motion.div
+                    className="h-full bg-primary"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${progressPercent}%` }}
+                    transition={{ duration: 0.4, ease: "easeOut" }}
+                  />
                 </div>
               </div>
             </motion.div>

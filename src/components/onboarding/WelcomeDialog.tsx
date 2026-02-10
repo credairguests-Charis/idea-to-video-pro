@@ -1,152 +1,84 @@
-import { useState } from "react";
-import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { useOnboarding } from "@/hooks/useOnboarding";
-import { Sparkles, Video, Users, Zap, ArrowRight, CheckCircle } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { CheckCircle2 } from "lucide-react";
+import { motion } from "framer-motion";
+import charisLogo from "@/assets/charis-logo-new.png";
 
-const steps = [
-  {
-    icon: Sparkles,
-    title: "Welcome to Charis",
-    description: "Create stunning AI-powered UGC video ads in minutes. Let's get you started!",
-    features: [
-      "Select from diverse AI actors",
-      "Write or paste your script",
-      "Generate professional videos instantly",
-    ],
-  },
-  {
-    icon: Users,
-    title: "Choose Your Actors",
-    description: "Browse our library of realistic AI actors. Each actor brings unique personality to your ads.",
-    tip: "Pro tip: Select multiple actors to create variations of your ad for A/B testing.",
-  },
-  {
-    icon: Video,
-    title: "Create Your Script",
-    description: "Write your ad script or let our AI help you. The script is what your AI actor will say.",
-    tip: "Keep scripts between 30-60 seconds for optimal engagement.",
-  },
-  {
-    icon: Zap,
-    title: "Generate & Download",
-    description: "Hit generate and watch your video come to life. Download and use it anywhere!",
-    tip: "Each video uses credits. Check your credit balance in the sidebar.",
-  },
+const valueProps = [
+  "Select from 20+ diverse AI actors",
+  "Write or generate scripts instantly",
+  "Download studio-quality UGC videos",
 ];
 
 export function WelcomeDialog() {
   const { showWelcomeDialog, setShowWelcomeDialog, markTooltipSeen, completeOnboarding } = useOnboarding();
-  const [currentStep, setCurrentStep] = useState(0);
 
-  const handleNext = () => {
-    if (currentStep < steps.length - 1) {
-      setCurrentStep(currentStep + 1);
-    } else {
-      handleClose();
-    }
+  const handleTour = () => {
+    markTooltipSeen('hasSeenWelcome');
+    setShowWelcomeDialog(false);
   };
 
   const handleSkip = () => {
-    handleClose();
-  };
-
-  const handleClose = () => {
-    // Mark welcome as seen but DON'T complete onboarding yet
-    // The sequential tooltips will continue the onboarding flow
     markTooltipSeen('hasSeenWelcome');
     setShowWelcomeDialog(false);
-    setCurrentStep(0);
+    completeOnboarding();
   };
-
-  const step = steps[currentStep];
-  const Icon = step.icon;
-  const isLastStep = currentStep === steps.length - 1;
 
   return (
     <Dialog open={showWelcomeDialog} onOpenChange={setShowWelcomeDialog}>
-      <DialogContent className="sm:max-w-[500px] p-0 overflow-hidden">
-        {/* Progress indicator */}
-        <div className="flex gap-1 px-6 pt-6">
-          {steps.map((_, index) => (
-            <div
-              key={index}
-              className={`h-1 flex-1 rounded-full transition-colors duration-300 ${
-                index <= currentStep ? "bg-primary" : "bg-muted"
-              }`}
-            />
+      <DialogContent className="sm:max-w-[440px] p-0 overflow-hidden border-border/50 shadow-2xl gap-0">
+        {/* Logo area with radial gradient */}
+        <motion.div
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          transition={{ type: "spring", stiffness: 300, damping: 24 }}
+          className="flex flex-col items-center pt-10 pb-6 px-8"
+          style={{
+            background: "radial-gradient(ellipse at 50% 0%, hsl(var(--primary) / 0.06) 0%, transparent 70%)",
+          }}
+        >
+          <img
+            src={charisLogo}
+            alt="Charis"
+            className="h-10 mb-6 object-contain"
+          />
+          <h2 className="text-xl font-semibold text-foreground tracking-tight text-center">
+            Welcome to Charis
+          </h2>
+          <p className="text-sm text-muted-foreground mt-2 text-center leading-relaxed max-w-[320px]">
+            Create professional AI video ads in minutes — no camera, no crew, no studio.
+          </p>
+        </motion.div>
+
+        {/* Value props */}
+        <div className="px-8 pb-6 space-y-3">
+          {valueProps.map((prop, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15 + i * 0.08, duration: 0.3, ease: "easeOut" }}
+              className="flex items-center gap-3"
+            >
+              <CheckCircle2 className="h-4 w-4 text-primary shrink-0" />
+              <span className="text-sm text-foreground">{prop}</span>
+            </motion.div>
           ))}
         </div>
 
-        <AnimatePresence mode="wait">
-          <motion.div
-            key={currentStep}
-            initial={{ opacity: 0, x: 20 }}
-            animate={{ opacity: 1, x: 0 }}
-            exit={{ opacity: 0, x: -20 }}
-            transition={{ duration: 0.2 }}
-            className="px-6 pb-6"
+        {/* Actions */}
+        <div className="flex items-center justify-between px-8 py-5 border-t border-border/50 bg-muted/20">
+          <button
+            onClick={handleSkip}
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2 decoration-muted-foreground/40"
           >
-            <DialogHeader className="pt-4">
-              <div className="flex justify-center mb-4">
-                <div className="p-4 rounded-full bg-primary/10">
-                  <Icon className="h-8 w-8 text-primary" />
-                </div>
-              </div>
-              <DialogTitle className="text-2xl text-center">{step.title}</DialogTitle>
-              <DialogDescription className="text-center text-base">
-                {step.description}
-              </DialogDescription>
-            </DialogHeader>
-
-            <div className="mt-6 space-y-3">
-              {step.features?.map((feature, index) => (
-                <motion.div
-                  key={index}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-center gap-3 p-3 rounded-lg bg-muted/50"
-                >
-                  <CheckCircle className="h-5 w-5 text-primary shrink-0" />
-                  <span className="text-sm">{feature}</span>
-                </motion.div>
-              ))}
-
-              {step.tip && (
-                <div className="p-4 rounded-lg bg-primary/5 border border-primary/10">
-                  <p className="text-sm text-muted-foreground">
-                    <span className="font-medium text-foreground">💡 Tip:</span> {step.tip}
-                  </p>
-                </div>
-              )}
-            </div>
-          </motion.div>
-        </AnimatePresence>
-
-        <DialogFooter className="px-6 py-4 bg-muted/30 border-t">
-          <div className="flex w-full justify-between items-center">
-            <Button variant="ghost" onClick={handleSkip}>
-              Skip tour
-            </Button>
-            <div className="flex items-center gap-2">
-              <span className="text-sm text-muted-foreground">
-                {currentStep + 1} of {steps.length}
-              </span>
-              <Button onClick={handleNext}>
-                {isLastStep ? (
-                  "Get Started"
-                ) : (
-                  <>
-                    Next
-                    <ArrowRight className="ml-2 h-4 w-4" />
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </DialogFooter>
+            Skip
+          </button>
+          <Button onClick={handleTour} size="sm" className="px-5">
+            Take a quick tour
+          </Button>
+        </div>
       </DialogContent>
     </Dialog>
   );
