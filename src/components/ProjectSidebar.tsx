@@ -175,7 +175,7 @@ export function ProjectSidebar({
     }
   }, [displayedProjects, projects.length]);
   const standaloneProjects = projects.filter(p => !p.folder_id).slice(0, displayedProjects);
-  return <div className={cn("flex flex-col h-full bg-sidebar border-r transition-all duration-300", isCollapsed ? "w-16" : "w-64 md:w-64")}>
+  return <div className={cn("flex flex-col h-full bg-sidebar border-r transition-all duration-300 overflow-hidden", isCollapsed ? "w-16" : "w-64 md:w-64")}>
       {/* Header */}
       <div className="p-2 md:p-3 border-b">
         <div className="flex items-center justify-between gap-3 mb-3">
