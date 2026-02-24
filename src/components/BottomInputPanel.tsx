@@ -1,7 +1,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { Users, ArrowUp, ChevronDown, Film, Image as ImageIcon, X } from "lucide-react";
+import { Users, ArrowUp, ChevronDown, Film, Image as ImageIcon, X, Link2, Loader2, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
+import { Input } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { ActorCard } from "@/components/ActorCard";
 import {
@@ -11,6 +12,13 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { OnboardingSpotlight } from "@/components/onboarding/OnboardingSpotlight";
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 interface SelectedActor {
   id: string;
@@ -22,6 +30,14 @@ interface ProductImage {
   url: string;
   name: string;
   isUploading?: boolean;
+}
+
+interface BrandUrlData {
+  url: string;
+  title: string;
+  description: string;
+  content: string;
+  isFetching?: boolean;
 }
 
 interface BottomInputPanelProps {
@@ -37,6 +53,8 @@ interface BottomInputPanelProps {
   isLoading: boolean;
   productImage: ProductImage | null;
   onProductImageChange: (image: ProductImage | null) => void;
+  brandUrl?: BrandUrlData | null;
+  onBrandUrlChange?: (data: BrandUrlData | null) => void;
 }
 
 export function BottomInputPanel({
@@ -52,11 +70,22 @@ export function BottomInputPanel({
   isLoading,
   productImage,
   onProductImageChange,
+  brandUrl: externalBrandUrl,
+  onBrandUrlChange,
 }: BottomInputPanelProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [charCount, setCharCount] = useState(0);
   const maxChars = 1500;
+
+  // Internal brand URL state (used when no external control is provided)
+  const [internalBrandUrl, setInternalBrandUrl] = useState<BrandUrlData | null>(null);
+  const brandUrl = externalBrandUrl !== undefined ? externalBrandUrl : internalBrandUrl;
+  const setBrandUrl = onBrandUrlChange || setInternalBrandUrl;
+
+  const [urlInput, setUrlInput] = useState("");
+  const [urlPopoverOpen, setUrlPopoverOpen] = useState(false);
+  const [isFetchingUrl, setIsFetchingUrl] = useState(false);
 
   useEffect(() => {
     setCharCount(script.length);
@@ -75,11 +104,66 @@ export function BottomInputPanel({
     adjustHeight();
   }, [script, adjustHeight]);
 
+  const handleFetchUrl = useCallback(async () => {
+    const trimmed = urlInput.trim();
+    if (!trimmed) return;
+
+    // Basic URL validation
+    let testUrl = trimmed;
+    if (!testUrl.startsWith('http://') && !testUrl.startsWith('https://')) {
+      testUrl = `https://${testUrl}`;
+    }
+    try {
+      new URL(testUrl);
+    } catch {
+      toast.error("Please enter a valid URL");
+      return;
+    }
+
+    setIsFetchingUrl(true);
+    setBrandUrl({ url: testUrl, title: '', description: '', content: '', isFetching: true });
+    setUrlPopoverOpen(false);
+    setUrlInput("");
+
+    try {
+      const { data, error } = await supabase.functions.invoke('firecrawl-scrape', {
+        body: { url: testUrl },
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || 'Failed to fetch URL');
+
+      const brandInfo = data.data;
+      setBrandUrl({
+        url: testUrl,
+        title: brandInfo.title || new URL(testUrl).hostname,
+        description: brandInfo.description || '',
+        content: brandInfo.content || '',
+        isFetching: false,
+      });
+
+      toast.success("Brand info loaded", {
+        description: brandInfo.title || new URL(testUrl).hostname,
+      });
+    } catch (err) {
+      console.error('Error fetching URL:', err);
+      setBrandUrl(null);
+      toast.error("Couldn't fetch that URL", {
+        description: err instanceof Error ? err.message : "Please try again",
+      });
+    } finally {
+      setIsFetchingUrl(false);
+    }
+  }, [urlInput, setBrandUrl]);
+
+  const handleRemoveBrandUrl = useCallback(() => {
+    setBrandUrl(null);
+  }, [setBrandUrl]);
+
   const handleProductImageUpload = useCallback(async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file || !file.type.startsWith('image/')) return;
 
-    // Show loading state with local preview
     const localUrl = URL.createObjectURL(file);
     onProductImageChange({
       url: localUrl,
@@ -88,8 +172,6 @@ export function BottomInputPanel({
     });
 
     try {
-      // Upload to Supabase Storage
-      const { supabase } = await import('@/integrations/supabase/client');
       const fileExt = file.name.split('.').pop();
       const fileName = `${Math.random().toString(36).substring(2)}-${Date.now()}.${fileExt}`;
       const filePath = `products/${fileName}`;
@@ -103,12 +185,10 @@ export function BottomInputPanel({
 
       if (uploadError) throw uploadError;
 
-      // Get public URL
       const { data: { publicUrl } } = supabase.storage
         .from('actor-images')
         .getPublicUrl(filePath);
 
-      // Update with public URL
       URL.revokeObjectURL(localUrl);
       onProductImageChange({
         url: publicUrl,
@@ -116,7 +196,6 @@ export function BottomInputPanel({
         isUploading: false
       });
       
-      // Reset file input to allow uploading another image
       if (fileInputRef.current) {
         fileInputRef.current.value = '';
       }
@@ -124,7 +203,6 @@ export function BottomInputPanel({
       console.error('Error uploading product image:', error);
       URL.revokeObjectURL(localUrl);
       onProductImageChange(null);
-      // You could add a toast notification here to inform the user
     }
   }, [onProductImageChange]);
 
@@ -195,8 +273,8 @@ export function BottomInputPanel({
           </div>
         </OnboardingSpotlight>
 
-        {/* Selected actors and product image */}
-        {(selectedActors.length > 0 || productImage) && (
+        {/* Selected actors, product image, and brand URL chips */}
+        {(selectedActors.length > 0 || productImage || brandUrl) && (
           <div className="px-3 md:px-4 pb-3">
             <div className="flex flex-wrap gap-2 items-center">
               {selectedActors.map((actor) => (
@@ -225,6 +303,27 @@ export function BottomInputPanel({
                   >
                     <X className="h-3 w-3 text-gray-500" />
                   </button>
+                </div>
+              )}
+              {brandUrl && (
+                <div className="relative inline-flex items-center gap-2 pl-2.5 pr-3 py-1 bg-white rounded-full border border-gray-200 shadow-sm max-w-[220px]">
+                  {brandUrl.isFetching ? (
+                    <Loader2 className="h-4 w-4 animate-spin text-gray-400 shrink-0" />
+                  ) : (
+                    <Globe className="h-4 w-4 text-primary shrink-0" />
+                  )}
+                  <span className="text-sm font-medium text-gray-900 truncate">
+                    {brandUrl.isFetching ? 'Fetching…' : brandUrl.title || new URL(brandUrl.url).hostname}
+                  </span>
+                  {!brandUrl.isFetching && (
+                    <button
+                      onClick={handleRemoveBrandUrl}
+                      disabled={isLoading}
+                      className="ml-1 p-0.5 hover:bg-accent hover:text-accent-foreground rounded-full transition-colors disabled:opacity-50 shrink-0"
+                    >
+                      <X className="h-3 w-3 text-gray-500" />
+                    </button>
+                  )}
                 </div>
               )}
             </div>
@@ -343,6 +442,69 @@ export function BottomInputPanel({
               <ImageIcon className="h-3 w-3 md:h-3.5 md:w-3.5" />
               <span className="hidden sm:inline ml-1">Product</span>
             </Button>
+
+            {/* URL Button */}
+            <Popover open={urlPopoverOpen} onOpenChange={setUrlPopoverOpen}>
+              <PopoverTrigger asChild>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  className={cn(
+                    "h-6 md:h-7 text-[10px] md:text-xs hover:bg-accent hover:text-accent-foreground px-2 md:px-3",
+                    brandUrl ? "text-primary" : "text-gray-700"
+                  )}
+                  disabled={isLoading || isFetchingUrl}
+                >
+                  {isFetchingUrl ? (
+                    <Loader2 className="h-3 w-3 md:h-3.5 md:w-3.5 animate-spin" />
+                  ) : (
+                    <Link2 className="h-3 w-3 md:h-3.5 md:w-3.5" />
+                  )}
+                  <span className="hidden sm:inline ml-1">URL</span>
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent
+                align="end"
+                side="top"
+                className="w-80 p-3 bg-white border border-gray-200 shadow-lg"
+              >
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-gray-700">
+                    Paste your brand or product URL
+                  </p>
+                  <p className="text-[11px] text-gray-400">
+                    We'll fetch brand positioning, images, and details automatically.
+                  </p>
+                  <div className="flex gap-2">
+                    <Input
+                      value={urlInput}
+                      onChange={(e) => setUrlInput(e.target.value)}
+                      placeholder="https://yourbrand.com"
+                      className="h-8 text-sm"
+                      onKeyDown={(e) => {
+                        if (e.key === 'Enter') {
+                          e.preventDefault();
+                          handleFetchUrl();
+                        }
+                      }}
+                      autoFocus
+                    />
+                    <Button
+                      size="sm"
+                      onClick={handleFetchUrl}
+                      disabled={!urlInput.trim() || isFetchingUrl}
+                      className="h-8 px-3 shrink-0"
+                    >
+                      {isFetchingUrl ? (
+                        <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                      ) : (
+                        "Fetch"
+                      )}
+                    </Button>
+                  </div>
+                </div>
+              </PopoverContent>
+            </Popover>
 
             <OnboardingSpotlight
               tooltipKey="hasSeenGenerateTooltip"
