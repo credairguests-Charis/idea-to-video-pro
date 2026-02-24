@@ -1,4 +1,4 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useEffect } from "react";
 import { Users } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useCredits } from "@/hooks/useCredits";
@@ -8,6 +8,7 @@ import { BottomInputPanel } from "@/components/BottomInputPanel";
 import { ActorSelectionModal } from "@/components/ActorSelectionModal";
 import { VideoGenerationTracker } from "@/components/VideoGenerationTracker";
 import { VideoLibrary } from "@/components/VideoLibrary";
+import { toast as sonnerToast } from "sonner";
 
 interface SelectedActor {
   id: string;
@@ -19,6 +20,15 @@ interface ProductImage {
   url: string;
   name: string;
   isUploading?: boolean;
+}
+
+interface BrandUrlData {
+  url: string;
+  title: string;
+  description: string;
+  content: string;
+  productImages?: string[];
+  isFetching?: boolean;
 }
 
 interface VideoProject {
@@ -44,8 +54,69 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = 'generate
   const [isLoading, setIsLoading] = useState(false);
   const [projects, setProjects] = useState<VideoProject[]>([]);
   const [productImage, setProductImage] = useState<ProductImage | null>(null);
+  const [brandUrl, setBrandUrl] = useState<BrandUrlData | null>(null);
+  const [isGeneratingScript, setIsGeneratingScript] = useState(false);
   const { toast } = useToast();
   const { credits, checkSufficientCredits, CREDITS_PER_VIDEO, refetch: refetchCredits } = useCredits();
+
+  // Auto-generate script when brand URL data arrives
+  useEffect(() => {
+    if (brandUrl && !brandUrl.isFetching && brandUrl.content && !isGeneratingScript) {
+      generateBrandScript(brandUrl);
+    }
+  }, [brandUrl?.isFetching]);
+
+  const generateBrandScript = async (brand: BrandUrlData) => {
+    setIsGeneratingScript(true);
+    sonnerToast.loading("Generating UGC script from brand data...", { id: 'brand-script' });
+
+    try {
+      const { data, error } = await supabase.functions.invoke('generate-brand-script', {
+        body: {
+          brandData: {
+            url: brand.url,
+            title: brand.title,
+            description: brand.description,
+            content: brand.content,
+          },
+          userIntent: script.trim() || null,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (!data?.success) throw new Error(data?.error || 'Failed to generate script');
+
+      const result = data.data;
+
+      // Set the generated script
+      if (result.script) {
+        setScript(result.script);
+      }
+
+      // Auto-set product image if found and none already set
+      const bestImage = result.productImageUrl || brand.productImages?.[0];
+      if (bestImage && !productImage) {
+        setProductImage({
+          url: bestImage,
+          name: result.productName || 'Product',
+          isUploading: false,
+        });
+      }
+
+      sonnerToast.success("UGC script generated!", {
+        id: 'brand-script',
+        description: `Script ready for ${result.brandName || brand.title}`,
+      });
+    } catch (err) {
+      console.error('Error generating brand script:', err);
+      sonnerToast.error("Couldn't generate script", {
+        id: 'brand-script',
+        description: err instanceof Error ? err.message : "Please try again",
+      });
+    } finally {
+      setIsGeneratingScript(false);
+    }
+  };
 
   // Mock project data for display
   const mockProjects: VideoProject[] = [
@@ -435,9 +506,11 @@ export function NewProjectArcads({ onProjectCreated, projectId, mode = 'generate
         onAspectRatioChange={setAspectRatio}
         onSubmit={handleCreateProject}
         onBulkGenerate={handleBulkGenerate}
-        isLoading={isLoading}
+        isLoading={isLoading || isGeneratingScript}
         productImage={productImage}
         onProductImageChange={setProductImage}
+        brandUrl={brandUrl}
+        onBrandUrlChange={setBrandUrl}
       />
 
       {/* Actor Selection Modal */}

@@ -37,6 +37,7 @@ interface BrandUrlData {
   title: string;
   description: string;
   content: string;
+  productImages?: string[];
   isFetching?: boolean;
 }
 
@@ -139,6 +140,7 @@ export function BottomInputPanel({
         title: brandInfo.title || new URL(testUrl).hostname,
         description: brandInfo.description || '',
         content: brandInfo.content || '',
+        productImages: brandInfo.productImages || [],
         isFetching: false,
       });
 
