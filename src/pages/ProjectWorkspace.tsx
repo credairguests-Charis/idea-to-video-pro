@@ -107,19 +107,7 @@ export default function ProjectWorkspace({ settingsMode = false }: ProjectWorksp
         ) : currentProject ? (
           <NewProjectArcads projectId={currentProjectId} mode={viewMode} />
         ) : (
-          <div className="flex-1 flex items-center justify-center">
-            <div className="text-center space-y-4">
-              <h2 className="text-2xl font-semibold text-muted-foreground">
-                No project selected
-              </h2>
-              <p className="text-sm text-muted-foreground">
-                Select a project from the sidebar or create a new one
-              </p>
-              <Button onClick={handleNewProject}>
-                Create New Project
-              </Button>
-            </div>
-          </div>
+          <NewProjectArcads mode="library" />
         )}
       </div>
 

@@ -41,7 +41,7 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         url: formattedUrl,
-        formats: ['markdown'],
+        formats: ['markdown', 'html'],
         onlyMainContent: true,
         waitFor: 3000,
       }),
@@ -60,12 +60,47 @@ Deno.serve(async (req) => {
     // Extract useful brand info from the scraped content
     const markdown = data?.data?.markdown || data?.markdown || '';
     const metadata = data?.data?.metadata || data?.metadata || {};
+    const html = data?.data?.html || data?.html || '';
+
+    // Extract product images from metadata and content
+    const ogImage = metadata.ogImage || metadata['og:image'] || metadata.image || '';
+    
+    // Try to find product images from the markdown content
+    const imageMatches = markdown.match(/!\[.*?\]\((https?:\/\/[^\s)]+)\)/g) || [];
+    const imageUrls = imageMatches
+      .map((m: string) => {
+        const urlMatch = m.match(/\((https?:\/\/[^\s)]+)\)/);
+        return urlMatch ? urlMatch[1] : null;
+      })
+      .filter(Boolean);
+    
+    // Also extract from HTML img tags if available
+    const imgTagMatches = html.match(/<img[^>]+src=["'](https?:\/\/[^"']+)["'][^>]*>/gi) || [];
+    const htmlImageUrls = imgTagMatches
+      .map((m: string) => {
+        const srcMatch = m.match(/src=["'](https?:\/\/[^"']+)["']/i);
+        return srcMatch ? srcMatch[1] : null;
+      })
+      .filter(Boolean);
+
+    // Combine and prioritize images
+    const allImages = [...new Set([ogImage, ...imageUrls, ...htmlImageUrls].filter(Boolean))];
+    
+    // Prioritize product-looking images
+    const productKeywords = ['product', 'hero', 'featured', 'main', 'shop', 'item', 'collection'];
+    const prioritizedImages = allImages.sort((a: string, b: string) => {
+      const aScore = productKeywords.some(k => a.toLowerCase().includes(k)) ? 1 : 0;
+      const bScore = productKeywords.some(k => b.toLowerCase().includes(k)) ? 1 : 0;
+      return bScore - aScore;
+    });
 
     const brandInfo = {
       title: metadata.title || '',
-      description: metadata.description || '',
+      description: metadata.description || metadata['og:description'] || '',
       sourceUrl: formattedUrl,
-      content: markdown.substring(0, 3000), // Limit content size
+      content: markdown.substring(0, 5000), // Increased for better AI context
+      productImages: prioritizedImages.slice(0, 5), // Top 5 product images
+      ogImage: ogImage || null,
     };
 
     console.log('Scrape successful, title:', brandInfo.title);

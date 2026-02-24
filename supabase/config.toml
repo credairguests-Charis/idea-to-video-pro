@@ -128,3 +128,9 @@ verify_jwt = true
 
 [functions.setup-actor-images]
 verify_jwt = false
+
+[functions.generate-brand-script]
+verify_jwt = false
+
+[functions.firecrawl-scrape]
+verify_jwt = false
